@@ -1,0 +1,12 @@
+{
+  "apiCode": {
+    "main": {"ios": "<MAIN_API_CODE_IOS>", "android": "<MAIN_API_CODE_ANDROID>"},
+    "test": {"ios": "<TEST_API_CODE_IOS>", "android": "<TEST_API_CODE_ANDROID>"}
+  },
+  "endpoint": {
+    "main": "<MAIN_ENDPOINT>",
+    "test":  "<TEST_END_POINT>"
+  },
+  "GOOGLE_SIGN_IN_WEB_CLI_ID": "<MY_GOOGLE_SIGN_IN_WEB_CLI_ID>",
+  "uniqueIds": ["<UNIQUE_IDS>"],
+}

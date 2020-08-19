@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">CYBAVO Wallet</string>
+    <string name="com.crashlytics.useFirebaseAppId">true</string>
+<!--    <string name="com.crashlytics.android.build_id">RANDOM_UUID444</string>-->
+    <string name="facebook_app_id" translatable="false">MY_FACEBOOK_APP_ID</string>
+    <string name="fb_login_protocol_scheme" translatable="false">MY_FACEBOOK_APP_ID</string>
+    <string name="line_channel_id" translatable="false">MY_LINE_CHANNEL_ID</string>
+</resources>
