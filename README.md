@@ -89,7 +89,7 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
 3. Place ssh key requested from CYBAVO to ~/.ssh/ (rename it if nessersary)
 5. Run `pod install` in `ios/`
 6. Place your `GoogleService-Info.plist` file downloaded from Firebase to `ios/` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
-7. Open your project configuration: double-click the project name in the left tree view. Select your app from the TARGETS section, then select the Info tab, and expand the URL Types section. Replace `Identifier` and `URL Schemes` with `CLIENT_ID" and `REVERSED_CLIENT_ID` in your `GoogleService-Info.plist`. [(LearnMore)](https://developers.google.com/identity/sign-in/ios/start-integrating)
+7. Open your project configuration: double-click the project name in the left tree view. Select your app from the TARGETS section, then select the Info tab, and expand the URL Types section. Replace `Identifier` and `URL Schemes` with `CLIENT_ID` and `REVERSED_CLIENT_ID` in your `GoogleService-Info.plist`. [(LearnMore)](https://developers.google.com/identity/sign-in/ios/start-integrating)
 8. Replace `MY_FACEBOOK_SIGN_IN_APP_ID` with your `Facebook app id`
 9. Replace `MY_LINE_CHANNEL_SCHEME` with your `LINE channel scheme`
 9. Replace `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` with your `Google sign-in client ID`
