@@ -16,7 +16,7 @@ import {
   Coin,
   HEADER_BAR_PADDING,
   ROUND_BUTTON_HEIGHT,
-  ROUND_BUTTON_ICON_SIZE,
+  ROUND_BUTTON_ICON_SIZE, ROUND_BUTTON_MEDIUM_HEIGHT,
 } from '../Constants';
 import Styles from '../styles/Styles';
 const RECEIVE_ICON = require('../assets/image/receive.png');
@@ -535,7 +535,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
           )}
           <View style={styles.roundButtonContainer}>
             <RoundButton2
-              height={ROUND_BUTTON_HEIGHT}
+              height={ROUND_BUTTON_MEDIUM_HEIGHT}
               style={{ marginLeft: 16, width: width / 2 - 32 }}
               icon={({ size, color }) => (
                 <Image
@@ -559,7 +559,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
               {I18n.t('receive')}
             </RoundButton2>
             <RoundButton2
-              height={ROUND_BUTTON_HEIGHT}
+              height={ROUND_BUTTON_MEDIUM_HEIGHT}
               style={{ marginHorizontal: 16, width: width / 2 - 32 }}
               icon={({ size, color }) => (
                 <Image

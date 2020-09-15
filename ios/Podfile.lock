@@ -15,7 +15,7 @@ PODS:
   - Crashlytics (3.14.0):
     - Fabric (~> 1.10.2)
   - CryptoSwift (1.0.0)
-  - CYBAVOWallet (1.2.203):
+  - CYBAVOWallet (1.2.210):
     - Alamofire (~> 4.9.0)
     - AlamofireObjectMapper (~> 5.2.1)
     - CryptoSwift (= 1.0.0)
@@ -120,24 +120,24 @@ PODS:
     - AppAuth (~> 1.2)
     - GTMAppAuth (~> 1.0)
     - GTMSessionFetcher/Core (~> 1.1)
-  - GoogleUtilities/AppDelegateSwizzler (6.7.1):
+  - GoogleUtilities/AppDelegateSwizzler (6.7.2):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
     - GoogleUtilities/Network
-  - GoogleUtilities/Environment (6.7.1):
+  - GoogleUtilities/Environment (6.7.2):
     - PromisesObjC (~> 1.2)
-  - GoogleUtilities/Logger (6.7.1):
+  - GoogleUtilities/Logger (6.7.2):
     - GoogleUtilities/Environment
-  - GoogleUtilities/MethodSwizzler (6.7.1):
+  - GoogleUtilities/MethodSwizzler (6.7.2):
     - GoogleUtilities/Logger
-  - GoogleUtilities/Network (6.7.1):
+  - GoogleUtilities/Network (6.7.2):
     - GoogleUtilities/Logger
     - "GoogleUtilities/NSData+zlib"
     - GoogleUtilities/Reachability
-  - "GoogleUtilities/NSData+zlib (6.7.1)"
-  - GoogleUtilities/Reachability (6.7.1):
+  - "GoogleUtilities/NSData+zlib (6.7.2)"
+  - GoogleUtilities/Reachability (6.7.2):
     - GoogleUtilities/Logger
-  - GoogleUtilities/UserDefaults (6.7.1):
+  - GoogleUtilities/UserDefaults (6.7.2):
     - GoogleUtilities/Logger
   - GTMAppAuth (1.0.0):
     - AppAuth/Core (~> 1.0)
@@ -154,10 +154,10 @@ PODS:
   - nanopb/decode (0.3.9011)
   - nanopb/encode (0.3.9011)
   - ObjectMapper (3.5.3)
-  - Permission-Camera (2.1.5):
+  - Permission-Camera (2.2.0):
     - RNPermissions
-  - PromisesObjC (1.2.9)
-  - Protobuf (3.12.0)
+  - PromisesObjC (1.2.10)
+  - Protobuf (3.13.0)
   - RCTRequired (0.61.4)
   - RCTTypeSafety (0.61.4):
     - FBLazyVector (= 0.61.4)
@@ -321,13 +321,13 @@ PODS:
     - React-cxxreact (= 0.61.4)
     - React-jsi (= 0.61.4)
   - React-jsinspector (0.61.4)
-  - react-native-camera (3.31.1):
+  - react-native-camera (3.39.0):
     - React
-    - react-native-camera/RCT (= 3.31.1)
-    - react-native-camera/RN (= 3.31.1)
-  - react-native-camera/RCT (3.31.1):
+    - react-native-camera/RCT (= 3.39.0)
+    - react-native-camera/RN (= 3.39.0)
+  - react-native-camera/RCT (3.39.0):
     - React
-  - react-native-camera/RN (3.31.1):
+  - react-native-camera/RN (3.39.0):
     - React
   - react-native-cameraroll (1.8.1):
     - React
@@ -347,13 +347,20 @@ PODS:
     - React
   - react-native-image-picker (2.3.3):
     - React
+  - react-native-randombytes (3.5.3):
+    - React
   - react-native-safe-area-context (0.7.3):
     - React
   - react-native-slider (2.0.9):
     - React
+  - react-native-twitter-signin (1.1.1):
+    - React
+    - TwitterKit (~> 3.3)
+  - react-native-udp (2.7.0):
+    - React
   - react-native-version-number (0.3.6):
     - React
-  - react-native-viewpager (3.3.0):
+  - react-native-viewpager (3.3.1):
     - React
   - react-native-webview (9.4.0):
     - React
@@ -398,11 +405,11 @@ PODS:
     - React
   - RNAppleAuthentication (1.0.0):
     - React
-  - RNCAsyncStorage (1.11.0):
+  - RNCAsyncStorage (1.12.0):
     - React
-  - RNCPushNotificationIOS (1.3.0):
+  - RNCPushNotificationIOS (1.5.0):
     - React
-  - RNDeviceInfo (5.6.2):
+  - RNDeviceInfo (5.6.5):
     - React
   - RNFBApp (6.7.1):
     - Firebase/Core (~> 6.13.0)
@@ -424,16 +431,18 @@ PODS:
     - RNFBApp
   - RNFS (2.16.6):
     - React
-  - RNGestureHandler (1.6.1):
+  - RNGestureHandler (1.8.0):
     - React
   - RNGoogleSignin (2.1.1):
     - GoogleSignIn (~> 5.0.0)
     - React
   - RNI18n (2.0.15):
     - React
-  - RNPermissions (2.1.5):
+  - RNOS (1.2.6):
     - React
-  - RNReanimated (1.9.0):
+  - RNPermissions (2.2.0):
+    - React
+  - RNReanimated (1.13.0):
     - React
   - RNScreens (1.0.0-alpha.23):
     - React
@@ -445,8 +454,13 @@ PODS:
   - SwiftOTP (2.0.0):
     - CryptoSwift (>= 1.0.0)
   - SwiftyUserDefaults (4.0.0)
+  - TcpSockets (3.3.2):
+    - React
   - toolbar-android (0.1.0-rc.2):
     - React
+  - TwitterCore (3.2.0)
+  - TwitterKit (3.4.2):
+    - TwitterCore (>= 3.2.0)
   - Web3 (0.4.2):
     - Web3/Core (= 0.4.2)
     - Web3/HTTPExtension (= 0.4.2)
@@ -487,8 +501,11 @@ DEPENDENCIES:
   - "react-native-cameraroll (from `../node_modules/@react-native-community/cameraroll`)"
   - react-native-fbsdk (from `../node_modules/react-native-fbsdk`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
+  - react-native-randombytes (from `../node_modules/react-native-randombytes`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-slider (from `../node_modules/@react-native-community/slider`)"
+  - react-native-twitter-signin (from `../node_modules/react-native-twitter-signin`)
+  - react-native-udp (from `../node_modules/react-native-udp`)
   - react-native-version-number (from `../node_modules/react-native-version-number`)
   - "react-native-viewpager (from `../node_modules/@react-native-community/viewpager`)"
   - react-native-webview (from `../node_modules/react-native-webview`)
@@ -516,11 +533,13 @@ DEPENDENCIES:
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNGoogleSignin (from `../node_modules/react-native-google-signin`)
   - RNI18n (from `../node_modules/react-native-i18n`)
+  - RNOS (from `../node_modules/react-native-os`)
   - RNPermissions (from `../node_modules/react-native-permissions`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
+  - TcpSockets (from `../node_modules/react-native-tcp`)
   - "toolbar-android (from `../node_modules/@react-native-community/toolbar-android`)"
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -562,6 +581,8 @@ SPEC REPOS:
     - secp256k1.swift
     - SwiftOTP
     - SwiftyUserDefaults
+    - TwitterCore
+    - TwitterKit
     - Web3
 
 EXTERNAL SOURCES:
@@ -607,10 +628,16 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-fbsdk"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
+  react-native-randombytes:
+    :path: "../node_modules/react-native-randombytes"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-slider:
     :path: "../node_modules/@react-native-community/slider"
+  react-native-twitter-signin:
+    :path: "../node_modules/react-native-twitter-signin"
+  react-native-udp:
+    :path: "../node_modules/react-native-udp"
   react-native-version-number:
     :path: "../node_modules/react-native-version-number"
   react-native-viewpager:
@@ -663,6 +690,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-google-signin"
   RNI18n:
     :path: "../node_modules/react-native-i18n"
+  RNOS:
+    :path: "../node_modules/react-native-os"
   RNPermissions:
     :path: "../node_modules/react-native-permissions"
   RNReanimated:
@@ -673,6 +702,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-svg"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
+  TcpSockets:
+    :path: "../node_modules/react-native-tcp"
   toolbar-android:
     :path: "../node_modules/@react-native-community/toolbar-android"
   Yoga:
@@ -687,7 +718,7 @@ SPEC CHECKSUMS:
   BVLinearGradient: e3aad03778a456d77928f594a649e96995f1c872
   Crashlytics: 540b7e5f5da5a042647227a5e3ac51d85eed06df
   CryptoSwift: d81eeaa59dc5a8d03720fe919a6fd07b51f7439f
-  CYBAVOWallet: ba453f84ce7cfd0ffc51004cc0437de68944b9f1
+  CYBAVOWallet: 297cbc4a8c09e3cafb4261925e900ec56544129a
   CybavoWalletService: a5fe6c9a0fe6b59878f96799db7814eb5e3283b9
   DoubleConversion: 5805e889d232975c086db112ece9ed034df7a0b2
   Fabric: 706c8b8098fff96c33c0db69cbf81f9c551d0d74
@@ -710,15 +741,15 @@ SPEC CHECKSUMS:
   GoogleDataTransport: 9a8a16f79feffc7f42096743de2a7c4815e84020
   GoogleDataTransportCCTSupport: 0f39025e8cf51f168711bd3fb773938d7e62ddb5
   GoogleSignIn: 7137d297ddc022a7e0aa4619c86d72c909fa7213
-  GoogleUtilities: e121a3867449ce16b0e35ddf1797ea7a389ffdf2
+  GoogleUtilities: 7f2f5a07f888cdb145101d6042bc4422f57e70b3
   GTMAppAuth: 4deac854479704f348309e7b66189e604cf5e01e
   GTMSessionFetcher: 6f5c8abbab8a9bce4bb3f057e317728ec6182b10
   LineSDK: 5b9aeeb637a9d1005241ba5b28952f8bcf3e4bad
   nanopb: 18003b5e52dab79db540fe93fe9579f399bd1ccd
   ObjectMapper: 97111c97e054a6ee25917662106689f0b4127b37
-  Permission-Camera: afad27bf90337684d4a86f3825112d648c8c4d3b
-  PromisesObjC: b48e0338dbbac2207e611750777895f7a5811b75
-  Protobuf: 2793fcd0622a00b546c60e7cbbcc493e043e9bb9
+  Permission-Camera: 9ff12884205fb282b4a22b9e8c358ba53cee7567
+  PromisesObjC: b14b1c6b68e306650688599de8a45e49fae81151
+  Protobuf: 3dac39b34a08151c6d949560efe3f86134a3f748
   RCTRequired: f3b3fb6f4723e8e52facb229d0c75fdc76773849
   RCTTypeSafety: 2ec60de6abb1db050b56ecc4b60188026078fd10
   React: 10e0130b57e55a7cd8c3dee37c1261102ce295f4
@@ -728,14 +759,17 @@ SPEC CHECKSUMS:
   React-jsi: ca921f4041505f9d5197139b2d09eeb020bb12e8
   React-jsiexecutor: 8dfb73b987afa9324e4009bdce62a18ce23d983c
   React-jsinspector: d15478d0a8ada19864aa4d1cc1c697b41b3fa92f
-  react-native-camera: 9df6761b69d165c570ca1ab7e1245ebf349dbb88
+  react-native-camera: 3940f67a49eaf736525a3e730653fcb98e1525dd
   react-native-cameraroll: e2917a5e62da9f10c3d525e157e25e694d2d6dfa
   react-native-fbsdk: 00c15d138bba6d4efa628670886fc58cec858c19
   react-native-image-picker: 3d3f85baabca60a00b75fb8facc1376db7bbdafa
+  react-native-randombytes: 3638d24759d67c68f6ccba60c52a7a8a8faa6a23
   react-native-safe-area-context: e200d4433aba6b7e60b52da5f37af11f7a0b0392
   react-native-slider: e51492f1264d882a8815b71c5870f8978e52887d
+  react-native-twitter-signin: 5b737eab225a0059e6f8fe93c893c864d020b8b9
+  react-native-udp: ff9d13e523f2b58e6bc5d4d32321ac60671b5dc9
   react-native-version-number: b415bbec6a13f2df62bf978e85bc0d699462f37f
-  react-native-viewpager: a7b438ca32c57b2614ece2a123e7fe116f743131
+  react-native-viewpager: f730c1d175a2c1ae789464855d4a2c14247d3109
   react-native-webview: cf5527893252b3b036eea024a1da6996f7344c74
   React-RCTActionSheet: 7369b7c85f99b6299491333affd9f01f5a130c22
   React-RCTAnimation: d07be15b2bd1d06d89417eb0343f98ffd2b099a7
@@ -749,29 +783,33 @@ SPEC CHECKSUMS:
   ReactCommon: a6a294e7028ed67b926d29551aa9394fd989c24c
   ReactNativeFabric: d05320ff347d5c72567c115b97edeead111ac4d2
   RNAppleAuthentication: 954b347c26ffb638265c828a5003ce1fa6971120
-  RNCAsyncStorage: d059c3ee71738c39834a627476322a5a8cd5bf36
-  RNCPushNotificationIOS: d5fd66aed4e03c6491ca0c6111a03d4f6455ff6c
-  RNDeviceInfo: ed8557a8bd6443cbc0ab5d375e6808a38a279744
+  RNCAsyncStorage: 2a692bcb9b69b76a2f1a95f33db057129700af64
+  RNCPushNotificationIOS: ef00b111c849a9bb5dbc86d40cf91acb8b262772
+  RNDeviceInfo: c5f8f3a456adcbba405ace475254b08febc4c095
   RNFBApp: 7b539bb25520fa73d6a240f5c6ea569e27683645
   RNFBCrashlytics: b34063b906dd0c57a5d286dd743a40c90c8326c7
   RNFBIid: 8f673a41f45f04273d0759c5df0aef113b580822
   RNFBMessaging: c55142d3b2d34d706bf12bd5eef9ef35254c2df1
   RNFS: 2bd9eb49dc82fa9676382f0585b992c424cd59df
-  RNGestureHandler: 8f09cd560f8d533eb36da5a6c5a843af9f056b38
+  RNGestureHandler: 7a5833d0f788dbd107fbb913e09aa0c1ff333c39
   RNGoogleSignin: 6baed9bb19c9c54614bef63bdc55c381b4e33c44
   RNI18n: e2f7e76389fcc6e84f2c8733ea89b92502351fd8
-  RNPermissions: ad71dd4f767ec254f2cd57592fbee02afee75467
-  RNReanimated: b5ccb50650ba06f6e749c7c329a1bc3ae0c88b43
+  RNOS: 6f2f9a70895bbbfbdad7196abd952e7b01d45027
+  RNPermissions: 477d88d0be7ecb0a7b344e4d5fbb0352de104626
+  RNReanimated: 89f5e0a04d1dd52fbf27e7e7030d8f80a646a3fc
   RNScreens: f28b48b8345f2f5f39ed6195518291515032a788
   RNSVG: ce9d996113475209013317e48b05c21ee988d42e
   RNVectorIcons: 0bb4def82230be1333ddaeee9fcba45f0b288ed4
   secp256k1.swift: a7e7a214f6db6ce5db32cc6b2b45e5c4dd633634
   SwiftOTP: f5e4df69cd4d1642e4bb3cb9e12bf6e9669ea164
   SwiftyUserDefaults: 6a1951df1daa19337862b677dd9a4b9bd4c288cd
+  TcpSockets: 14306fb79f9750ea7d2ddd02d8bed182abb01797
   toolbar-android: 85f3ef4d691469f2d304e7dee4bca013aa1ba1ff
+  TwitterCore: 8cbc9ad34d91c63a0035ea05bfbfc0d7ca72a28c
+  TwitterKit: 5e4f41d70b9abdb41df5467f52d7aa2c0fd26ebb
   Web3: 7b2c30f98f24cc290bc671ab525d7a30a2afbc73
   Yoga: ba3d99dbee6c15ea6bbe3783d1f0cb1ffb79af0f
 
-PODFILE CHECKSUM: 87f06ea74536cc4bdd39d58a9d483be932954dce
+PODFILE CHECKSUM: e679e0ed4a85a9251bdb60327fa8201398261485
 
 COCOAPODS: 1.9.3

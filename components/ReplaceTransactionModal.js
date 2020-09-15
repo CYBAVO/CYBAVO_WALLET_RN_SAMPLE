@@ -234,7 +234,6 @@ const styles = StyleSheet.create({
   text: {
     width: '90%',
     color: Theme.colors.text,
-    opacity: 0.4,
     marginRight: 10,
   },
   modal: {

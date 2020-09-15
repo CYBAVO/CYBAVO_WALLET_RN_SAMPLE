@@ -19,6 +19,7 @@ import {
   BADGE_FONT_SIZE,
   ROUND_BUTTON_HEIGHT,
   ROUND_BUTTON_ICON_SIZE,
+  ROUND_BUTTON_LARGE_HEIGHT,
   SMALL_ICON_SIMPLE_SIZE,
   TX_EXPLORER_URIS,
 } from '../Constants';
@@ -64,6 +65,7 @@ import ResultModal, {
 } from '../components/ResultModal';
 import { CANCELLED } from '../store/reducers/transactions';
 import ActivityLogList from '../components/ActivityLogList';
+import { SvgXml } from 'react-native-svg';
 
 const HEADER_EXPANDED_HEIGHT = 168;
 const HEADER_COLLAPSED_HEIGHT = 56;
@@ -71,6 +73,14 @@ const noHigherFeeKeys = {
   [TYPE_CANCEL]: 'no_higher_fee_for_cancel_desc',
   [TYPE_ACCELERATE]: 'no_higher_fee_for_accelerate_desc',
 };
+const CANCEL_SVG =
+  '<svg width="24" height="24" viewBox="0 0 24 24">\n' +
+  '    <path fill="#FFF" d="M16.5 10c3.59 0 6.5 2.91 6.5 6.5S20.09 23 16.5 23 10 20.09 10 16.5s2.91-6.5 6.5-6.5zm0 2c-2.485 0-4.5 2.015-4.5 4.5s2.015 4.5 4.5 4.5c2.414 0 4.384-1.902 4.495-4.288L21 16.5l-.005-.212C20.885 13.902 18.914 12 16.5 12zm1.423-11c1.08 0 1.99.8 2.071 1.849L20 3v4.5c0 .552-.448 1-1 1-.513 0-.936-.386-.993-.883L18 7.5V3l-.004.007-.036-.005L17.923 3H6.077l-.037.002-.036.005L6 3v15l.004-.007.073.007H8.23c.552 0 1 .448 1 1 0 .513-.386.936-.884.993L8.231 20H6.077c-1.08 0-1.99-.8-2.071-1.849L4 18V3c0-1.07.862-1.92 1.924-1.995L6.077 1h11.846zm1.052 13.025c.363.363.388.935.078 1.327l-.078.087-1.061 1.061 1.06 1.06c.391.391.391 1.024 0 1.415-.362.363-.934.388-1.326.078l-.087-.078-1.061-1.061-1.06 1.06c-.391.391-1.024.391-1.415 0-.363-.362-.388-.934-.078-1.326l.078-.087 1.061-1.061-1.06-1.06c-.391-.391-.391-1.024 0-1.415.362-.363.934-.388 1.326-.078l.087.078 1.061 1.061 1.06-1.06c.391-.391 1.024-.391 1.415 0zM12 8c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L12 10H9c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L9 8h3zm3.083-3c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L15.083 7H9c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L9 5h6.083z"/>\n' +
+  '</svg>';
+const ACCELERATE_SVG =
+  '<svg width="24" height="24" viewBox="0 0 24 24">\n' +
+  '    <path fill="#FFF" d="M20.577 2c.499 0 .966.258 1.223.686.268.445.266.998-.005 1.443l-2.92 4.767h1.702c.508 0 .98.267 1.233.702l.064.123c.24.523.131 1.136-.269 1.548L11.61 21.568c-.272.28-.645.432-1.028.432-.262 0-.521-.07-.747-.21-.595-.36-.84-1.1-.562-1.743l2.972-6.883-1.822.001c-.42 0-.82-.183-1.09-.5l-.094-.125c-.276-.408-.316-.93-.104-1.374l3.975-8.359c.236-.497.741-.807 1.288-.807zm-1.049 2h-4.771l-3.407 7.164 2.417.001c.68 0 1.149.657.958 1.286l-.04.11-2.31 5.346 6.804-7.011h-2.088c-.742 0-1.212-.772-.908-1.421l.055-.101L19.528 4zM6 11c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L6 13H4c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L4 11h2zm2-4c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L8 9H2c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L2 7h6zm2-4c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L10 5H6c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L6 3h4z"/>\n' +
+  '</svg>';
 const TransactionDetailScreen: () => React$Node = ({ theme }) => {
   const [scrollY] = useState(new Animated.Value(0));
   const [transparent, setTransparent] = useState(true);
@@ -320,51 +330,6 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
           elevation: 2,
           zIndex: 5,
         }}
-        actions={
-          replaceable &&
-          transaction.replaceable &&
-          transaction.replaceStatus == null && (
-            // true && (
-            <View style={{ flexDirection: 'row' }}>
-              <IconButton
-                borderless
-                // accessibilityLabel={clearAccessibilityLabel}
-                color={'rgba(255, 255, 255, 0.56)'}
-                // rippleColor={rippleColor}
-                onPress={() => {
-                  _fetchWithdrawInfo(TYPE_CANCEL);
-                }}
-                icon={({ size, color }) => (
-                  <Image
-                    source={require('../assets/image/ic_stop.png')}
-                    style={{ width: 24, height: 24 }}
-                  />
-                )}
-                accessibilityTraits="button"
-                accessibilityComponentType="button"
-                accessibilityRole="button"
-              />
-              <IconButton
-                borderless
-                // accessibilityLabel={clearAccessibilityLabel}
-                color={'rgba(255, 255, 255, 0.56)'}
-                // rippleColor={rippleColor}
-                onPress={() => {
-                  _fetchWithdrawInfo(TYPE_ACCELERATE);
-                }}
-                icon={({ size, color }) => (
-                  <Image
-                    source={require('../assets/image/ic_accelerate.png')}
-                    style={{ width: 24, height: 24 }}
-                  />
-                )}
-                accessibilityTraits="button"
-                accessibilityComponentType="button"
-                accessibilityRole="button"
-              />
-            </View>
-          )
-        }
       />
       <ScrollView
         bounces={false}
@@ -426,9 +391,10 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
             {transaction.out ? (
               <Text
                 style={[
-                  Theme.fonts.default.regular,
+                  Theme.fonts.default.heavyBold,
                   Styles.tag,
                   {
+                    fontWeight: '800',
                     backgroundColor: 'white',
                     color: theme.colors.send,
                     fontSize: 12,
@@ -442,8 +408,9 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
               <Text
                 style={[
                   Styles.tag,
-                  Theme.fonts.default.regular,
+                  Theme.fonts.default.heavyBold,
                   {
+                    fontWeight: '800',
                     backgroundColor: 'white',
                     color: theme.colors.receive,
                     fontSize: 12,
@@ -463,6 +430,60 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
             padding: 16,
             backgroundColor: theme.colors.background,
           }}>
+          {replaceable &&
+            transaction.replaceable &&
+            transaction.replaceStatus == null && (
+              <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+                <RoundButton2
+                  height={ROUND_BUTTON_LARGE_HEIGHT}
+                  style={[
+                    {
+                      backgroundColor: theme.colors.pickerBg,
+                      marginLeft: 16,
+                      width: width / 2 - 32,
+                    },
+                  ]}
+                  icon={({ size, color }) => (
+                    <SvgXml
+                      xml={CANCEL_SVG}
+                      style={{
+                        tintColor: theme.colors.white35,
+                        width: 24,
+                        height: 24,
+                      }}
+                    />
+                  )}
+                  labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+                  color={theme.colors.pickerBg}
+                  onPress={() => _fetchWithdrawInfo(TYPE_CANCEL)}>
+                  {I18n.t('cancel')}
+                </RoundButton2>
+                <RoundButton2
+                  height={ROUND_BUTTON_LARGE_HEIGHT}
+                  style={[
+                    {
+                      backgroundColor: theme.colors.pickerBg,
+                      marginLeft: 16,
+                      width: width / 2 - 32,
+                    },
+                  ]}
+                  icon={({ size, color }) => (
+                    <SvgXml
+                      xml={ACCELERATE_SVG}
+                      style={{
+                        tintColor: theme.colors.white35,
+                        width: 24,
+                        height: 24,
+                      }}
+                    />
+                  )}
+                  labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+                  color={theme.colors.pickerBg}
+                  onPress={() => _fetchWithdrawInfo(TYPE_ACCELERATE)}>
+                  {I18n.t('accelerate')}
+                </RoundButton2>
+              </View>
+            )}
           <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
             {I18n.t('from')}
           </Text>

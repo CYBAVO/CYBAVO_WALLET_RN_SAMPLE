@@ -6,23 +6,23 @@ import {
   View,
   Dimensions,
   Platform,
+  NativeModules,
 } from 'react-native';
+const { RNTwitterSignIn } = NativeModules;
 import { Container, Text } from 'native-base';
 import { WebView } from 'react-native-webview';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from 'react-navigation-hooks';
 import { signIn } from '../store/actions';
 import appleAuth from '@invertase/react-native-apple-authentication';
-import {
-  ROUND_BUTTON_HEIGHT,
-  ROUND_BUTTON_ICON_SIZE,
-} from '../Constants';
+import { ROUND_BUTTON_HEIGHT, ROUND_BUTTON_ICON_SIZE } from '../Constants';
 import { SERVICE_ENDPOINT } from '../BuildConfig.json';
 import { toastError } from '../Helpers';
 import { withTheme, ActivityIndicator } from 'react-native-paper';
 import { Theme } from '../styles/MainTheme';
 import I18n from '../i18n/i18n';
 import RoundButton2 from '../components/RoundButton2';
+import { TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET } from '../BuildConfig';
 const { height, width } = Dimensions.get('window');
 
 const SignInScreen: () => React$Node = ({ theme }) => {
@@ -59,7 +59,7 @@ const SignInScreen: () => React$Node = ({ theme }) => {
           width: '100%',
         }}
       />
-      <View style={{ justifyContent: 'center', flex:1, flexShrink: 1 }}>
+      <View style={{ justifyContent: 'center', flex: 1, flexShrink: 1 }}>
         <Text
           style={[
             {
@@ -83,17 +83,6 @@ const SignInScreen: () => React$Node = ({ theme }) => {
           paddingHorizontal: 16,
           paddingBottom: 0,
         }}>
-        <Text
-          style={[
-            {
-              fontSize: 14,
-              color: theme.colors.text,
-              marginBottom: 24,
-            },
-            Theme.fonts.default.regular,
-          ]}>
-          {I18n.t('continue_with')}
-        </Text>
         {appleAuth.isSupported && (
           <RoundButton2
             height={ROUND_BUTTON_HEIGHT}
@@ -115,7 +104,7 @@ const SignInScreen: () => React$Node = ({ theme }) => {
               }
               dispatch(signIn('Apple'));
             }}>
-            {I18n.t('apple')}
+            {I18n.t('sign_in_btn_apple')}
           </RoundButton2>
         )}
         <RoundButton2
@@ -138,7 +127,7 @@ const SignInScreen: () => React$Node = ({ theme }) => {
             }
             dispatch(signIn('Google'));
           }}>
-          {I18n.t('google')}
+          {I18n.t('sign_in_btn_google')}
         </RoundButton2>
         <RoundButton2
           height={ROUND_BUTTON_HEIGHT}
@@ -155,7 +144,7 @@ const SignInScreen: () => React$Node = ({ theme }) => {
           )}
           labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
           onPress={() => dispatch(signIn('LINE'))}>
-          {I18n.t('line')}
+          {I18n.t('sign_in_btn_line')}
         </RoundButton2>
         <RoundButton2
           height={ROUND_BUTTON_HEIGHT}
@@ -172,14 +161,34 @@ const SignInScreen: () => React$Node = ({ theme }) => {
           )}
           labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
           onPress={() => dispatch(signIn('Facebook'))}>
-          {I18n.t('facebook')}
+          {I18n.t('sign_in_btn_facebook')}
+        </RoundButton2>
+        <RoundButton2
+          height={ROUND_BUTTON_HEIGHT}
+          style={[styles.roundButton, { backgroundColor: '#1da1f2' }]}
+          disabled={loading}
+          icon={({ size, color }) => (
+            <Image
+              source={require('../assets/image/ic_login_twitter.png')}
+              style={{
+                width: ROUND_BUTTON_ICON_SIZE,
+                height: ROUND_BUTTON_ICON_SIZE,
+              }}
+            />
+          )}
+          labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+          onPress={() => {
+            RNTwitterSignIn.init(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET);
+            dispatch(signIn('Twitter'));
+          }}>
+          {I18n.t('sign_in_btn_twitter')}
         </RoundButton2>
         <View
           style={{
             // backgroundColor: 'rgba(0,0,0,1)',
             // flex: 1,
             width: width,
-            height: 90,
+            height: 80,
             // marginTop: 20,
           }}>
           <WebView

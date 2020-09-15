@@ -215,7 +215,6 @@ const styles = StyleSheet.create({
   text: {
     textAlign: 'center',
     color: Theme.colors.text,
-    opacity: 0.4,
     marginRight: 10,
   },
   roundButtonContainer: {

@@ -24,6 +24,9 @@
 // ---LINE---
 #import <LineSDK/LineSDK.h>
 // +++LINE+++
+// ---Twitter---
+#import <TwitterKit/TWTRKit.h>
+// +++Twitter+++
 
 @implementation AppDelegate
 
@@ -63,7 +66,7 @@
   return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
 #endif
 }
-// ---FB, LINE---
+// ---FB, LINE, Twitter---
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url
   sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
 {
@@ -90,7 +93,8 @@
   if(handledLINE){
     return TRUE;
   }
-  return FALSE;
+  BOOL handledTwitter = [[Twitter sharedInstance] application:application openURL:url options:options];
+  return handledTwitter;
 }
 // +++FB, LINE+++
 

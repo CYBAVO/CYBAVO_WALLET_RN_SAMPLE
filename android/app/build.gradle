@@ -78,7 +78,7 @@ import com.android.build.OutputFile
 
 project.ext.react = [
         entryFile: "index.js",
-        enableHermes: false,  // clean and rebuild if changing
+        enableHermes: true,  // clean and rebuild if changing
 ]
 
 apply from: "../../node_modules/react-native/react.gradle"
@@ -196,6 +196,7 @@ android {
 }
 
 dependencies {
+    implementation project(':react-native-twitter-signin')
     implementation project(':@react-native-community_cameraroll')
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "com.facebook.react:react-native:+"  // From node_modules

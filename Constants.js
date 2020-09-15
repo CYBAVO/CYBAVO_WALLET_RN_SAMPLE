@@ -1,6 +1,8 @@
 export const BADGE_FONT_SIZE = 13;
 export const ROUND_BUTTON_FONT_SIZE = 16;
 export const ROUND_BUTTON_HEIGHT = 44;
+export const ROUND_BUTTON_MEDIUM_HEIGHT = 52;
+export const ROUND_BUTTON_LARGE_HEIGHT = 56;
 export const ROUND_BUTTON_ICON_SIZE = 24;
 export const PIN_CODE_LENGTH = 6;
 export const RECOVERY_CODE_LENGTH = 8;

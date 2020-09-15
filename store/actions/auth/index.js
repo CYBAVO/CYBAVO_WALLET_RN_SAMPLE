@@ -12,6 +12,7 @@ import WeChat from './providers/wechat';
 import Facebook from './providers/facebook';
 import LINE from './providers/LINE';
 import Apple from './providers/apple';
+import Twitter from './providers/Twitter';
 import iid from '@react-native-firebase/iid';
 import crashlytics from '@react-native-firebase/crashlytics';
 import { hasValue } from '../../../Helpers';
@@ -25,9 +26,9 @@ export const AUTH_ERROR = 'AUTH_ERROR';
 export const AUTH_UPDATE_SIGN_IN_STATE = 'AUTH_UPDATE_SIGN_IN_STATE';
 export const AUTH_UPDATE_IDENTITY = 'AUTH_UPDATE_IDENTITY';
 
-async function signInWithToken(idToken, identityProvider) {
-  console.log('signInWithToken... ', identityProvider);
-  const resp = await Auth.signIn(idToken, identityProvider);
+async function signInWithToken(idToken, identityProvider, extras) {
+  console.log('signInWithToken... ', extras.user_id);
+  const resp = await Auth.signIn(idToken, identityProvider, extras);
   console.log('signInWithToken... Done', resp);
   return resp;
 }
@@ -82,6 +83,7 @@ const IDENTITY_PROVIDERS = {
   Facebook: Facebook,
   LINE: LINE,
   Apple: Apple,
+  Twitter: Twitter,
 };
 
 export function signIn(identityProvider) {
@@ -95,13 +97,21 @@ export function signIn(identityProvider) {
       name: '',
       email: '',
       avatar: '',
+      secret: '',
     };
     try {
       console.log('auth.signIn...');
-      const { idToken, name, email, avatar } = await idProvider.signIn();
+      const {
+        idToken,
+        name,
+        email,
+        avatar,
+        secret,
+      } = await idProvider.signIn();
       identity.name = name;
       identity.email = email;
       identity.avatar = avatar;
+      identity.secret = secret;
       console.log('auth.signIn...', idToken);
       if (email) {
         await crashlytics().setUserEmail(email);
@@ -111,7 +121,11 @@ export function signIn(identityProvider) {
       }
       userToken = idToken;
       console.log('signInWithToken...');
-      await signInWithToken(userToken, identityProvider);
+      await signInWithToken(
+        userToken,
+        identityProvider,
+        secret ? { id_token_secret: secret } : {}
+      );
       dispatch({
         type: AUTH_UPDATE_IDENTITY,
         ...identity,
@@ -124,13 +138,18 @@ export function signIn(identityProvider) {
         try {
           console.log('signUpWithToken...');
           await signUpWithToken(userToken, identityProvider, {
+            id_token_secret: identity.secret,
             user_name: !hasValue(identity.name)
               ? await DeviceInfo.getDeviceName()
               : identity.name, //Required for Apple Auth. Optional for other services
           });
           console.log('signUpWithToken... Done');
           console.log('signInWithToken#2...');
-          await signInWithToken(userToken, identityProvider);
+          await signInWithToken(
+            userToken,
+            identityProvider,
+            identity.secret ? { id_token_secret: identity.secret } : {}
+          );
           dispatch({
             type: AUTH_UPDATE_IDENTITY,
             ...identity,

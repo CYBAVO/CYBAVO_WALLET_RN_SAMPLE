@@ -158,16 +158,44 @@ const TransactionList: () => React$Node = ({
               {!item.success && (
                 <Image source={ERROR_ICON} style={{ marginRight: 5 }} />
               )}
-              <DisplayTime
-                prefix={item.replaceStatus != null ? ` #${item.nonce} ` : ''}
-                textStyle={[
-                  Styles.cardDesc,
-                  { opacity: opacity, marginLeft: 0, marginRight: 16 },
-                  Theme.fonts.default.regular,
-                ]}
-                format="YYYY/M/D"
-                unix={item.timestamp}
-              />
+              {item.replaceStatus == null ? (
+                <DisplayTime
+                  textStyle={[
+                    Styles.cardDesc,
+                    { opacity: opacity * 0.7, marginLeft: 0, marginRight: 16 },
+                    Theme.fonts.default.regular,
+                  ]}
+                  format="YYYY/M/D"
+                  unix={item.timestamp}
+                />
+              ) : (
+                <View
+                  style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <Text
+                    style={[
+                      Styles.cardDesc,
+                      {
+                        opacity: opacity * 0.7,
+                        marginLeft: 0,
+                        marginRight: 16,
+                      },
+                      Theme.fonts.default.regular,
+                    ]}>{`#${item.nonce}`}</Text>
+                  <DisplayTime
+                    textStyle={[
+                      Styles.cardDesc,
+                      {
+                        opacity: opacity * 0.7,
+                        marginLeft: 0,
+                        marginRight: 16,
+                      },
+                      Theme.fonts.default.regular,
+                    ]}
+                    format="YYYY/M/D"
+                    unix={item.timestamp}
+                  />
+                </View>
+              )}
             </View>
 
             {item.pending && item.success && !item.dropped && (
