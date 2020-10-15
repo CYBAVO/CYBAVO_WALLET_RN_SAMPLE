@@ -66,7 +66,13 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    ```
    yarn install
    ```
-3. Edit or create `android/local.properties` to config Maven repository URL / credentials provided by CYBAVO
+3. Polyfill NodeJS modules for React-Native  
+   ```
+   $ yarn add rn-nodeify
+   $ rn-nodeify --install --hack
+   ```
+4. unmark `require('crypto')` in `shim.js`
+5. Edit or create `android/local.properties` to config Maven repository URL / credentials provided by CYBAVO
    ```
    cybavo.maven.url=$MAVEN_REPO_URL
    cybavo.maven.username=$MAVEN_REPO_USRENAME
@@ -86,6 +92,17 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    ```
    yarn install
    ```
+3. Polyfill NodeJS modules for React-Native  
+   ```
+   $ yarn add rn-nodeify
+   $ rn-nodeify --install --hack
+   ```
+4. unmark `require('crypto')` in `shim.js`
+5. Walkaround for `react-native-twitter-signin`
+   ```
+   rm -rf node_modules/react-native-twitter-signin/ios/dependencies
+   sed -i "" 's/s.dependency "TwitterKit", "~> 3.3"/s.dependency "TwitterKit5"/g' 
+   ```
 3. Place ssh key requested from CYBAVO to ~/.ssh/ (rename it if nessersary)
 5. Run `pod install` in `ios/`
 6. Place your `GoogleService-Info.plist` file downloaded from Firebase to `ios/` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
@@ -99,6 +116,133 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
 13. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code`
 # Push notification
 To receive silent push notification of deposit/withdrawal. Please refer to [this](https://rnfirebase.io/messaging/usage) to setup.
+# WalletConnect
+CYBAVO Wallet App SDK has integrated [WalletConnect](https://docs.walletconnect.org/) to support wallet apps connecting with Dapps (Web3 Apps).
+
+1. Following code snippet is the simple usage of how to new a session, approve session request and approve call request
+
+    For further technical specification, please refer to [WalletConnect's official document](https://docs.walletconnect.org/tech-spec)
+    ```javascript
+    import { WalletConnectSdk } from "@cybavo/react-native-wallet-service";
+    const { WalletConnectManager, WalletConnectHelper } = WalletConnectSdk;
+    // Establish session, then the callback will receive session request 
+    let connectorWrapper = WalletConnectManager.newSession(
+            walletConnectUri,
+            walletAddress,
+            walletId,
+            walletClientMeta,
+            (error, payload) => {
+                sessionRequestCallback(connectorWrapper.getConnector().peerId, error, payload);
+            }
+          );
+    
+    let sessionRequestCallback = (peerId, error, payload) => {
+        //approve session, then pass the listeners to receive call request and disconnect event
+        WalletConnectManager.approveSession(
+              peerId,
+              {
+                accounts: [walletAddress],
+                chainId: 1, //main net
+              },
+              (error: any, payload: any) => {
+                    callRequestListener(peerId, error, payload);
+              },
+              disconnectListener
+        )
+    }
+    let callRequestListener = (peerId, error: any, payload: any) => {
+        WalletConnectManager.approveRequest(peerId, response).then(() => {})
+    }
+    let disconnectListener = (error: any, payload: any) => {}
+    ``` 
+2. API to support handling call request 
+
+   [Here](https://docs.walletconnect.org/json-rpc-api-methods/ethereum) defined methods that wallet app should implement. 
+   We also provided API to handle corresponding methods:
+   
+   * personal_sign, eth_sign
+    ```javascript
+   let message = payload.params[0];
+   let result = await Wallets.walletConnectSignMessage(
+           walletId,
+           convertHexToUtf8(message),
+           pinSecret
+         );
+    ```
+   * eth_sendTransaction
+   
+    ```javascript
+   let tx = payload.params[0];
+   // 1. sign transaction
+   let result = await Wallets.walletConnectSignTransaction(
+           walletId,
+           tx,
+           transactionFee,
+           pinSecret
+         );
+   // 2. send signed transaction
+   let sendResult = await Wallets.walletConnectSendSignedTransaction(
+                walletId,
+                result.signedTx
+              );
+   // return TXID as approve response to the Dapp
+   let response = { result: sendResult.txid, id: payload.id };
+   await WalletConnectManager.approveRequest(peerId, response);
+   
+    ```
+    * eth_signTypedData
+    
+    ```javascript
+    let message = payload.params[1];
+         let result = await Wallets.walletConnectSignTypedData(
+           walletId,
+           message,
+           pinSecret
+         );
+    let response = { result: '0x' + result.signedTx, id: payload.id };
+    await WalletConnectManager.approveRequest(peerId, response);
+    ```
+    * eth_sendRawTransaction
+    
+    ```javascript
+    let signedTx = params[0];
+    let sendResult = await Wallets.walletConnectSendSignedTransaction(
+                walletId,
+                signedTx
+              );
+    // return TXID as approve response to the Dapp
+    let response = { result: sendResult.txid, id: payload.id };
+    await WalletConnectManager.approveRequest(peerId, response);
+    ```
+   
+    * eth_signTransaction
+    
+    ```javascript
+    let tx = payload.params[0];
+    let result = await Wallets.walletConnectSignTransaction(
+           walletId,
+           tx,
+           transactionFee,
+           pinSecret
+         );
+     let response = { result: result.signedTx, id: payload.id };
+     await WalletConnectManager.approveRequest(peerId, response);
+    ```
+3. Other supportive API
+    * Wallets.walletConnectSync
+    
+        Check if there're any changes after transactions committed through `Wallets.walletConnectSendSignedTransaction` or `Wallets.sendSignedTx` and perform the updates.
+
+    * Wallets.getWalletConnectApiHistory        
+        
+        All walletconnect related API will be logged as ApiHistoryItem with vary API Names. Use `Wallets.getWalletConnectApiHistory` to fetch API histories.
+        
+    * Wallets.cancelWalletConnectTransaction  
+    
+        Use `Wallets.cancelWalletConnectTransaction` to cancel a pending transaction which sent through `Wallets.walletConnectSendSignedTransaction`.
+        
+        It's required a higher transaction fee (1.1 times) to replace the original transaction with 0 amount.
+   
 # Features
 
 - Sign in / Sign up with 3rd-party account system - Google, Apple, LINE

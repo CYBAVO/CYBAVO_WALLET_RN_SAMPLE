@@ -16,6 +16,7 @@ import {
   RECOVER_CODE_MODE,
   ROUND_BUTTON_FONT_SIZE,
   ROUND_BUTTON_HEIGHT,
+  SERVICE_EMAIL,
 } from '../Constants';
 import { Auth } from '@cybavo/react-native-wallet-service';
 import Styles from '../styles/Styles';
@@ -84,10 +85,9 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
     setLoading(false);
   };
   const _composeMailAndSend = () => {
-    let email = 'service@cybavo.com';
-    let title = `Forgot pin code[${userState.email}]`;
+    let title = I18n.t('forgot_pin_email_template', userState);
     let body = `[${handleNum}]`;
-    Linking.openURL(`mailto:${email}?subject=${title}&body=${body}`);
+    Linking.openURL(`mailto:${SERVICE_EMAIL}?subject=${title}&body=${body}`);
     setTmpResult({
       title: I18n.t('confirm_your_report'),
       message: I18n.t('after_contact_us_desc'),
@@ -158,6 +158,7 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
                   flexDirection: 'row',
                   justifyContent: 'center',
                   alignItems: 'center',
+                  height: ROUND_BUTTON_HEIGHT,
                 }}>
                 <Text
                   style={[

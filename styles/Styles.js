@@ -150,6 +150,8 @@ export default StyleSheet.create({
     fontSize: 24,
     maxWidth: '60%',
     fontWeight: '500',
+    alignSelf: 'center',
+    textAlign: 'center',
   },
   convertedNumText: {
     color: 'white',
@@ -201,7 +203,6 @@ export default StyleSheet.create({
   labelBlock: {
     marginTop: 25,
     width: FULL_WIDTH_WITH_PADDING,
-    alignSelf: 'center',
     flexDirection: 'column',
     color: Theme.colors.text,
     fontSize: 14,
@@ -209,7 +210,6 @@ export default StyleSheet.create({
   },
   formItem: {
     minHeight: 80,
-    // marginLeft: 10,
   },
   headerLeft: { flex: 0.3 },
   headerBody: { flex: 2 },
@@ -260,5 +260,18 @@ export default StyleSheet.create({
     alignItems: 'flex-end',
     marginTop: 15,
     marginBottom: 8,
+  },
+  fab: {
+    position: 'absolute',
+    margin: 24,
+    right: 0,
+    bottom: 0,
+    width: 44,
+    height: 44,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: '#FFF',
   },
 });

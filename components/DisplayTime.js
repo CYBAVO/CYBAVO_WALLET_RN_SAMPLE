@@ -13,6 +13,9 @@ const DisplayTime: () => React$Node = ({
     if (!unix || unix === -1) {
       return '-';
     }
+    if (typeof unix == 'string') {
+      return moment(unix).format(format || 'YYYY-MM-DD HH:mm:ss');
+    }
     const parsed = moment.unix(unix);
 
     return parsed.format(format || 'YYYY-MM-DD HH:mm:ss');

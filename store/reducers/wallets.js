@@ -15,7 +15,8 @@ import {
   CURRENCIES_UPDATE_CURRENCIES,
   WALLETS_UPDATE_CURRENCIES,
 } from '../actions';
-import { isFungibleToken } from '../../Constants';
+import { Coin, isFungibleToken } from '../../Constants';
+import { hasValue } from '../../Helpers';
 
 const defaultState = {
   loading: null,
@@ -48,9 +49,10 @@ function wallets(state = defaultState, action) {
     case CURRENCIES_UPDATE_CURRENCIES:
     case WALLETS_UPDATE_CURRENCIES:
       let newWallets = [];
+      let ethWallet;
       for (let w of state.wallets) {
         const currency = (action.currencies || []).find(
-            c => c.currency === w.currency && c.tokenAddress === w.tokenAddress
+          c => c.currency === w.currency && c.tokenAddress === w.tokenAddress
         );
         if (!currency) {
           console.warn('skip wallet:' + w.name);
@@ -63,10 +65,14 @@ function wallets(state = defaultState, action) {
           isFungible: isFungibleToken(currency),
         };
         newWallets.push(newW);
+        if (newW.currency == Coin.ETH && !hasValue(newW.tokenAddress)) {
+          ethWallet = newW;
+        }
       }
       let newState = {
         ...state,
         wallets: newWallets,
+        ethWallet,
       };
       return newState;
     case WALLETS_UPDATE_WALLET:

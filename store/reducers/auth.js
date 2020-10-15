@@ -9,7 +9,7 @@ import {
   AUTH_LOADING,
   AUTH_ERROR,
   AUTH_UPDATE_SIGN_IN_STATE,
-  AUTH_UPDATE_IDENTITY,
+  AUTH_UPDATE_IDENTITY, AUTH_UPDATE_DEV,
 } from '../actions/auth';
 import { COMMON_RESET } from '../actions/common';
 const { SignInState } = Auth;
@@ -29,8 +29,14 @@ const defaultState = {
 function auth(state = defaultState, action) {
   switch (action.type) {
     case COMMON_RESET: {
+      defaultState.config = state.config;
       return defaultState;
     }
+    case AUTH_UPDATE_DEV:
+      return {
+        ...state,
+        config: action.config,
+      };
     case AUTH_LOADING:
       return {
         ...state,

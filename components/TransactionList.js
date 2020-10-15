@@ -24,6 +24,7 @@ import {
   ACCELERATED,
   ACCELERATE_FAILED,
 } from '../store/reducers/transactions';
+import {replaceConfig} from '../Constants';
 
 const ERROR_ICON = require('../assets/image/ic_error.png');
 /*
@@ -41,14 +42,6 @@ const TransactionList: () => React$Node = ({
   footLoading,
   style = {},
 }) => {
-  const replaceConfig = {
-    [CANCEL_FAILED]: { color: '#ff8c00', i18n: 'cancel_failed' },
-    [CANCELLED]: { color: theme.colors.error, i18n: 'cancelled' },
-    [CANCELLING]: { color: theme.colors.error, i18n: 'cancelling' },
-    [ACCELERATING]: { color: theme.colors.success, i18n: 'accelerating' },
-    [ACCELERATED]: { color: theme.colors.success, i18n: 'accelerated' },
-    [ACCELERATE_FAILED]: { color: '#ff8c00', i18n: 'accelerate_failed' },
-  };
   const receiveImg = require('../assets/image/receive.png');
   const sendImg = require('../assets/image/send.png');
   const _renderItem = ({ item }) => {

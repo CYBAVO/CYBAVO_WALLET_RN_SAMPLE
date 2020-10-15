@@ -10,6 +10,7 @@ import { getPushToken } from './PushNotification';
 import { PersistGate } from 'redux-persist/integration/react';
 import { Wallets, WalletSdk } from '@cybavo/react-native-wallet-service';
 import { GoogleSignin } from 'react-native-google-signin';
+import { FileLogger } from 'react-native-file-logger';
 import {
   Provider as PaperProvider,
   DefaultTheme,
@@ -31,6 +32,9 @@ const theme = {
 };
 const AppWrapper: () => React$Node = () => {
   StatusBar.setBarStyle('light-content');
+  FileLogger.configure({ captureConsole: false }).then(() =>
+    console.log('File-logger configured')
+  );
   if (Platform.OS === 'android') {
     StatusBar.setBackgroundColor('rgba(0,0,0,0)');
     StatusBar.setTranslucent(true);

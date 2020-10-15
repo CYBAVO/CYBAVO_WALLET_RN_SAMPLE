@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import I18n from '../i18n/i18n';
 import { useSelector, useDispatch } from 'react-redux';
-import { initAuth } from '../store/actions';
+import { AUTH_LOADING, AUTH_UPDATE_DEV, initAuth } from '../store/actions';
 import { Dimensions } from 'react-native';
 const { height } = Dimensions.get('window');
 import { Text } from 'react-native-paper';
@@ -19,6 +19,8 @@ import VersionNumber from 'react-native-version-number';
 import * as DeviceInfo from 'react-native-device-info';
 import { WalletSdk } from '@cybavo/react-native-wallet-service';
 import { endpoint, apiCode, uniqueIds } from '../BuildConfig';
+import { checkCameraPermission } from '../Helpers';
+import NavigationService from '../NavigationService';
 
 const InitializeScreen: () => React$Node = ({ theme }) => {
   const dispatch = useDispatch();
@@ -30,13 +32,15 @@ const InitializeScreen: () => React$Node = ({ theme }) => {
       apiCode: apiCode[config][Platform.OS],
       apnsSandbox: apnsSandbox,
     });
+
+    dispatch({ type: AUTH_UPDATE_DEV, config: config });
     dispatch(initAuth());
   };
   const _afterAnimate = inList => {
     if (inList) {
       Alert.alert(
         'Connect to',
-        'Connect to test net?',
+        'Connect to test net?\n(QR: endpoint#CBO#apiCode)',
         [
           {
             text: 'Main net',
@@ -45,6 +49,31 @@ const InitializeScreen: () => React$Node = ({ theme }) => {
           {
             text: 'Test net',
             onPress: () => _initWalletSdk('test'),
+          },
+          {
+            text: 'Scan QR code',
+            onPress: async () => {
+              if (await checkCameraPermission()) {
+                NavigationService.navigate('ScanOut', {
+                  modal: true,
+                  onResult: qrcode => {
+                    let arr = qrcode.split('#CBO#');
+                    if (arr.length != 2) {
+                      _afterAnimate(true);
+                      return;
+                    }
+                    WalletSdk.init({
+                      endpoint: arr[0],
+                      apiCode: arr[1],
+                      apnsSandbox: apnsSandbox,
+                    });
+
+                    dispatch({ type: AUTH_UPDATE_DEV, config: 'test' });
+                    dispatch(initAuth());
+                  },
+                });
+              }
+            },
           },
         ],
         { cancelable: false }

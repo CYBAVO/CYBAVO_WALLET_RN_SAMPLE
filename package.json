@@ -15,7 +15,7 @@
     ]
   },
   "dependencies": {
-    "@cybavo/react-native-wallet-service": "^1.2.56",
+    "@cybavo/react-native-wallet-service": "^1.2.112",
     "@invertase/react-native-apple-authentication": "1.0.0",
     "@react-native-community/async-storage": "^1.7.0",
     "@react-native-community/cameraroll": "^1.5.2",
@@ -45,6 +45,7 @@
     "moment": "^2.24.0",
     "native-base": "2.13.12",
     "path-browserify": "0.0.0",
+    "process": "^0.11.10",
     "punycode": "^1.4.1",
     "querystring-es3": "^0.2.1",
     "react": "16.9.0",
@@ -54,6 +55,7 @@
     "react-native-crypto": "^2.2.0",
     "react-native-device-info": "^5.6.1",
     "react-native-fbsdk": "^2.0.0",
+    "react-native-file-logger": "^0.2.0",
     "react-native-fs": "^2.16.6",
     "react-native-gesture-handler": "^1.5.1",
     "react-native-google-signin": "2.1.1",
@@ -64,7 +66,7 @@
     "react-native-linear-gradient": "^2.5.6",
     "react-native-modal": "^11.5.3",
     "react-native-os": "^1.2.6",
-    "react-native-paper": "^3.4.0",
+    "react-native-paper": "4.2.0",
     "react-native-permissions": "^2.1.2",
     "react-native-progress": "^4.1.2",
     "react-native-push-notification": "^3.1.9",

@@ -23,6 +23,10 @@ import SetupPinScreen from './screens/SetupPinScreen';
 import { checkCameraPermission } from './Helpers';
 import LoadingScreen from './screens/LoadingScreen';
 import NavigationService from './NavigationService';
+import RequestScreen from './screens/RequestScreen';
+import ConnectingScreen from './screens/ConnectingScreen';
+import ConnectionListScreen from './screens/ConnectionListScreen';
+import ApiHistoryDetailScreen from './screens/ApiHistoryDetailScreen';
 
 const MainTab = createBottomTabNavigator(
   {
@@ -135,6 +139,8 @@ const MainStack = createStackNavigator(
     SetupSecurityQuestion: SetupSecurityQuestionScreen,
     VerifySecurityQuestion: VerifySecurityQuestionScreen,
     ForgotPinCode: ForgotPinCodeScreen,
+    ConnectionList: { screen: ConnectionListScreen },
+    ApiHistoryDetail: { screen: ApiHistoryDetailScreen },
   },
   {
     defaultNavigationOptions: {
@@ -148,6 +154,8 @@ const LoadingStack = createStackNavigator(
     Top: { screen: MainStack },
     Loading: { screen: LoadingScreen },
     scanModal: { screen: ScanScreen },
+    Connecting: { screen: ConnectingScreen },
+    Request: { screen: RequestScreen },
   },
   {
     mode: 'modal',
@@ -171,6 +179,7 @@ export default createAppContainer(
       Main: LoadingStack,
       Auth: AuthStack,
       SetupPin: SetupPinScreen,
+      ScanOut: { screen: ScanScreen },
     },
     {
       initialRouteName: 'Init',

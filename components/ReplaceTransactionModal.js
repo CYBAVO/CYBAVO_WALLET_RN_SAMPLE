@@ -50,26 +50,18 @@ const messageKeys = {
 const ReplaceTransactionModal: () => React$Node = ({
   visible = true,
   theme,
-  detail,
+  fee,
   onButtonClick = () => {},
   onCancel = () => {},
   type = TYPE_CANCEL,
+  feeNote,
 }) => {
-  const feeUnit = isErc20(detail) ? 'ETH' : detail.currencySymbol;
-  const feeNote = isErc20(detail) ? ` (${I18n.t('estimated')})` : '';
+  const feeUnit = 'ETH';
   const balanceItem = useSelector(state => {
     let balances = state.balance.balances || {};
-    if (isErc20(detail)) {
-      let ethWallet = (state.wallets.wallets || []).find(
-        w => w.currency === Coin.ETH && !w.tokenAddress
-      );
-      return balances[getWalletKeyByWallet(ethWallet)];
-    }
-    return balances[
-      getWalletKey(detail.currency, detail.tokenAddress, detail.address)
-    ];
+    return balances[getWalletKeyByWallet(state.wallets.ethWallet)];
   });
-  const [selectedFee, setSelectedFee] = useState('low');
+  const [selectedFee, setSelectedFee] = useState('high');
   const [feeError, setFeeError] = useState(null);
   useEffect(() => {
     if (visible) {
@@ -106,26 +98,24 @@ const ReplaceTransactionModal: () => React$Node = ({
   };
   const _getInitValue = () => {
     let keys = ['low', 'medium', 'high'];
-    for (let i = 0; i < keys.length; i++) {
-      if (detail.fee[keys[i]].lessThenMin == false) {
-        return i;
-      }
-    }
+    // for (let i = 0; i < keys.length; i++) {
+    //   if (fee[keys[i]].lessThenMin == false) {
+    //     return i;
+    //   }
+    // }
     let last = keys.length - 1;
     return last;
   };
   const _checkFee = selected => {
-    if (detail.fee[selected].lessThenMin) {
-      setFeeError(
-        `${I18n.t('error_replace_gas_too_little')}: ${detail.fee.min}`
-      );
+    if (fee[selected].lessThenMin) {
+      setFeeError(`${I18n.t('error_replace_gas_too_little')}: ${fee.min}`);
       return;
     }
     let balance = getAvailableBalance(balanceItem);
     if (balance) {
       let balanceNum = Number(balance);
       let b = new BigNumber(balanceNum);
-      let f = BigNumber(detail.fee[selected].amountUi);
+      let f = BigNumber(fee[selected].amountUi);
       if (b.isZero() || b.isLessThan(f)) {
         setFeeError(
           I18n.t('error_insufficient_template', {
@@ -165,12 +155,12 @@ const ReplaceTransactionModal: () => React$Node = ({
             <Text style={Styles.secLabel}>{I18n.t(messageKeys[type])}</Text>
             <DegreeSlider
               callbackForInit={true}
-              valueObj={detail.fee}
+              valueObj={fee}
               getValue={item => `${item.amountUi} ${feeUnit}${feeNote}`}
               outerWidth={sliderOuterWidth[Platform.OS || 'android']}
               innerWidth={sliderInnerWidth[Platform.OS || 'android']}
               labels={[I18n.t('slow'), I18n.t('medium'), I18n.t('fast')]}
-              hasAlert={key => detail.fee[key].lessThenMin}
+              hasAlert={key => fee[key].lessThenMin}
               reserveErrorMsg={true}
               errorMsg={feeError}
               initValue={_getInitValue()}
@@ -188,7 +178,7 @@ const ReplaceTransactionModal: () => React$Node = ({
             disabled={feeError != null}
             labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
             onPress={() => {
-              onButtonClick(detail.fee[selectedFee].amount);
+              onButtonClick(fee[selectedFee].amount);
             }}>
             {I18n.t('submit')}
           </RoundButton2>
@@ -256,7 +246,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'absolute',
     top: -30,
-    // backgroundColor: 'red',
   },
   title: {
     textAlign: 'center',
@@ -265,14 +254,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   detailTitle: {
-    // textAlign: 'center',
     fontSize: 12,
     color: Theme.colors.resultTitle,
     alignSelf: 'flex-start',
     marginTop: 16,
   },
   detailContent: {
-    // textAlign: 'center',
     fontSize: 12,
     color: Theme.colors.resultContent,
     alignSelf: 'flex-start',

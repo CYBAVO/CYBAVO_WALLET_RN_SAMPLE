@@ -22,18 +22,32 @@ import {
   EXCHANGE_CURRENCIES,
   EXCHANGE_CURRENCY_UPDATE,
   fetchBalance,
+  fetchApiHistory,
+  walletconnectSync,
 } from '../store/actions';
 import I18n from '../i18n/i18n';
 import WalletList from '../components/WalletList';
 import Dropdown from '../components/Dropdown';
 import TransactionList from '../components/TransactionList';
 import Headerbar from '../components/Headerbar';
-import { IconButton, Text, withTheme } from 'react-native-paper';
+import { FAB, IconButton, Text, withTheme } from 'react-native-paper';
 import { NO_MORE } from './WalletDetailScreen';
 import ContentLoader, { Rect } from 'react-content-loader/native';
-import { getExchangeAmountFromWallets, getRestCurrencies } from '../Helpers';
+import {
+  convertAmountFromRawNumber,
+  convertHexToString,
+  getConnectionList,
+  getExchangeAmountFromWallets,
+  getRestCurrencies,
+  getWalletConnectSvg,
+  getWalletConnectSvg2,
+  renderTabBar,
+  toastError,
+} from '../Helpers';
 import CurrencyPriceTextLite from '../components/CurrencyPriceTextLite';
 import NavigationService from '../NavigationService';
+import { SvgXml } from 'react-native-svg';
+import { Wallets } from '@cybavo/react-native-wallet-service';
 const MyLoader = props => {
   let cardWidth = width - 32;
   let cardHeight = 120;
@@ -79,14 +93,34 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   const NA = '-';
   const dispatch = useDispatch();
   const setPin = useSelector(state => state.user.userState.setPin);
-  const wallets = useSelector(state => state.wallets.wallets || []);
+  const wallets = useSelector(state => {
+    return state.wallets.wallets || [];
+  });
   const [ready, setReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const currencyPriceLoading = useSelector(
     state => state.currencyPrice.loading
   );
   const walletsLoading = useSelector(state => state.wallets.loading);
+  const ethWallet = useSelector(state => state.wallets.ethWallet);
   const [hide, setHide] = useState(false);
+  const hasConnection = useSelector(state => {
+    return Object.keys(state.walletconnect.connecting).length > 0;
+  });
+  const hasApiHistory = useSelector(state => {
+    let hasApiHistory = false;
+    try {
+      let apihistoryMap =
+        state.apihistory.apihistory[state.wallets.ethWallet.walletId].data;
+      let arr = Object.values(apihistoryMap);
+      if (arr.length > 0) {
+        hasApiHistory = true;
+      }
+    } catch (error) {
+      console.debug(error);
+    }
+    return hasApiHistory;
+  });
   const balances = useSelector(state => state.balance.balances || {});
   const canAddAsset = useSelector(state => {
     if (ready == false) {
@@ -138,6 +172,11 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   useEffect(() => {
     dispatch(fetchCurrencyPricesIfNeed());
   }, [dispatch, wallets]);
+  useEffect(() => {
+    if (ready && ethWallet) {
+      dispatch(fetchApiHistory(false));
+    }
+  }, [dispatch, ethWallet, ready]);
 
   useEffect(() => {
     wallets.map((wallet, i) => {
@@ -196,28 +235,6 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   const unhideImg = require('../assets/image/ic_unhide.png');
   const hideImg = require('../assets/image/ic_hide.png');
   let _scrollX = new Animated.Value(0);
-  // 6 is a quantity of tabs
-  const interpolators = Array.from({ length: 2 }, (_, i) => i).map(idx => ({
-    scale: _scrollX.interpolate({
-      inputRange: [idx - 1, idx, idx + 1],
-      outputRange: [1, 1.2, 1],
-      extrapolate: 'clamp',
-    }),
-    opacity: _scrollX.interpolate({
-      inputRange: [idx - 1, idx, idx + 1],
-      outputRange: [0.2, 1, 0.2],
-      extrapolate: 'clamp',
-    }),
-    textColor: _scrollX.interpolate({
-      inputRange: [idx - 1, idx, idx + 1],
-      outputRange: ['#fff', '#fff', '#fff'],
-    }),
-    backgroundColor: _scrollX.interpolate({
-      inputRange: [idx - 1, idx, idx + 1],
-      outputRange: ['transparent', 'transparent', 'transparent'],
-      extrapolate: 'clamp',
-    }),
-  }));
   useEffect(() => {
     if (setPin === false) {
       NavigationService.navigate('SetupPin');
@@ -227,6 +244,7 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
     setRefreshing(true);
     dispatch(fetchWallets());
     dispatch(fetchCurrencyPricesIfNeed(true));
+    dispatch(fetchApiHistory());
   };
   const _goTransactionDetail = transaction => {
     let address = transaction.out
@@ -304,32 +322,9 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
         </View>
       )}
       <ScrollableTabView
-        renderTabBar={() => (
-          <TabBar
-            underlineColor={theme.colors.primary}
-            tabBarStyle={{
-              backgroundColor: 'transparent',
-              borderTopWidth: 0,
-            }}
-            renderTab={(
-              tab,
-              page,
-              isTabActive,
-              onPressHandler,
-              onTabLayout
-            ) => (
-              <Tab
-                key={page}
-                tab={tab}
-                page={page}
-                isTabActive={isTabActive}
-                onPressHandler={onPressHandler}
-                onTabLayout={onTabLayout}
-                styles={interpolators[page]}
-              />
-            )}
-          />
-        )}
+        renderTabBar={() => {
+          return renderTabBar(theme, _scrollX);
+        }}
         onScroll={x => _scrollX.setValue(x)}>
         <View style={{ paddingTop: 8 }} tabLabel={{ label: I18n.t('assets') }}>
           <WalletList
@@ -355,6 +350,18 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
           />
         )}
       </ScrollableTabView>
+      {(hasConnection || hasApiHistory) && (
+        <FAB
+          // animated={true}
+          style={Styles.fab}
+          icon={({ size, color }) => (
+            <SvgXml xml={getWalletConnectSvg2()} width={size} height={size} />
+          )}
+          onPress={() => {
+            NavigationService.navigate('ConnectionList', {});
+          }}
+        />
+      )}
     </View>
   ) : (
     <View style={Styles.container}>

@@ -123,10 +123,9 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
   const balanceTextForFee = useSelector(state => {
     if (isErc20(wallet)) {
       let balances = state.balance.balances || {};
-      let ethWallet = wallets.find(
-        w => w.currency === Coin.ETH && !w.tokenAddress
+      return getAvailableBalance(
+        balances[getWalletKeyByWallet(state.wallets.ethWallet)]
       );
-      return getAvailableBalance(balances[getWalletKeyByWallet(ethWallet)]);
     }
     return null;
   });
@@ -140,9 +139,9 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedFee, setSelectedFee] = useState('low');
+  const [selectedFee, setSelectedFee] = useState('high');
   const [selectedTokenId, setSelectedTokenId] = useState(0);
-  const [fee, setFee] = useState({});
+  const [fee, setFee] = useState(null);
   const [loading, setLoading] = useState(false);
   const [inputPinCode, setInputPinCode] = useState(null);
   const [iosImeHeight, setiosImeHeight] = useState(0);
@@ -626,7 +625,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
               textStyle={[
                 Styles.mainNumText,
                 Theme.fonts.default.heavy,
-                { alignSelf: 'center', textAlign: 'center', marginTop: 5 },
+                { marginTop: 5 },
               ]}
               balanceItem={balanceItem}
             />
@@ -639,6 +638,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
           contentContainerStyle={{
             flexDirection: 'column',
             alignItems: 'stretch',
+            paddingHorizontal: 16,
             backgroundColor: theme.colors.background,
             paddingBottom: paddingBottom[Platform.OS || 'android'], // need to make a distance from bottom, to fix abnormal move while focus next TextInput on iOS
           }}>
@@ -842,6 +842,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
 
         <RoundButton2
           height={ROUND_BUTTON_HEIGHT}
+          disable={fee == null}
           style={[
             //only show disabled style but still can press, so that can do check, mainly for Android
             Styles.bottomButton,
@@ -917,6 +918,9 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
               }
               goBack();
             } else {
+              if (result.onPress) {
+                result.onPress();
+              }
               setResult(null);
             }
           }}

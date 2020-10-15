@@ -56,9 +56,7 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const delaySetStep = value => {
-    setTimeout(() => {
-      setStep(value);
-    }, 50);
+    setStep(value);
   };
   const _inputPinCode = length => {
     _inputMode(length);
@@ -138,11 +136,15 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
           ],
         }}>
         {step == 0 && (
-          <View
+          <Animated.View
             style={{
               justifyContent: 'center',
               alignItems: 'center',
               flex: 1,
+              opacity: animPinInput.interpolate({
+                inputRange: [0, 0.5, 0.5, 1],
+                outputRange: [1, 0, 0, 0],
+              }),
             }}>
             <Text
               style={{
@@ -222,10 +224,10 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
               disabled={loading}
               onChanged={_inputPinCode}
             />
-          </View>
+          </Animated.View>
         )}
         {step == 1 && (
-          <View
+          <Animated.View
             style={{
               justifyContent: 'center',
               alignItems: 'center',
@@ -233,6 +235,10 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
               flex: 1,
               paddingHorizontal: 16,
               backgroundColor: Theme.colors.background,
+              opacity: animPinInput.interpolate({
+                inputRange: [0, 0.5, 0.5, 1],
+                outputRange: [0, 0, 0, 1],
+              }),
             }}>
             <Text
               style={[
@@ -281,7 +287,7 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
               onPress={_submit}>
               {I18n.t('next_step_desc')}
             </RoundButton2>
-          </View>
+          </Animated.View>
         )}
       </Animated.View>
       {loading && (

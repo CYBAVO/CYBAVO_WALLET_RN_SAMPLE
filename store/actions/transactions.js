@@ -6,7 +6,8 @@
  */
 import { Wallets } from '@cybavo/react-native-wallet-service';
 import { fetchBalance } from './balance';
-import { getWalletKey } from '../../Helpers';
+import { getWalletKey, hasValue } from '../../Helpers';
+import apihistory from '../reducers/apihistory';
 
 export const TRANSACTIONS_ENQUEUE = 'TRANSACTIONS_ENQUEUE';
 export const TRANSACTIONS_UPDATE_TRANSACTIONS =
@@ -27,7 +28,7 @@ function shouldFetchTransactions(currency, tokenAddress, address, state) {
     return true;
   }
 
-  const transactions = state.transactions.transactions[key].data;
+  const transactions = state.transactions.transactions[key];
   if (!transactions) {
     // not exist
     return true;
@@ -60,9 +61,10 @@ export function fetchTransaction(
   }
 ) {
   return async (dispatch, getState) => {
+    let state = getState();
     if (
       refresh ||
-      shouldFetchTransactions(currency, tokenAddress, address, getState())
+      shouldFetchTransactions(currency, tokenAddress, address, state)
     ) {
       dispatch({
         type: TRANSACTIONS_ENQUEUE,
@@ -81,6 +83,17 @@ export function fetchTransaction(
           count,
           filters
         );
+        let txids = [];
+        if (state.wallets.ethWallet) {
+          let apihistory = state.apihistory;
+          let walletId = state.wallets.ethWallet.walletId;
+          txids =
+            apihistory &&
+            apihistory.apihistory &&
+            apihistory.apihistory[walletId]
+              ? apihistory.apihistory[walletId].txids
+              : [];
+        }
         dispatch({
           type: TRANSACTIONS_UPDATE_TRANSACTIONS,
           transactions: result.transactions,
@@ -90,6 +103,7 @@ export function fetchTransaction(
           tokenAddress,
           address,
           currencySymbol: isFungible ? '' : currencySymbol,
+          txids,
         });
       } catch (error) {
         console.log('fetchTransactionsBatch failed', error);

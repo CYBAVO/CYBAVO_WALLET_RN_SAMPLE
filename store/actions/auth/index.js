@@ -17,12 +17,14 @@ import iid from '@react-native-firebase/iid';
 import crashlytics from '@react-native-firebase/crashlytics';
 import { hasValue } from '../../../Helpers';
 import * as DeviceInfo from 'react-native-device-info';
+import {killAllSession} from '../walletconnect';
 
 const { ErrorCodes } = WalletSdk;
 
 // AUTH
 export const AUTH_LOADING = 'AUTH_LOADING';
 export const AUTH_ERROR = 'AUTH_ERROR';
+export const AUTH_UPDATE_DEV = 'AUTH_UPDATE_DEV';
 export const AUTH_UPDATE_SIGN_IN_STATE = 'AUTH_UPDATE_SIGN_IN_STATE';
 export const AUTH_UPDATE_IDENTITY = 'AUTH_UPDATE_IDENTITY';
 
@@ -175,6 +177,7 @@ export function signIn(identityProvider) {
 
 export function signOut(goLoading = true, sdkSignOut = true) {
   return async (dispatch, getState) => {
+    dispatch(killAllSession('signOut'));
     if (goLoading) {
       NavigationService.navigate('Loading');
     }

@@ -7,3 +7,5 @@ export * from './balance';
 export * from './currencyPrice';
 export * from './transactions';
 export * from './push';
+export * from './walletconnect';
+export * from './apihistory';

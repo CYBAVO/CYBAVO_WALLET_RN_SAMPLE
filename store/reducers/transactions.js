@@ -216,6 +216,7 @@ function transactions(state = defaultState, action) {
         tokenAddress,
         address,
         currencySymbol,
+        txids = [],
       } = action;
       const updatedAt = Date.now();
       let key = getWalletKey(currency, tokenAddress, address);
@@ -237,6 +238,9 @@ function transactions(state = defaultState, action) {
       let nonceMap = state.transactions[key].nonceMap || {}; //{1: { headKey: "0x1", rest: [t1, t2, t3], realHead: t3, origin: t2}}
       let todoNonce = new Set(); //key of nonceMap
       for (let i = 0; i < transactions.length; i++) {
+        if (txids.includes(transactions[i].txid)) {
+          continue;
+        }
         transactions[i] = {
           ...transactions[i],
           currencySymbol,

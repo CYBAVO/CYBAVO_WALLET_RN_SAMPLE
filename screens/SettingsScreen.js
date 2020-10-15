@@ -12,7 +12,7 @@ const { width, height } = Dimensions.get('window');
 import { Container, Content, Toast } from 'native-base';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from 'react-navigation-hooks';
-import { BADGE_FONT_SIZE } from '../Constants';
+import { BADGE_FONT_SIZE, SERVICE_EMAIL } from '../Constants';
 import { WalletSdk, Auth } from '@cybavo/react-native-wallet-service';
 import { signOut } from '../store/actions';
 import Styles from '../styles/Styles';
@@ -28,6 +28,7 @@ import ResultModal, {
 } from '../components/ResultModal';
 import VersionNumber from 'react-native-version-number';
 import IconSvgXml from '../components/IconSvgXml';
+import { sendLogFilesByEmail } from '../Helpers';
 const {
   sdkInfo: { VERSION_NAME, VERSION_CODE, BUILD_TYPE },
 } = WalletSdk;
@@ -40,6 +41,25 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   const { navigate, goBack } = useNavigation();
   const userState = useSelector(state => state.user.userState);
   const identity = useSelector(state => state.auth.identity);
+
+  const hasConnection = useSelector(state => {
+    return Object.keys(state.walletconnect.connecting).length > 0;
+  });
+  const hasApiHistory = useSelector(state => {
+    let hasApiHistory = false;
+    try {
+      let apihistoryMap =
+        state.apihistory.apihistory[state.wallets.ethWallet.walletId].data;
+      let arr = Object.values(apihistoryMap);
+      if (arr.length > 0) {
+        hasApiHistory = true;
+      }
+    } catch (error) {
+      console.debug(error);
+    }
+    return hasApiHistory;
+  });
+
   const _goChangePinCode = () => {
     setInputPinCode(true);
   };
@@ -203,14 +223,24 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
           ]}>
           {I18n.t('information')}
         </Text>
-        {/*<TouchableOpacity onPress={() => {}} style={styles.listItemVertical}>*/}
-        {/*  <Text style={[Styles.input, Theme.fonts.default.regular]}>*/}
-        {/*    {I18n.t('wallet_service_endpoint')}*/}
-        {/*  </Text>*/}
-        {/*  <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>*/}
-        {/*    {SERVICE_ENDPOINT}*/}
-        {/*  </Text>*/}
-        {/*</TouchableOpacity>*/}
+        {(hasApiHistory || hasConnection) && (
+          <TouchableOpacity
+            onPress={() => {
+              sendLogFilesByEmail(
+                SERVICE_EMAIL,
+                `${I18n.t('report_issue')} - CYBAVO Wallet`
+              ),
+                I18n.t('issue_description_template');
+            }}
+            style={styles.listItemVertical}>
+            <Text style={[Styles.input, Theme.fonts.default.regular]}>
+              {I18n.t('report_issue')}
+            </Text>
+            <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
+              {I18n.t('report_issue_desc')}
+            </Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.listItemVertical}>
           <Text style={[Styles.input, Theme.fonts.default.regular]}>
             {I18n.t('version')}

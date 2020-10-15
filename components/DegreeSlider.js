@@ -5,11 +5,12 @@ import Slider from '@react-native-community/slider';
 import Styles from '../styles/Styles';
 import { Theme } from '../styles/MainTheme';
 import { withTheme, Text } from 'react-native-paper';
+import I18n from '../i18n/i18n';
 
 const DegreeSlider: () => React$Node = ({
   theme,
   keys = ['low', 'medium', 'high'],
-  labels = ['Slow', 'Medium', 'Fast'],
+  // labels = ['Slow', 'Medium', 'Fast'],
   valueObj = {
     low: { amount: 0.002, description: '<5m' },
     medium: { amount: 0.005, description: '<3m' },
@@ -17,6 +18,16 @@ const DegreeSlider: () => React$Node = ({
   },
   getDesc = (item = {}) => item.description,
   getValue = (item = {}) => item.amount,
+  getLabel = (key = {}) => {
+    switch (key) {
+      case 'low':
+        return I18n.t('slow');
+      case 'high':
+        return I18n.t('fast');
+      default:
+        return I18n.t(key);
+    }
+  },
   onSlidingComplete = value => {},
   style = {},
   outerWidth = '100%',
@@ -24,7 +35,7 @@ const DegreeSlider: () => React$Node = ({
   errorMsg,
   hasAlert = key => false,
   reserveErrorMsg = false,
-  initValue = 0,
+  initValue = keys.length - 1,
   callbackForInit = false,
 }) => {
   const [value, setValue] = useState(initValue);
@@ -96,12 +107,12 @@ const DegreeSlider: () => React$Node = ({
         {keys.map((item, i) => (
           <View style={{ flexDirection: 'row' }}>
             <Text
-              key={labels[i]}
+              key={item}
               style={[
                 i == value ? Styles.secContent : Styles.secContentFade,
                 Theme.fonts.default.regular,
               ]}>
-              {labels[i]}
+              {getLabel(item)}
             </Text>
             {hasAlert(item) && (
               <Image

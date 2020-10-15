@@ -5,7 +5,7 @@ import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import Styles from '../styles/Styles';
 import I18n from '../i18n/i18n';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   ActivityIndicator,
   IconButton,
@@ -23,10 +23,16 @@ import ResultModal, {
   TYPE_CONFIRM,
   TYPE_FAIL,
 } from '../components/ResultModal';
-import { checkStoragePermission, toastError } from '../Helpers';
+import {
+  checkStoragePermission,
+  checkWalletConnectUri,
+  toastError,
+} from '../Helpers';
 import { Wallets } from '@cybavo/react-native-wallet-service';
 import { Coin, SCAN_ICON } from '../Constants';
 import IconSvgXml from '../components/IconSvgXml';
+import { newSession } from '../store/actions';
+import NavigationService from '../NavigationService';
 
 const ScanScreen: () => React$Node = ({ theme }) => {
   const qrScannerRef = useRef();
@@ -39,9 +45,11 @@ const ScanScreen: () => React$Node = ({ theme }) => {
   const onResult = useNavigationParam('onResult');
   const isModal = useNavigationParam('modal');
 
+  const dispatch = useDispatch();
   const [possibleCurrencies, setPossibleCurrencies] = useState([]);
   const _getCoinKey = item => `${item.currency}#`;
   const _getCurrencyKey = item => `${item.currency}#${item.tokenAddress}`;
+  const ethWallet = useSelector(state => state.wallets.ethWallet);
   const currencies = useSelector(state => state.currency.currencies || []);
   const currencyMap = useSelector(state => {
     let map = {};
@@ -56,55 +64,95 @@ const ScanScreen: () => React$Node = ({ theme }) => {
   });
   const wallets = useSelector(state => state.wallets.wallets || []);
   useEffect(() => {
-    if (qrCode != null) {
-      setAddress(qrCode);
-      if (onResult) {
-        onResult(qrCode);
-        goBack();
-      } else {
-        Wallets.queryCoinType(qrCode)
-          .then(result => {
-            console.log('queryCoinType = ', result.coinItems.length);
-            let currencies = [];
-            let exist = new Set(); // api return dublicate item
-            for (let i = 0; i < result.coinItems.length; i++) {
-              if (Coin.EOS == result.coinItems[i].currency) {
-                continue;
-              }
-              setAddress(result.coinItems[i].tokenAddress);
-              let arr = currencyMap[_getCoinKey(result.coinItems[i])] || [];
-              for (let j = 0; j < arr.length; j++) {
-                let key = _getCurrencyKey(arr[j]);
-                if (!exist.has(key)) {
-                  currencies.push(arr[j]);
-                  exist.add(key);
-                }
-              }
-            }
-            if (currencies.length == 1) {
-              _onSelectCurrency(currencies[0]);
-            } else if (currencies.length > 1) {
-              setPossibleCurrencies(currencies);
-              setShowModal(true);
-            } else {
-              setResult({
-                title: I18n.t('invalid_address'),
-                error: I18n.t('invalid_address_desc'),
-                message: I18n.t('scanned_content', { qrCode: qrCode }),
-                type: TYPE_FAIL,
-                buttonClick: _reactivateOrLeave,
-              });
-            }
-          })
-          .catch(error => {
-            setAddress(qrCode);
-            setPossibleCurrencies(currencies);
-            setShowModal(true);
-            toastError(error);
-          });
-      }
+    if (qrCode == null) {
+      return;
+    }
+    let result = checkWalletConnectUri(qrCode);
+    if (result.valid) {
+      _qrCodeAsWalletConnect(qrCode);
+    } else {
+      _qrCodeAsAddress(qrCode);
     }
   }, [qrCode]);
+
+  const _qrCodeAsWalletConnect = qrCode => {
+    if (ethWallet) {
+      goBack();
+      NavigationService.navigate('Connecting', {});
+      dispatch(newSession(qrCode, ethWallet.address, ethWallet.walletId));
+    } else {
+      let item = currencies.find(
+        w => w.currency === Coin.ETH && !w.tokenAddress
+      );
+      setResult({
+        title: I18n.t('create_first_wallet', item),
+        message: I18n.t('ask_create_wallet_desc', item),
+        type: TYPE_CONFIRM,
+        successButtonText: I18n.t('go_create'),
+        currency: item,
+        buttonClick: () => {
+          goBack();
+          navigate('AddAsset', { currency: item });
+          setResult(null);
+        },
+        secondaryConfig: {
+          color: theme.colors.primary,
+          text: I18n.t('cancel'),
+          onClick: () => {
+            _reactivateOrLeave();
+          },
+        },
+      });
+    }
+  };
+  const _qrCodeAsAddress = qrCode => {
+    setAddress(qrCode);
+    if (onResult) {
+      onResult(qrCode);
+      goBack();
+    } else {
+      Wallets.queryCoinType(qrCode)
+        .then(result => {
+          console.log('queryCoinType = ', result.coinItems.length);
+          let currencies = [];
+          let exist = new Set(); // api return dublicate item
+          for (let i = 0; i < result.coinItems.length; i++) {
+            if (Coin.EOS == result.coinItems[i].currency) {
+              continue;
+            }
+            setAddress(result.coinItems[i].tokenAddress);
+            let arr = currencyMap[_getCoinKey(result.coinItems[i])] || [];
+            for (let j = 0; j < arr.length; j++) {
+              let key = _getCurrencyKey(arr[j]);
+              if (!exist.has(key)) {
+                currencies.push(arr[j]);
+                exist.add(key);
+              }
+            }
+          }
+          if (currencies.length == 1) {
+            _onSelectCurrency(currencies[0]);
+          } else if (currencies.length > 1) {
+            setPossibleCurrencies(currencies);
+            setShowModal(true);
+          } else {
+            setResult({
+              title: I18n.t('invalid_address'),
+              error: I18n.t('invalid_address_desc'),
+              message: I18n.t('scanned_content', { qrCode: qrCode }),
+              type: TYPE_FAIL,
+              buttonClick: _reactivateOrLeave,
+            });
+          }
+        })
+        .catch(error => {
+          setAddress(qrCode);
+          setPossibleCurrencies(currencies);
+          setShowModal(true);
+          toastError(error);
+        });
+    }
+  };
   const _onSelectCurrency = item => {
     let wallet = wallets.find(
       w => w.currency === item.currency && w.tokenAddress === item.tokenAddress
@@ -215,7 +263,7 @@ const ScanScreen: () => React$Node = ({ theme }) => {
           />
           <View style={styles.mask} />
         </View>
-        <View style={[styles.mask, { alignItems: 'center'}]}>
+        <View style={[styles.mask, { alignItems: 'center' }]}>
           <Text
             style={{
               color: theme.colors.placeholder,
@@ -243,9 +291,7 @@ const ScanScreen: () => React$Node = ({ theme }) => {
         actions={
           <IconButton
             borderless
-            // accessibilityLabel={clearAccessibilityLabel}
             color={'rgba(255, 255, 255, 0.56)'}
-            // rippleColor={rippleColor}
             onPress={_pickImage}
             icon={({ size, color }) => (
               <Image
@@ -326,8 +372,6 @@ const ScanScreen: () => React$Node = ({ theme }) => {
 const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
-    // justifyContent: 'center',
-    // alignItems: 'center',
   },
   camera: {
     width: '100%',
