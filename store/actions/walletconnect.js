@@ -12,6 +12,7 @@ import { CHAIN_ID } from '../../BuildConfig';
 import moment from 'moment';
 import { FileLogger } from 'react-native-file-logger';
 
+export const WALLETCONNECT_UPDATE_REPORTABLE = 'walletConnect/WALLETCONNECT_UPDATE_REPORTABLE';
 export const WALLETCONNECT_INIT_REQUEST =
   'walletConnect/WALLETCONNECT_INIT_REQUEST';
 export const WALLETCONNECT_INIT_SUCCESS =
@@ -49,7 +50,7 @@ export function newSession(uri, address, walletId) {
         name: 'CYBAVO Wallet',
         ssl: true,
       };
-
+      dispatch({ type: WALLETCONNECT_UPDATE_REPORTABLE, value: true });
       FileLogger.debug(
         `>> newSession:${uri},address:${address},walletId${walletId},${
           getState().auth.config

@@ -564,11 +564,21 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       <ScrollView>{_getSubView()}</ScrollView>
       {HIDE_TRANSACTION_ERRORS.includes(amountError.key) ? (
         <View style={{ marginTop: 8 }}>
+          <Text
+            style={[Styles.inputError, { width: '86%', alignSelf: 'center' }]}>
+            {I18n.t('cannot_approve_template', {
+              msg: I18n.t(amountError.key, amountError.p),
+            })}
+          </Text>
           <RoundButton2
             height={ROUND_BUTTON_HEIGHT}
             style={[
               Styles.bottomButton,
-              { backgroundColor: theme.colors.error, marginBottom: 3 },
+              {
+                backgroundColor: theme.colors.error,
+                marginBottom: 3,
+                marginTop: 6,
+              },
             ]}
             // disabled={feeError != null}
             labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
@@ -578,12 +588,6 @@ const RequestScreen: () => React$Node = ({ theme }) => {
             }}>
             {I18n.t('cancel')}
           </RoundButton2>
-          <Text
-            style={[Styles.inputError, { width: '90%', alignSelf: 'center' }]}>
-            {I18n.t('cannot_approve_template', {
-              msg: I18n.t(amountError.key, amountError.p),
-            })}
-          </Text>
         </View>
       ) : (
         <View style={{ marginTop: 8 }}>

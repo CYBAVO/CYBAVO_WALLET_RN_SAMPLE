@@ -39,7 +39,6 @@ const ApiHistoryList: () => React$Node = ({
   theme,
   onPress,
   data: data,
-  listMode,
   onRefresh,
   refreshing,
   onEndReached,
@@ -266,7 +265,7 @@ const ApiHistoryList: () => React$Node = ({
         contentContainerStyle={{ flexGrow: 1, marginTop: 8 }}
         data={data}
         keyExtractor={(item, idx) => `${item.createTime}#${idx}`}
-        renderItem={listMode == 1 ? _renderItem : _renderItem}
+        renderItem={_renderItem}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         ListFooterComponent={() => renderFooter(footLoading)}

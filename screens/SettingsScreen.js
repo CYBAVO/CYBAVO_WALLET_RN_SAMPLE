@@ -42,6 +42,9 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   const userState = useSelector(state => state.user.userState);
   const identity = useSelector(state => state.auth.identity);
 
+  const reportable = useSelector(state => {
+    return state.walletconnect.reportable;
+  });
   const hasConnection = useSelector(state => {
     return Object.keys(state.walletconnect.connecting).length > 0;
   });
@@ -223,7 +226,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
           ]}>
           {I18n.t('information')}
         </Text>
-        {(hasApiHistory || hasConnection) && (
+        {(reportable || hasApiHistory || hasConnection) && (
           <TouchableOpacity
             onPress={() => {
               sendLogFilesByEmail(

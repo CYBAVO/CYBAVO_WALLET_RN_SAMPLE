@@ -14,7 +14,7 @@ import {
   WALLETCONNECT_SESSION_APPROVAL,
   WALLETCONNECT_SESSION_DISCONNECTED,
   WALLETCONNECT_SESSION_REJECTION,
-  WALLETCONNECT_SESSION_REQUEST,
+  WALLETCONNECT_SESSION_REQUEST, WALLETCONNECT_UPDATE_REPORTABLE,
 } from '../actions';
 
 function walletconnect(
@@ -22,10 +22,16 @@ function walletconnect(
     loading: false,
     connecting: {},
     pending: {},
+    reportable: false,
   },
   action
 ) {
   switch (action.type) {
+    case WALLETCONNECT_UPDATE_REPORTABLE:
+      return {
+        ...state,
+        reportable: action.value,
+      };
     case WALLETCONNECT_INIT_REQUEST:
       return {
         ...state,
@@ -46,17 +52,20 @@ function walletconnect(
       return {
         ...state,
         pending: action.pending,
+        reportable: true,
       };
     case WALLETCONNECT_SESSION_REJECTION:
       return {
         ...state,
         pending: action.pending,
+        reportable: true,
       };
     case WALLETCONNECT_SESSION_APPROVAL:
       return {
         ...state,
         connecting: action.connecting,
         pending: action.pending,
+        reportable: true,
       };
     case WALLETCONNECT_SESSION_DISCONNECTED:
       return {
@@ -70,6 +79,7 @@ function walletconnect(
       return {
         ...state,
         requests: action.payload,
+        reportable: true,
       };
     default:
       return state;
