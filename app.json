@@ -1,4 +1,5 @@
 {
   "name": "CybavoWallet",
-  "displayName": "CYBAVO Wallet"
+  "displayName": "CYBAVO Wallet",
+  "resolutions": { "logkitty": "^0.7.1" }
 }
