@@ -116,6 +116,126 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
 13. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code`
 # Push notification
 To receive silent push notification of deposit/withdrawal. Please refer to [this](https://rnfirebase.io/messaging/usage) to setup.
+
+# Biometrics Authentication
+Biometrics Authentication is optional, it requires futher authentication when sign in and do transaction:
+
+1. Need to verify SMS code when sign in on a new device.
+2. If the device don't support biometrics, PIN and SMS code are required when performing transaction.
+3. If the device support biometrics, PIN and biometrics authentication are required performing transaction.
+
+## SignInState for Register flow
+After user sign in, you may invoke Wallets API. ex. Wallets.getCurrencies() 
+
+
+   If get `SignInState.NEED_REGISTER_PHONE` init register phone process.
+
+   If get `SignInState.NEED_VERIFY_OTP`, init verify OTP process.
+
+```javascript
+ import { WalletSdk, Auth, Wallets } from '@cybavo/react-native-wallet-service';
+ 
+ Auth.addListener(Auth.Events.onSignInStateChanged, signInState => {
+      
+      if (signInState === Auth.SignInState.NEED_VERIFY_OTP) {
+         // Lead user to verify SMS page
+      }else if(signInState === Auth.SignInState.NEED_REGISTER_PHONE){
+         // Lead user to register phone page
+    });
+```
+## Register phone (NEED_REGISTER_PHONE)
+
+When receive `SignInState.NEED_REGISTER_PHONE`
+```javascript
+   let countryCode = '+886';
+   let fotmattedNationalNumber = '987654321';
+   const COOL_TIME = 60;
+   const res = await Auth.registerPhoneNumber(
+     countryCode,
+     fotmattedNationalNumber,
+     COOL_TIME
+   );
+   
+   await Auth.verifyOtp(res.actionToken, smsCode);
+```
+## Register public key
+
+```javascript
+   let { biometricsType } = await Wallets.getBiometricsType();
+   await Wallets.updateDeviceInfo(); //detect and send biometricsType to server
+   if(biometricsType != Wallets.BiometricsType.NONE){ // device support biometrics
+      await Wallets.registerPubkey();
+   }
+```
+
+## Sign in and verify SMS (NEED_VERIFY_OTP)
+
+When receive `SignInState.NEED_VERIFY_OTP`
+
+```javascript
+   const COOL_TIME = 60;
+   const res = await Wallets.getSmsCode(Wallets.OtpType.SMS_SETUP_PHONE_OTP, COOL_TIME);
+   //or await Wallets.getLoginSmsCode(COOL_TIME)
+   await Auth.verifyOtp(res.actionToken, smsCode);
+```
+## Biometrics authentication for transaction
+
+There are two versions (SMS and Biometrics) for following transaction API:
+* createTransaction
+* requestSecureToken
+* signRawTx
+* increaseTransactionFee
+* callAbiFunction
+* cancelTransaction
+* callAbiFunctionTransaction
+* signMessage
+* walletConnectSignTypedData
+* walletConnectSignTransaction
+* walletConnectSignMessage
+
+SMS version has suffix 'Sms', ex. createTransactionSms
+
+Biometrics version has suffix 'Bio', ex. createTransactionBio
+
+### SMS version
+
+If device don't support biometric, make a transaction with PIN secret and SMS code.
+
+```javascript
+const { actionToken } = await Wallets.getTransactionSmsCode(COOL_TIME);
+//or await Wallets.getSmsCode(Wallets.OtpType.SMS_VERIFY_OTP, COOL_TIME);
+
+result = await Wallets.createTransactionSms(
+              actionToken,
+              code, //smsCode
+              wallet.walletId,
+              receiver,
+              amount,
+              transactionFee,
+              description,
+              pinSecret,
+              extras
+          );
+```
+
+### Biometrics version
+
+If device support biometric, make a transaction with PIN secret and biometrics authentication prompt.
+
+```javascript
+result = await Wallets.createTransactionBio(
+              promptMessage,
+              cancelButtonText,
+              wallet.walletId,
+              receiver,
+              amount,
+              transactionFee,
+              description,
+              pinSecret,
+              extras
+          );
+```
+
 # WalletConnect
 CYBAVO Wallet App SDK has integrated [WalletConnect](https://docs.walletconnect.org/) to support wallet apps connecting with Dapps (Web3 Apps).
 
