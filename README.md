@@ -104,16 +104,17 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    sed -i "" 's/s.dependency "TwitterKit", "~> 3.3"/s.dependency "TwitterKit5"/g' 
    ```
 3. Place ssh key requested from CYBAVO to ~/.ssh/ (rename it if nessersary)
+4. If your Xcode version is older then 12, please edit `Podfile`, Replace `source 'https://bitbucket.org/cybavo/Specs_512.git'` with `source https://bitbucket.org/cybavo/Specs_510.git`
 5. Run `pod install` in `ios/`
 6. Place your `GoogleService-Info.plist` file downloaded from Firebase to `ios/` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
 7. Open your project configuration: double-click the project name in the left tree view. Select your app from the TARGETS section, then select the Info tab, and expand the URL Types section. Replace `Identifier` and `URL Schemes` with `CLIENT_ID" and `REVERSED_CLIENT_ID` in your `GoogleService-Info.plist`. [(LearnMore)](https://developers.google.com/identity/sign-in/ios/start-integrating)
 8. Replace `MY_FACEBOOK_SIGN_IN_APP_ID` with your `Facebook app id`
 9. Replace `MY_LINE_CHANNEL_SCHEME` with your `LINE channel scheme`
-9. Replace `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` with your `Google sign-in client ID`
-10. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID
-11. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont
-12. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `bundle id`, follow the instruction to retrieve an `API Code`.
-13. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code`
+10. Replace `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` with your `Google sign-in client ID`
+11. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID
+12. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont
+13. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `bundle id`, follow the instruction to retrieve an `API Code`.
+14. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code`
 # Push notification
 To receive silent push notification of deposit/withdrawal. Please refer to [this](https://rnfirebase.io/messaging/usage) to setup.
 
