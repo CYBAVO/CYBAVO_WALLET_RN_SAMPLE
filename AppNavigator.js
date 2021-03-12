@@ -27,13 +27,21 @@ import RequestScreen from './screens/RequestScreen';
 import ConnectingScreen from './screens/ConnectingScreen';
 import ConnectionListScreen from './screens/ConnectionListScreen';
 import ApiHistoryDetailScreen from './screens/ApiHistoryDetailScreen';
+import I18n from 'react-native-i18n';
+import SetLocaleScreen from './screens/SetLocaleScreen';
+import VerifyOtpScreen from './screens/VerifyOtpScreen';
+import EnterPhoneScreen from './screens/EnterPhoneScreen';
+import SelectCountryScreen from './screens/SelectCountryScreen';
+import RegisterSuccessScreen from './screens/RegisterSuccessScreen';
+import SetBioScreen from './screens/SetBioScreen';
+import InputPinSmsScreen from './screens/InputPinSmsScreen';
 
 const MainTab = createBottomTabNavigator(
   {
     Assets: {
       screen: AssetScreen,
       navigationOptions: ({ navigation }) => ({
-        // tabBarLabel: '',
+        tabBarLabel: I18n.t('assets'),
         tabBarIcon: ({ focused, horizontal, tintColor }) => (
           <Image
             source={
@@ -81,6 +89,7 @@ const MainTab = createBottomTabNavigator(
     Settings: {
       screen: SettingsScreen,
       navigationOptions: ({ navigation }) => ({
+        tabBarLabel: I18n.t('settings'),
         tabBarIcon: ({ focused, horizontal, tintColor }) => (
           <Image
             source={
@@ -139,8 +148,10 @@ const MainStack = createStackNavigator(
     SetupSecurityQuestion: SetupSecurityQuestionScreen,
     VerifySecurityQuestion: VerifySecurityQuestionScreen,
     ForgotPinCode: ForgotPinCodeScreen,
+    SetLocale: SetLocaleScreen,
     ConnectionList: { screen: ConnectionListScreen },
     ApiHistoryDetail: { screen: ApiHistoryDetailScreen },
+    SetBio: SetBioScreen,
   },
   {
     defaultNavigationOptions: {
@@ -156,6 +167,8 @@ const LoadingStack = createStackNavigator(
     scanModal: { screen: ScanScreen },
     Connecting: { screen: ConnectingScreen },
     Request: { screen: RequestScreen },
+    // CurrencyPick: { screen: CurrencyPickScreen },
+    InputPinSms: { screen: InputPinSmsScreen },
   },
   {
     mode: 'modal',
@@ -178,6 +191,10 @@ export default createAppContainer(
       Init: InitializeScreen,
       Main: LoadingStack,
       Auth: AuthStack,
+      VerifyOtp: VerifyOtpScreen,
+      RegisterSuccess: RegisterSuccessScreen,
+      EnterPhone: EnterPhoneScreen,
+      SelectCountry: SelectCountryScreen,
       SetupPin: SetupPinScreen,
       ScanOut: { screen: ScanScreen },
     },

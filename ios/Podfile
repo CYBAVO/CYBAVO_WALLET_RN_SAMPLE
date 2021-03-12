@@ -34,7 +34,7 @@ target 'cybavo_wallet' do
   pod 'React-jsi', :path => '../node_modules/react-native/ReactCommon/jsi'
   pod 'React-jsiexecutor', :path => '../node_modules/react-native/ReactCommon/jsiexecutor'
   pod 'React-jsinspector', :path => '../node_modules/react-native/ReactCommon/jsinspector'
-  pod 'React-callinvoker', :path => "../node_modules/react-native/ReactCommon/callinvoker"
+  pod 'ReactCommon/jscallinvoker', :path => "../node_modules/react-native/ReactCommon"
   pod 'ReactCommon/turbomodule/core', :path => "../node_modules/react-native/ReactCommon"
   pod 'Yoga', :path => '../node_modules/react-native/ReactCommon/yoga'
   pod 'react-native-randombytes', :path => '../node_modules/react-native-randombytes'
@@ -47,7 +47,7 @@ target 'cybavo_wallet' do
   pod 'LineSDK', '~> 5.0.0'
   pod 'RNGoogleSignin', :path => '../node_modules/react-native-google-signin'
   pod 'Firebase/Analytics'
-
+  
   pod 'react-native-fbsdk', :path => '../node_modules/react-native-fbsdk'
   pod 'RNFBApp', :path => '../node_modules/@react-native-firebase/app'
   pod 'RNFBMessaging', :path => '../node_modules/@react-native-firebase/messaging'

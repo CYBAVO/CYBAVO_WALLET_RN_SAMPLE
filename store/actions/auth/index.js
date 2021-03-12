@@ -4,7 +4,7 @@
  *
  * All rights reserved.
  */
-import { WalletSdk, Auth } from '@cybavo/react-native-wallet-service';
+import { WalletSdk, Auth, Wallets } from '@cybavo/react-native-wallet-service';
 import NavigationService from '../../../NavigationService';
 import { COMMON_RESET } from '../common';
 import Google from './providers/google';
@@ -15,9 +15,30 @@ import Apple from './providers/apple';
 import Twitter from './providers/Twitter';
 import iid from '@react-native-firebase/iid';
 import crashlytics from '@react-native-firebase/crashlytics';
-import { hasValue } from '../../../Helpers';
+import {
+  checkWalletConnectUri,
+  hasValue,
+  sleep,
+  toast,
+  toastError,
+} from '../../../Helpers';
+
+import I18n, {
+  getLanguage,
+  LanguageIndexMap,
+  setLanguage,
+} from '../../../i18n/i18n';
 import * as DeviceInfo from 'react-native-device-info';
-import {killAllSession} from '../walletconnect';
+import {
+  killAllSession,
+  newSession,
+  WALLETCONNECT_PENDING_URI,
+} from '../walletconnect';
+import { DeviceEventEmitter, Linking, Platform, StatusBar } from 'react-native';
+import * as RNLocalize from 'react-native-localize';
+import AsyncStorage from '@react-native-community/async-storage';
+import { fetchUserState, USER_UPDATE_USER_STATE } from '../user';
+import { CURRENCIES_ERROR, CURRENCIES_UPDATE_CURRENCIES } from '../currency';
 
 const { ErrorCodes } = WalletSdk;
 
@@ -25,8 +46,11 @@ const { ErrorCodes } = WalletSdk;
 export const AUTH_LOADING = 'AUTH_LOADING';
 export const AUTH_ERROR = 'AUTH_ERROR';
 export const AUTH_UPDATE_DEV = 'AUTH_UPDATE_DEV';
+export const AUTH_UPDATE_ANIMATE = 'AUTH_UPDATE_ANIMATE';
 export const AUTH_UPDATE_SIGN_IN_STATE = 'AUTH_UPDATE_SIGN_IN_STATE';
 export const AUTH_UPDATE_IDENTITY = 'AUTH_UPDATE_IDENTITY';
+export const AUTH_UPDATE_UI_FLAG = 'AUTH_UPDATE_UI_FLAG';
+export const SHOWED_GUIDE = 'showed_guide';
 
 async function signInWithToken(idToken, identityProvider, extras) {
   console.log('signInWithToken... ', extras.user_id);
@@ -50,6 +74,37 @@ export function setPushDeviceToken() {
     return resp;
   };
 }
+export function registerPubkey() {
+  return async (dispatch, getState) => {
+    try {
+      let { exist } = await Wallets.isBioKeyExist();
+      let { biometricsType } = await Wallets.getBiometricsType();
+      console.debug(`exist:${exist}, biometricsType:${biometricsType}`);
+      if (/*exist &&*/ biometricsType == Wallets.BiometricsType.NONE) {
+        console.debug('updateDeviceInfo');
+        await Wallets.updateDeviceInfo(); //NONE
+      } else if (/*!exist && */ biometricsType != Wallets.BiometricsType.NONE) {
+        console.debug('updateDeviceInfo');
+        await Wallets.updateDeviceInfo(); //not null
+        console.debug('registerPubkey');
+        await Wallets.registerPubkey();
+      }
+    } catch (error) {
+      toastError(error);
+      console.debug('registerPubkey pack fail', error);
+    }
+  };
+}
+
+export function setShowedGuide(value) {
+  AsyncStorage.setItem(SHOWED_GUIDE, value)
+    .then(() => {
+      console.debug('set SHOWED_GUIDE:' + value);
+    })
+    .catch(error => {
+      console.debug('set SHOWED_GUIDE err:' + error);
+    });
+}
 
 function updateSignInState(signInState) {
   console.log('updateSignInState:', signInState);
@@ -58,17 +113,69 @@ function updateSignInState(signInState) {
     if (signInState === Auth.SignInState.UNKNOWN) {
       NavigationService.navigate('Init');
     } else if (signInState === Auth.SignInState.SIGNED_IN) {
-      if (getState().user.userState.setPin === false) {
-        NavigationService.navigate('SetupPin');
-      } else {
-        NavigationService.navigate('Main');
+      let routeName =
+        getState().user.userState.setPin === false ? 'SetupPin' : 'Main';
+      try {
+        let { currencies } = await Wallets.getCurrencies();
+        currencies = currencies || [];
+        currencies = currencies.sort((a, b) =>
+          a.symbol.localeCompare(b.symbol)
+        );
+        dispatch({ type: CURRENCIES_UPDATE_CURRENCIES, currencies });
+        NavigationService.navigate(routeName);
+        dispatch(setPushDeviceToken());
+        dispatch(registerPubkey());
+      } catch (error) {
+        console.warn('Wallets.getCurrencies failed', error);
+        dispatch({ type: CURRENCIES_ERROR, error });
+        if (error.code != 186 && error.code != 180) {
+          NavigationService.navigate(routeName);
+        }
       }
     } else if (signInState === Auth.SignInState.SESSION_EXPIRED) {
       NavigationService.navigate('Loading', {
         sessionExpire: true,
       });
+    } else if (signInState === Auth.SignInState.NEED_VERIFY_OTP) {
+      await sleep(1000);
+      let userState = getState().user.userState;
+      let countryCode = userState.countryCode;
+      let phone = getState().user.userState.phone;
+      if (!countryCode || !phone) {
+        try {
+          await sleep(3000); // prevent ErrOperationTooFrequent
+          const { userState } = await Auth.getUserState();
+          countryCode = userState.countryCode;
+          phone = userState.phone;
+          dispatch({ type: USER_UPDATE_USER_STATE, userState });
+        } catch (error) {
+          countryCode = '';
+          phone = '';
+          console.debug('getUserState fail', error);
+          dispatch(fetchUserState());
+        }
+      }
+      NavigationService.navigate('VerifyOtp', {
+        step: 1,
+        type: Wallets.OtpType.SMS_LOGIN_OTP,
+        countryCode: countryCode,
+        phone: phone,
+      });
+    } else if (signInState === Auth.SignInState.NEED_REGISTER_PHONE) {
+      let state = getState().user.userState;
+      if (state == null || state.setPin == null) {
+        dispatch(fetchUserState());
+      }
+      NavigationService.navigate('EnterPhone', {
+        step: Wallets.OtpType.SMS_SETUP_PHONE_OTP,
+      });
     } else if (signInState === Auth.SignInState.SIGNED_OUT) {
-      NavigationService.navigate('Auth');
+      if (getState().auth.showSigninModal) {
+        dispatch({ type: AUTH_UPDATE_UI_FLAG, showSigninModal: false });
+        NavigationService.navigate('SignIn', { modal: Date.now() });
+      } else {
+        NavigationService.navigate('SignIn', {});
+      }
       dispatch({ type: COMMON_RESET });
     } else {
       // SESSION_INVALID
@@ -115,12 +222,6 @@ export function signIn(identityProvider) {
       identity.avatar = avatar;
       identity.secret = secret;
       console.log('auth.signIn...', idToken);
-      if (email) {
-        await crashlytics().setUserEmail(email);
-      }
-      if (name) {
-        await crashlytics().setUserName(name);
-      }
       userToken = idToken;
       console.log('signInWithToken...');
       await signInWithToken(
@@ -132,6 +233,7 @@ export function signIn(identityProvider) {
         type: AUTH_UPDATE_IDENTITY,
         ...identity,
       });
+      dispatch(fetchUserState());
       console.log('signInWithToken... Done');
     } catch (error) {
       console.log('signIn failed', error);
@@ -178,6 +280,7 @@ export function signIn(identityProvider) {
 export function signOut(goLoading = true, sdkSignOut = true) {
   return async (dispatch, getState) => {
     dispatch(killAllSession('signOut'));
+    dispatch({ type: AUTH_UPDATE_UI_FLAG, justSignup: false });
     if (goLoading) {
       NavigationService.navigate('Loading');
     }
@@ -186,7 +289,11 @@ export function signOut(goLoading = true, sdkSignOut = true) {
     if (sdkSignOut) {
       // ++sign out sdk++
       console.log('Auth.signOut...');
-      await Auth.signOut();
+      try {
+        await Auth.signOut();
+      } catch (error) {
+        console.debug('Auth.signOut... Fail');
+      }
       console.log('Auth.signOut... Done');
       // ++sign out idProvider++
       const idProvider = IDENTITY_PROVIDERS[identityProvider];
@@ -211,21 +318,117 @@ export function signOut(goLoading = true, sdkSignOut = true) {
     }
   };
 }
+let listener;
+function handleWaclletConnectUri(state, dispatch, uri, type) {
+  console.log('onWalletConnectUri_' + uri);
 
+  let result = checkWalletConnectUri(uri);
+  if (!result.valid) {
+    return;
+  }
+  if (state.auth.signInState === Auth.SignInState.SIGNED_IN) {
+    if (type == 'onNewIntent') {
+      let ethWallet = state.wallets.ethWallet;
+      if (ethWallet) {
+        NavigationService.navigate('Connecting', {});
+        dispatch(newSession(uri, ethWallet.address, ethWallet.walletId));
+      } else {
+        toast(I18n.t('no_eth_wallet_prompt'));
+      }
+    } else {
+      dispatch({ type: WALLETCONNECT_PENDING_URI, uri: uri });
+    }
+  } else {
+    dispatch({ type: WALLETCONNECT_PENDING_URI, uri: uri });
+    toast(I18n.t('signin_prompt'));
+  }
+}
+function getTrimmedWcUri(str) {
+  if (!str) {
+    return '';
+  }
+  str = decodeURIComponent(str);
+  let i = str.indexOf('wc:');
+  return str.substr(i, str.length);
+}
+
+export function removeListener() {
+  if (listener) {
+    DeviceEventEmitter.removeListener(listener);
+  }
+}
+function getLocal() {
+  getLanguage()
+    .then(lan => {
+      if (!lan) {
+        let arr = RNLocalize.getLocales();
+        lan = 'en';
+        if (arr && arr.length > 0) {
+          if (LanguageIndexMap[arr[0].languageTag]) {
+            lan = arr[0].languageTag;
+          }
+        }
+      }
+      setLanguage(lan);
+    })
+    .catch(error => {});
+}
+
+export function initLocale() {
+  return async (dispatch, getState) => {
+    let locale = getLocal();
+    console.debug(locale);
+  };
+}
+export function initListener() {
+  return async (dispatch, getState) => {
+    if (Platform.OS == 'ios') {
+      const url = await Linking.getInitialURL();
+      if (url) {
+        handleWaclletConnectUri(
+          getState(),
+          dispatch,
+          getTrimmedWcUri(url),
+          'onCreate'
+        );
+      }
+
+      const handleUrlIOS = evt => {
+        handleWaclletConnectUri(
+          getState(),
+          dispatch,
+          getTrimmedWcUri(evt.url),
+          'onNewIntent'
+        );
+      };
+      Linking.addEventListener('url', handleUrlIOS);
+      return;
+    }
+    listener = DeviceEventEmitter.addListener(
+      'onWalletConnectUri',
+      ({ uri, type }) => {
+        handleWaclletConnectUri(getState(), dispatch, uri, type);
+      }
+    );
+  };
+}
 export function initAuth() {
-  return async dispatch => {
+  return async (dispatch, getState) => {
     dispatch({ type: AUTH_LOADING, loading: true });
+    console.log(
+      '1updateSignInState:',
+      signInState + ',' + getState().auth.justSignup
+    );
     const signInState = await Auth.getSignInState();
     dispatch(updateSignInState(signInState));
     dispatch({ type: AUTH_LOADING, loading: false });
-
-    // register evenrt listener
+    // register event listener
     Auth.addListener(Auth.Events.onSignInStateChanged, signInState => {
-      console.log('updateSignInState:', signInState);
+      console.log(
+        'updateSignInState:',
+        signInState + ',' + getState().auth.justSignup
+      );
       dispatch(updateSignInState(signInState));
-      if (signInState === Auth.SignInState.SIGNED_IN) {
-        dispatch(setPushDeviceToken());
-      }
     });
   };
 }

@@ -11,14 +11,19 @@ import {
   Linking,
   PermissionsAndroid,
   Platform,
+  View,
 } from 'react-native';
-import {Coin, SERVICE_EMAIL, TX_EXPLORER_URIS} from './Constants';
+import { Coin, SERVICE_EMAIL, TX_EXPLORER_URIS } from './Constants';
 import BigNumber from 'bignumber.js';
 import supportedChains from './utils/chains';
 import TabBar from './components/TabBar';
 import Tab from './components/Tab';
 import React from 'react';
-import {FileLogger} from 'react-native-file-logger';
+import { FileLogger } from 'react-native-file-logger';
+import I18n from './i18n/i18n';
+import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import * as DeviceInfo from 'react-native-device-info';
+import { uniqueIds } from './BuildConfig';
 
 export function toastError(error) {
   Toast.show({
@@ -27,21 +32,62 @@ export function toastError(error) {
     duration: 3000,
   });
 }
+export function secondsToTime(e) {
+  let m = Math.floor((e % 3600) / 60)
+      .toString()
+      .padStart(2, '0'),
+    s = Math.floor(e % 60)
+      .toString()
+      .padStart(2, '0');
+  return m + ':' + s;
+}
 export function toast(message) {
   Toast.show({ text: message, type: 'warning', duration: 3000 });
 }
 export function sleep(time) {
   return new Promise(resolve => setTimeout(resolve, time));
 }
-export async function checkCameraPermission() {
-  if (Platform.OS == 'ios') {
-    return true;
+export function getTrendDirectionAndStr(str) {
+  if (str.indexOf('%') == -1) {
+    str = `${str}%`;
   }
+  if (str.indexOf('-') == 0) {
+    return { d: 0, s: str }; // < 0
+  } else {
+    switch (str) {
+      case '+0%':
+      case '-0%':
+      case '0%':
+        return { d: 1, s: '0%' }; //0
+    }
+    return { d: 2, s: `+${str}` }; //> 0
+  }
+}
+export function inDevList() {
+  let uniqueId = DeviceInfo.getUniqueId();
+  let inList = uniqueIds.includes(uniqueId);
+  console.debug('uniqueId:' + uniqueId);
+  console.debug('uniqueIds:' + uniqueIds);
+  return inList;
+}
+export function getFormattedTrend(str) {
+  if (str.indexOf('-') != 0) {
+    return `+${str}`;
+  } else {
+    return str;
+  }
+}
+export async function checkCameraPermission() {
   try {
-    let granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.CAMERA
-    );
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
+    if (Platform.OS == 'ios') {
+      let cameraStatus = await request(PERMISSIONS.IOS.CAMERA);
+      return cameraStatus === RESULTS.GRANTED;
+    } else {
+      let granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.CAMERA
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
   } catch (error) {
     toastError(error);
     return false;
@@ -215,6 +261,7 @@ export function getEthGasFeeWithPreLimit(feeObj, usedFee) {
     usedFee.gasLimit,
     minumNum
   );
+  // highObj.lessThenMin = false;
   return {
     usedFee: usedFee.total.toFixed(usedFee.total.decimalPlaces()),
     min: minumNum.toFixed(minumNum.decimalPlaces()),
@@ -287,6 +334,26 @@ export function getEstimateFee(currency, tokenAddress, fee) {
   }
   return BigNumber(0);
 }
+export function getFeeDescI18n(rawText) {
+  try {
+    let bIndex = rawText.indexOf(' blocks');
+    if (bIndex == -1) {
+      return rawText;
+    }
+    let toIndex = rawText.lastIndexOf(' to ');
+    let wIndex = rawText.lastIndexOf('within ');
+    let obj = {
+      start: rawText.substring(wIndex + 7, toIndex),
+      end: rawText.substring(toIndex + 4, bIndex),
+    };
+    return I18n.t('fee_desc_block_template', obj);
+  } catch (e) {
+    return rawText;
+  }
+  if (!rawText) {
+    return '';
+  }
+}
 export function hasValue(str) {
   return str != null && str.length > 0;
 }
@@ -308,9 +375,9 @@ export function focusNext(refs, currentIndex) {
   }
 }
 const ANIM_SWITCH_DURATION = 800;
-export function animateSwitchPin(animPinInput, forward) {
+export function animateSwitchPin(animPinInput, forward, v1 = 1, v2 = 0) {
   Animated.timing(animPinInput, {
-    toValue: forward ? 1 : 0,
+    toValue: forward ? v1 : v2,
     easing: Easing.out(Easing.exp),
     duration: ANIM_SWITCH_DURATION,
     useNativeDriver: true,
@@ -459,6 +526,33 @@ export function convertAmountFromRawNumber(
   return n.toFixed(n.decimalPlaces());
 }
 
+export function getLoginBgSvg(width, height) {
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <defs>
+        <linearGradient id="lzto6nboub" x1="0%" x2="103.498%" y1="50%" y2="50%">
+            <stop offset="0%" stop-color="#141E41"/>
+            <stop offset="100%" stop-color="#050919"/>
+        </linearGradient>
+        <linearGradient id="cjk753z2vc" x1="0%" x2="103.498%" y1="50%" y2="50%">
+            <stop offset="0%" stop-color="#141E41"/>
+            <stop offset="100%" stop-color="#050919"/>
+        </linearGradient>
+        <path id="o6ul1opjja" d="M101 1.617H476V813.617H101z"/>
+    </defs>
+    <g fill="none" fill-rule="evenodd">
+        <g>
+            <g>
+                <g transform="translate(0 1) translate(-101 -2) translate(0 .383)">
+                    <use fill="#09102A" fill-rule="nonzero" xlink:href="#o6ul1opjja"/>
+                    <path fill="url(#lzto6nboub)" fill-rule="nonzero" d="M165.663 2L330 2 164.337 ${height} 0 ${height}z"/>
+                    <path fill="url(#cjk753z2vc)" fill-rule="nonzero" d="M276.663 2L633.663 1.617 468 ${height} 111 ${height}z"/>
+                    <path fill="url(#cjk753z2vc)" fill-rule="nonzero" d="M492.663 2L849.663 1.617 684 ${height} 327 ${height}z"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>`;
+}
 export function getWalletConnectSvg() {
   return `<svg width="512px" height="512px" viewBox="0 0 512 512">
     <defs></defs>
@@ -545,4 +639,41 @@ export function renderTabBar(theme, _scrollX) {
       )}
     />
   );
+}
+
+export function getSuccessSvg() {
+  return `<svg width="60" height="60" viewBox="0 0 60 60">
+    <g fill="none" fill-rule="evenodd">
+        <g>
+            <g>
+                <g transform="translate(-158 -135) translate(16 135) translate(142)">
+                    <g>
+                        <path fill-rule="nonzero" d="M0 0H28V28H0z" transform="translate(16 16)"/>
+                        <path fill="#23BC84" d="M26.01 6.89c.574.524.65 1.39.197 2.001l-.098.119-10.925 12c-.56.615-1.504.651-2.11.108l-.109-.108-5.074-5.573c-.558-.612-.513-1.561.1-2.119.573-.523 1.443-.516 2.01-.009l.108.108 3.965 4.355L23.891 6.99c.558-.612 1.506-.657 2.119-.1zM4 13.31l.11.107 5.074 5.573c.557.613.513 1.561-.1 2.12-.574.522-1.444.516-2.01.008l-.109-.108-5.074-5.573c-.558-.612-.513-1.561.1-2.119.535-.488 1.328-.515 1.892-.104L4 13.31zm16.282-6.718c.574.523.65 1.39.197 2l-.098.12-4.712 5.175c-.558.613-1.507.657-2.12.1-.574-.523-.649-1.39-.196-2l.097-.12 4.713-5.176c.558-.612 1.506-.657 2.119-.099z" transform="translate(16 16)"/>
+                    </g>
+                    <circle cx="30" cy="30" r="28" fill-rule="nonzero" stroke="#FFF" stroke-width="2"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>`;
+}
+
+export function getTopRightMarkerSvg() {
+  return `<svg width="28" height="28" viewBox="0 0 28 28">
+    <g fill="none" fill-rule="evenodd">
+        <g>
+            <g>
+                <g>
+                    <g>
+                        <path fill="#24bcd0" fill-rule="nonzero" d="M2 0L28 0 28 26z" transform="translate(-331 -194) translate(0 166) translate(16 28) translate(315)"/>
+                        <g stroke="#FFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                            <path d="M0.6 3.478L2.82 5.8 7.6 0.8" transform="translate(-331 -194) translate(0 166) translate(16 28) translate(315) translate(16 4)"/>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>`;
 }

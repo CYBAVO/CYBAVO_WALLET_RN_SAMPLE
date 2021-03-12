@@ -11,10 +11,12 @@ import {
   WALLETCONNECT_INIT_FAILURE,
   WALLETCONNECT_INIT_REQUEST,
   WALLETCONNECT_INIT_SUCCESS,
+  WALLETCONNECT_PENDING_URI,
   WALLETCONNECT_SESSION_APPROVAL,
   WALLETCONNECT_SESSION_DISCONNECTED,
   WALLETCONNECT_SESSION_REJECTION,
-  WALLETCONNECT_SESSION_REQUEST, WALLETCONNECT_UPDATE_REPORTABLE,
+  WALLETCONNECT_SESSION_REQUEST,
+  WALLETCONNECT_UPDATE_REPORTABLE,
 } from '../actions';
 
 function walletconnect(
@@ -23,10 +25,18 @@ function walletconnect(
     connecting: {},
     pending: {},
     reportable: false,
+    pendingUri: null,
   },
   action
 ) {
   switch (action.type) {
+    case WALLETCONNECT_PENDING_URI:
+      return {
+        ...state,
+        deeplink: action.uri
+          ? { uri: action.uri, timestamp: Date.now() }
+          : null,
+      };
     case WALLETCONNECT_UPDATE_REPORTABLE:
       return {
         ...state,

@@ -7,7 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 const { height, width } = Dimensions.get('window');
-import {TextInput, withTheme, Text, Modal, Portal} from 'react-native-paper';
+import { TextInput, withTheme, Text, Modal, Portal } from 'react-native-paper';
 import I18n from '../i18n/i18n';
 import { Theme } from '../styles/MainTheme';
 import RoundButton2 from './RoundButton2';
@@ -28,6 +28,14 @@ const InputMessageModal: () => React$Node = ({
   useEffect(() => {
     setMessage(value);
   }, [value]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (ref && ref.current) {
+        ref.current.focus();
+      }
+    }, 10);
+  }, []);
   return (
     <Portal>
       <Modal dismissable={false} visible={visible} transparent={true}>
@@ -113,7 +121,12 @@ const InputMessageModal: () => React$Node = ({
               </TouchableOpacity>
               <RoundButton2
                 height={ROUND_BUTTON_HEIGHT}
-                style={styles.button}
+                style={[
+                  styles.button,
+                  { backgroundColor: theme.colors.primary },
+                ]}
+                color={theme.colors.primary}
+                outlined={true}
                 labelStyle={[{ color: 'white', fontSize: 16 }]}
                 onPress={() => {
                   onConfirm(message);

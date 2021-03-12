@@ -16,10 +16,13 @@ const Headerbar: () => React$Node = ({
   onBack,
   actions,
   Parent = SafeAreaView, // 'View' for Modal, 'SafeAreaView' for Screen
+  ParentIos,
   numberOfLines = 1,
   backIcon = require('../assets/image/ic_back.png'),
+  titleColor,
+  height = 56,
 }) => {
-  let ParentView = Platform.OS == 'ios' ? SafeAreaView : Parent;
+  let ParentView = Platform.OS == 'ios' ? ParentIos || SafeAreaView : Parent;
   return (
     <ParentView
       style={[
@@ -27,31 +30,31 @@ const Headerbar: () => React$Node = ({
         transparent ? null : { backgroundColor: theme.colors.background },
         style,
       ]}>
-      <View style={[styles.headerBar]}>
-        {
-          <View
-            style={{
-              height: 56,
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: width,
-              position: 'absolute',
-              left: 0,
-            }}>
-            <Text
-              numberOfLines={numberOfLines}
-              style={[styles.title, Theme.fonts.default.heavy]}>
-              {title}
-            </Text>
-          </View>
-        }
+      <View style={[styles.headerBar, { height: height }]}>
+        <View
+          style={{
+            height: height,
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: width,
+            position: 'absolute',
+            left: 0,
+          }}>
+          <Text
+            numberOfLines={numberOfLines}
+            style={[
+              styles.title,
+              Theme.fonts.default.heavy,
+              { maxWidth: width * 0.7, color: titleColor || theme.colors.text },
+            ]}>
+            {title}
+          </Text>
+        </View>
+
         {onBack ? (
           <IconButton
             borderless
-            // accessibilityLabel={clearAccessibilityLabel}
-            color={'rgba(255, 255, 255, 0.56)'}
-            // rippleColor={rippleColor}
             onPress={onBack}
             icon={({ size, color }) => (
               <Image source={backIcon} style={{ width: 24, height: 24 }} />
@@ -81,10 +84,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    color: Theme.colors.text,
     paddingHorizontal: 16,
     textAlign: 'center',
-    // flex: 1,
   },
   actionsContainer: {},
 });

@@ -6,6 +6,7 @@
  */
 import { LoginManager, AccessToken } from 'react-native-fbsdk';
 import { GraphRequest, GraphRequestManager } from 'react-native-fbsdk';
+import I18n from '../../../../i18n/i18n';
 
 export default {
   async signIn() {
@@ -36,7 +37,7 @@ export default {
     } catch (error) {
       console.log('Facebook.signIn failed', error);
       if (error.message == 'Cancelled') {
-        throw new Error('Facebook sign in has been cancelled');
+        throw new Error(I18n.t('facebook_signin_cancelled'));
       }
       throw error;
     }

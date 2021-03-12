@@ -24,6 +24,8 @@ import {
   fetchBalance,
   fetchApiHistory,
   walletconnectSync,
+  newSession,
+  WALLETCONNECT_PENDING_URI,
 } from '../store/actions';
 import I18n from '../i18n/i18n';
 import WalletList from '../components/WalletList';
@@ -33,6 +35,7 @@ import Headerbar from '../components/Headerbar';
 import { FAB, IconButton, Text, withTheme } from 'react-native-paper';
 import { NO_MORE } from './WalletDetailScreen';
 import ContentLoader, { Rect } from 'react-content-loader/native';
+import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import {
   convertAmountFromRawNumber,
   convertHexToString,
@@ -42,6 +45,7 @@ import {
   getWalletConnectSvg,
   getWalletConnectSvg2,
   renderTabBar,
+  toast,
   toastError,
 } from '../Helpers';
 import CurrencyPriceTextLite from '../components/CurrencyPriceTextLite';
@@ -96,11 +100,13 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   const wallets = useSelector(state => {
     return state.wallets.wallets || [];
   });
+  const refresh = useNavigationParam('refresh');
   const [ready, setReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const currencyPriceLoading = useSelector(
     state => state.currencyPrice.loading
   );
+  const deeplink = useSelector(state => state.walletconnect.deeplink);
   const walletsLoading = useSelector(state => state.wallets.loading);
   const ethWallet = useSelector(state => state.wallets.ethWallet);
   const [hide, setHide] = useState(false);
@@ -170,13 +176,38 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   }, [dispatch]);
 
   useEffect(() => {
-    dispatch(fetchCurrencyPricesIfNeed());
+    if (!refresh) {
+      return;
+    }
+    dispatch(fetchWallets());
+    dispatch(fetchUserState());
+  }, [refresh]);
+
+  useEffect(() => {
+    dispatch(fetchCurrencyPricesIfNeed(true));
   }, [dispatch, wallets]);
   useEffect(() => {
-    if (ready && ethWallet) {
+    if (!ready) {
+      return;
+    }
+    if (ethWallet) {
       dispatch(fetchApiHistory(false));
     }
-  }, [dispatch, ethWallet, ready]);
+
+    if (deeplink) {
+      if (Date.now() - deeplink.timestamp < 240000) {
+        if (ethWallet) {
+          NavigationService.navigate('Connecting', {});
+          dispatch(
+            newSession(deeplink.uri, ethWallet.address, ethWallet.walletId)
+          );
+          dispatch({ type: WALLETCONNECT_PENDING_URI, uri: null });
+        } else {
+          toast(I18n.t('no_eth_wallet_prompt'));
+        }
+      }
+    }
+  }, [dispatch, ethWallet, ready, deeplink]);
 
   useEffect(() => {
     wallets.map((wallet, i) => {
@@ -293,7 +324,7 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
         </Text>
       )}
       {exchangeAmount !== NA && (
-        <View style={{ flexDirection: 'row' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingRight: 16 }}>
           <TouchableOpacity
             style={{ flexDirection: 'row', width: width * 0.72 }}
             onPress={() => {
@@ -353,7 +384,7 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
       {(hasConnection || hasApiHistory) && (
         <FAB
           // animated={true}
-          style={Styles.fab}
+          style={[Styles.fab, { backgroundColor: '#FFF' }]}
           icon={({ size, color }) => (
             <SvgXml xml={getWalletConnectSvg2()} width={size} height={size} />
           )}

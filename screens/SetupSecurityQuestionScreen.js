@@ -10,9 +10,7 @@ import { Container, Content } from 'native-base';
 const { width, height } = Dimensions.get('window');
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
-import {
-  ROUND_BUTTON_HEIGHT,
-} from '../Constants';
+import { ROUND_BUTTON_HEIGHT } from '../Constants';
 import { Auth, WalletSdk } from '@cybavo/react-native-wallet-service';
 import { fetchUserState, signOut } from '../store/actions';
 import Styles from '../styles/Styles';
@@ -156,7 +154,7 @@ const SetupSecurityQuestionScreen: () => React$Node = ({ theme }) => {
       setInputPinCode(false);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('setup_failed'),
         buttonClick: () => {
           setResult(null);
@@ -179,7 +177,7 @@ const SetupSecurityQuestionScreen: () => React$Node = ({ theme }) => {
           onBack={() => navigate('Settings')}
         />
         <ScrollView keyboardShouldPersistTaps="handled">
-          <Content contentContainerStyle={styles.contentContainer}>
+          <View style={styles.contentContainer}>
             <Text
               style={[Styles.secLabelInputDesc, Theme.fonts.default.regular]}>
               {I18n.t('setup_security_questions_desc')}
@@ -192,6 +190,7 @@ const SetupSecurityQuestionScreen: () => React$Node = ({ theme }) => {
                   clickItem={q => _setQuestion(i, q)}
                   badgeText={i + 1}
                   width={width}
+                  getMainText={item => I18n.t(item)}
                 />
 
                 <CompoundTextInput
@@ -219,7 +218,7 @@ const SetupSecurityQuestionScreen: () => React$Node = ({ theme }) => {
                 />
               </React.Fragment>
             ))}
-          </Content>
+          </View>
         </ScrollView>
         <RoundButton2
           height={ROUND_BUTTON_HEIGHT}

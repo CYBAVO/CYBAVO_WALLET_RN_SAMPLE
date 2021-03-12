@@ -22,6 +22,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Styles from './styles/Styles';
 import I18n from './i18n/i18n';
 import VersionNumber from 'react-native-version-number';
+import App from './App';
 const theme = {
   ...DefaultTheme,
   colors: {
@@ -78,11 +79,7 @@ const AppWrapper: () => React$Node = () => {
         <PaperProvider theme={theme}>
           <PersistGate loading={<LoadingPlaceholder />} persistor={persistor}>
             <Root>
-              <AppNavigator
-                ref={navigatorRef => {
-                  NavigationService.setTopLevelNavigator(navigatorRef);
-                }}
-              />
+              <App />
             </Root>
           </PersistGate>
         </PaperProvider>

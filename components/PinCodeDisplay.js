@@ -6,10 +6,22 @@ import React, {
 } from 'react';
 import { StyleSheet, View, Animated, Easing } from 'react-native';
 import { withTheme } from 'react-native-paper';
+import StrengthStatus from './StrengthStatus';
 const DOT_SIZE = 12;
 
 let PinCodeDisplay: () => React$Node = (
-  { style, length, maxLength, theme },
+  {
+    style,
+    length,
+    maxLength,
+    theme,
+    showStrength,
+    level,
+    onLayout,
+    isIndicator,
+    activeIndex,
+    size = 6,
+  },
   ref
 ) => {
   const [animPinIncorrect] = useState(new Animated.Value(0));
@@ -59,12 +71,47 @@ let PinCodeDisplay: () => React$Node = (
       ]}
     />
   );
-
-  return (
-    <View style={[style, styles.pinCodeDisplay]}>
-      {Array.from({ length: maxLength }).map((_, idx) => _renderDot(idx))}
-    </View>
+  const _renderIndicator = (idx, size, activeIdx) => (
+    <Animated.View
+      ref={myRef}
+      key={idx}
+      style={[
+        styles.dot,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          // backgroundColor: 'red',
+          marginHorizontal: 4,
+          backgroundColor:
+            idx == activeIdx
+              ? theme.colors.primary
+              : theme.colors.pinDisplayInactivate,
+          // borderWidth: 1,
+          transform: [
+            {
+              translateX: animPinIncorrect.interpolate({
+                inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                outputRange: [0, -10, 10, -7, 7, 0],
+              }),
+            },
+          ],
+        },
+      ]}
+    />
   );
+  const renderPinDisplay = () => {
+    return (
+      <View onLayout={onLayout} style={[style, styles.pinCodeDisplay]}>
+        {isIndicator
+          ? Array.from({ length: maxLength }).map((_, idx) =>
+              _renderIndicator(idx, size, activeIndex)
+            )
+          : Array.from({ length: maxLength }).map((_, idx) => _renderDot(idx))}
+      </View>
+    );
+  };
+  return renderPinDisplay();
 };
 
 const styles = StyleSheet.create({

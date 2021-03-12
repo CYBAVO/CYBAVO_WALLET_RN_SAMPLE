@@ -9,7 +9,7 @@ import {
   Keyboard,
   ScrollView,
 } from 'react-native';
-import { Container} from 'native-base';
+import { Container } from 'native-base';
 const { width, height } = Dimensions.get('window');
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import { Theme } from '../styles/MainTheme';
@@ -211,7 +211,9 @@ const EosResourceScreen: () => React$Node = ({ theme }) => {
       numBytesNum = new BigNumber(numBytes);
     } catch (error) {
       if (hasValue(numBytesError)) {
-        setNumBytesError(error.message);
+        setNumBytesError(
+          error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+        );
       }
       return;
     }

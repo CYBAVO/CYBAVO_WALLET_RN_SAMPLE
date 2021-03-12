@@ -172,9 +172,11 @@ const CompoundTextInput = React.forwardRef(
             </Text>
           </TouchableOpacity>
         )}
-        <Text style={[Styles.inputError, style]}>
-          {hasError ? errorMsg : ''}
-        </Text>
+        {hasError && (
+          <Text style={[Styles.inputError, style]}>
+            {hasError ? errorMsg : ''}
+          </Text>
+        )}
       </React.Fragment>
     );
     // );

@@ -64,7 +64,7 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
       setResult({
         title: I18n.t('get_handle_number_failed'),
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         buttonClick: () => {
           setResult(null);
         },
@@ -80,7 +80,9 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
       navigate('SetupSecurityQuestion');
     } catch (error) {
       console.log('_resetPinCode failed', error);
-      setPinErrorMsg(error.message);
+      setPinErrorMsg(
+        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+      );
     }
     setLoading(false);
   };
@@ -116,7 +118,9 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
     } catch (error) {
       setLoading(false);
       console.log('_verifyRecoveryCode failed', error);
-      setPinErrorMsg(error.message);
+      setPinErrorMsg(
+        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+      );
       return false;
     }
   };

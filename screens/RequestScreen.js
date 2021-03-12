@@ -1,27 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FileLogger } from 'react-native-file-logger';
 import {
   StyleSheet,
   View,
+  Modal,
   ScrollView,
   Platform,
   Image,
+  Animated,
+  RNModal,
   TouchableOpacity,
 } from 'react-native';
 import { useBackHandler } from '@react-native-community/hooks';
-import { withTheme, Text } from 'react-native-paper';
+import { withTheme, ActivityIndicator, Text } from 'react-native-paper';
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import I18n from '../i18n/i18n';
 import { useDispatch, useSelector } from 'react-redux';
+import { signOut } from '../store/actions/auth';
 import ResultModal, {
   TYPE_CONFIRM,
   TYPE_FAIL,
 } from '../components/ResultModal';
 import {
   approveRequest,
+  approveSession,
   fetchApiHistory,
+  killAllSession,
   rejectRequest,
+  walletconnectSync,
 } from '../store/actions';
+import NavigationService from '../NavigationService';
 import { Container } from 'native-base';
 import Styles from '../styles/Styles';
 import Headerbar from '../components/Headerbar';
@@ -33,6 +41,7 @@ import {
   sliderOuterWidth,
 } from '../Constants';
 import RoundButton2 from '../components/RoundButton2';
+import { titleKeys, TYPE_CANCEL } from '../components/ReplaceTransactionModal';
 import { Wallets, WalletConnectSdk } from '@cybavo/react-native-wallet-service';
 const { WalletConnectManager, WalletConnectHelper } = WalletConnectSdk;
 import {
@@ -40,6 +49,7 @@ import {
   convertHexToString,
   getAvailableBalance,
   getEstimateFee,
+  getEthGasFee,
   getExchangeAmount,
   getWalletKeyByWallet,
   hasValue,
@@ -48,6 +58,7 @@ import {
 import { convertHexToUtf8 } from '@walletconnect/utils';
 import { Theme } from '../styles/MainTheme';
 import BigNumber from 'bignumber.js';
+import walletconnect from '../store/reducers/walletconnect';
 import InputPinCodeModal from './InputPinCodeModal';
 
 const RequestScreen: () => React$Node = ({ theme }) => {
@@ -85,6 +96,16 @@ const RequestScreen: () => React$Node = ({ theme }) => {
   const _finishInputPinCode = () => {
     setInputPinCode(null);
   };
+  const _getFeeKey = feeObj => {
+    let keys = Object.keys(feeObj);
+    keys.sort((a, b) => {
+      let an = new BigNumber(Number(feeObj[a].amount));
+      let bn = new BigNumber(Number(feeObj[b].amount));
+      let r = an.isGreaterThan(bn);
+      return r ? 1 : -1;
+    });
+    return keys;
+  };
   const _fetchWithdrawInfo = async (amount, gas) => {
     setLoading(true);
     try {
@@ -119,7 +140,10 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           color: theme.colors.primary,
           text: I18n.t('cancel'),
           onClick: () => {
-            _rejectRequest(peerId, error.message);
+            _rejectRequest(
+              peerId,
+              error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+            );
             setResult(null);
             goBack();
           },
@@ -176,14 +200,17 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       FileLogger.debug(`_walletConnectSignTypedData fail:${error.message}`);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('failed_template', { name: 'SignTypedData' }),
         buttonClick: () => {
           setResult(null);
           goBack();
         },
       });
-      _rejectRequest(peerId, error.message);
+      _rejectRequest(
+        peerId,
+        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+      );
     }
     setLoading(false);
   };
@@ -210,14 +237,17 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       FileLogger.debug(`>>_walletConnectSignMessage fail:${error}`);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('failed_template', { name: 'SignMessage' }),
         buttonClick: () => {
           setResult(null);
           goBack();
         },
       });
-      _rejectRequest(peerId, error.message);
+      _rejectRequest(
+        peerId,
+        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+      );
     }
     setLoading(false);
   };
@@ -270,7 +300,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       _finishInputPinCode();
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('failed_template', { name: 'SignTransaction' }),
         buttonClick: () => {
           setResult(null);
@@ -278,8 +308,9 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         },
       });
       console.debug(error);
-      _rejectRequest(error.message);
+      _rejectRequest(error.code ? I18n.t(`error_msg_${error.code}`) : error.message);
     }
+    // dispatch(walletconnectSync());
     dispatch(fetchApiHistory());
     setLoading(false);
   };
@@ -348,7 +379,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         </View>
         <Text
           style={[
-            Theme.fonts.default.regular,
+            Theme.fonts.default.black,
             {
               textAlign: 'center',
               fontSize: 20,
@@ -534,7 +565,6 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           <>
             <Text style={[Styles.labelBlock]}>{I18n.t('blockchain_fee')}</Text>
             <DegreeSlider
-              // keys={feeKeys}
               getValue={(item = {}) => `${item.amount} ETH`}
               valueObj={fee}
               outerWidth={sliderOuterWidth[Platform.OS || 'android']}

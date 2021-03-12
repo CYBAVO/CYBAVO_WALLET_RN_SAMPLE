@@ -166,11 +166,24 @@ const ResultModal: () => React$Node = ({
               <Text style={Styles.secLabel}>{I18n.t('platform_fee')}</Text>
             )}
             {detail.platformFee && (
-              <View style={Styles.bottomBoarderContainer}>
+              <View
+                style={[
+                  Styles.bottomBoarderContainer,
+                  { flexDirection: 'column', alignItems: 'flex-start' },
+                ]}>
                 <Text
                   selectable
                   style={[Styles.secContent, Theme.fonts.default.regular]}>
                   {detail.platformFee}
+                </Text>
+                <Text
+                  selectable
+                  style={[
+                    Styles.convertedNumText,
+                    Theme.fonts.default.regular,
+                    { marginTop: 5, fontSize: 12 },
+                  ]}>
+                  {detail.exchangePlatformFee}
                 </Text>
               </View>
             )}
@@ -178,11 +191,24 @@ const ResultModal: () => React$Node = ({
               <Text style={Styles.secLabel}>{I18n.t('blockchain_fee')}</Text>
             )}
             {detail.blockchainFee && (
-              <View style={Styles.bottomBoarderContainer}>
+              <View
+                style={[
+                  Styles.bottomBoarderContainer,
+                  { flexDirection: 'column', alignItems: 'flex-start' },
+                ]}>
                 <Text
                   selectable
                   style={[Styles.secContent, Theme.fonts.default.regular]}>
                   {detail.blockchainFee}
+                </Text>
+                <Text
+                  selectable
+                  style={[
+                    Styles.convertedNumText,
+                    Theme.fonts.default.regular,
+                    { marginTop: 5, fontSize: 12 },
+                  ]}>
+                  {detail.exchangeBlockchainFee}
                 </Text>
               </View>
             )}
@@ -256,7 +282,7 @@ const ResultModal: () => React$Node = ({
         style1 = [
           Theme.fonts.default.heavy,
           styles.title,
-          { color: theme.colors.primary },
+          { color: theme.colors.gunmetal },
         ];
         break;
       default:
@@ -435,7 +461,9 @@ const ResultModal: () => React$Node = ({
         )}
         <RoundButton2
           height={ROUND_BUTTON_HEIGHT}
-          style={styles.button}
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
+          color={theme.colors.primary}
+          outlined={true}
           labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
           onPress={onButtonClick}>
           {type === TYPE_FAIL ? failButtonText : successButtonText}

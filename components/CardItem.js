@@ -13,6 +13,8 @@ import Styles from '../styles/Styles';
 import { CardPatternSmallImg } from './CurrencyIcon';
 import { hideString } from '../utils/Ext';
 import { Modal, Text } from 'react-native-paper';
+import { useLayout } from '@react-native-community/hooks';
+import { sub } from 'react-native-reanimated';
 
 const CardItem: () => React$Node = ({
   type = 'BTC',
@@ -26,6 +28,7 @@ const CardItem: () => React$Node = ({
   bgImageStyle = {},
 }) => {
   const [translateY] = useState(new Animated.Value(0));
+  const { onLayout, ...layout } = useLayout();
 
   return (
     <TouchableWithoutFeedback
@@ -52,6 +55,7 @@ const CardItem: () => React$Node = ({
       }}>
       <Animated.View style={[bgImageStyle, { transform: [{ translateY }] }]}>
         <BackgroundImage
+          onLayout={onLayout}
           imageStyle={{
             right: 0,
             bottom: 0,
@@ -65,30 +69,45 @@ const CardItem: () => React$Node = ({
           startColor={startColors[type] || startColors.UNKNOWN}
           endColor={endColors[type] || endColors.UNKNOWN}>
           <IconSvgXml xmlkey={type} width={'40'} height={'40'} />
-          <View style={{ flexDirection: 'column', height: '80%' }}>
-            <View style={styles.cardTitleVertical}>
+          <View style={{ flexDirection: 'column', flex: 1 }}>
+            <Text
+              numberOfLines={1}
+              style={[
+                Styles.cardTitle,
+                Theme.fonts.default.heavy,
+                { flexShrink: 1, maxWidth: layout.width * 0.8, marginLeft: 15 },
+              ]}>
+              {title}
+            </Text>
+            <View style={[styles.cardTitleHorizontal]}>
+              {subTitle ? subTitle : <View />}
               <Text
                 numberOfLines={1}
-                style={[Styles.cardTitle, Theme.fonts.default.heavy]}>
-                {title}
+                style={[
+                  Styles.cardTitle,
+                  Theme.fonts.default.heavy,
+                  { flexShrink: 1, maxWidth: layout.width * 0.5 },
+                ]}>
+                {hideString(amount, hide)}
               </Text>
-              {subTitle && subTitle}
             </View>
-            <Text
-              numberOfLines={1}
-              style={[Styles.cardDesc, Theme.fonts.default.heavy]}>
-              {desc}
-            </Text>
-          </View>
-          <View
-            style={styles.cardRightContainer}
-          >
-            <Text
-              numberOfLines={1}
-              style={[Styles.cardTitle, Theme.fonts.default.heavy]}>
-              {hideString(amount, hide)}
-            </Text>
-            {amount2 && amount2}
+            <View style={[styles.cardTitleHorizontal]}>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode={'middle'}
+                style={[
+                  Styles.cardDesc,
+                  {
+                    marginLeft: 0,
+                    flexShrink: 1,
+                    maxWidth: layout.width * 0.5,
+                  },
+                  Theme.fonts.default.heavy,
+                ]}>
+                {desc}
+              </Text>
+              {amount2 && amount2(layout.width * 0.5)}
+            </View>
           </View>
         </BackgroundImage>
       </Animated.View>
@@ -108,10 +127,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingLeft: 15,
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   cardTitleVertical: {
     flexDirection: 'column',
     paddingLeft: 15,
+    justifyContent: 'center',
     // backgroundColor: 'red',
     // alignItems: 'center',
   },

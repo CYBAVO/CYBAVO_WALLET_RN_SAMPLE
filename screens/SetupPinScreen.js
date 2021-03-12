@@ -21,6 +21,9 @@ import {
   NumericPinCodeInputView,
 } from '@cybavo/react-native-wallet-service';
 import {
+  CHANGE_MODE,
+  Coin,
+  MIN_LEVEL,
   PIN_CODE_LENGTH,
   ROUND_BUTTON_FONT_SIZE,
   ROUND_BUTTON_HEIGHT,
@@ -32,17 +35,32 @@ import { Theme } from '../styles/MainTheme';
 import I18n from '../i18n/i18n';
 import { withTheme, Text } from 'react-native-paper';
 import Headerbar from '../components/Headerbar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ResultModal, {
   TYPE_FAIL,
   TYPE_SUCCESS,
 } from '../components/ResultModal';
-import { useNavigation } from 'react-navigation-hooks';
-import { fetchUserState, fetchWallets } from '../store/actions';
-import { useDispatch } from 'react-redux';
-import { animateSwitchPin } from '../Helpers';
+import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
+import {
+  AUTH_UPDATE_UI_FLAG,
+  fetchCurrencyPricesIfNeed,
+  fetchUserState,
+  fetchWallets,
+  signOut,
+} from '../store/actions';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  animateSwitchPin,
+  getSuccessSvg,
+  sleep,
+  toast,
+  toastError,
+} from '../Helpers';
 import RoundButton2 from '../components/RoundButton2';
-import { useBackHandler } from '@react-native-community/hooks';
+import { useBackHandler, useLayout } from '@react-native-community/hooks';
 import NavigationService from '../NavigationService';
+import StrengthStatus from '../components/StrengthStatus';
+import { SvgXml } from 'react-native-svg';
 
 const ANIM_SWITCH_OFFSET = 80;
 let SetupPinScreen: () => React$Node = ({ theme }) => {
@@ -51,29 +69,80 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
   const pinDisplay = useRef(null);
   const [pinCodeLength, setPinCodeLength] = useState(0);
   const [animPinInput] = useState(new Animated.Value(0));
+  const [animPinDisplay] = useState(new Animated.Value(0));
   const [step, setStep] = useState(0);
   const [pinSecret, setPinSecret] = useState(null);
   const [loading, setLoading] = useState(false);
+  const authLoading = useSelector(state => state.auth.loading);
   const [result, setResult] = useState(null);
-  const delaySetStep = value => {
-    setStep(value);
-  };
+  const [level, setLevel] = useState(0);
+  const { onLayout, ...layout } = useLayout();
+  const authError = useSelector(state => state.auth.error);
+  const fromEnterPhone = useNavigationParam('fromEnterPhone');
+
+  useEffect(() => {
+    if (authError != null) {
+      setResult({
+        type: TYPE_FAIL,
+        title: I18n.t('signin_failed'),
+        error: authError.code
+          ? I18n.t(`error_msg_${authError.code}`)
+          : authError.message,
+        tryAgain: false,
+      });
+    }
+  }, [authError]);
+
+  let showStrength = pinSecret == null;
   const _inputPinCode = length => {
     _inputMode(length);
   };
   const _inputMode = async length => {
-    if (length == 0 && pinCodeLength == 0) {
-      return;
-    }
-    if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
-      const ps = await myRef.current.submit();
-      setPinSecret(ps);
-      setPinCodeLength(0);
-      animateSwitchPin(animPinInput, true);
-      delaySetStep(1);
-      return;
-    }
     setPinCodeLength(length);
+    if (pinSecret == null) {
+      if (length == 0 && pinCodeLength == 0) {
+        return;
+      }
+      let newLevel = await myRef.current.getStrengthLevel(3);
+      setLevel(newLevel);
+
+      if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
+        if (newLevel < MIN_LEVEL) {
+          toast(I18n.t('setup_pin_screen_alert_message_too_weak'));
+          setPinCodeLength(0);
+          await myRef.current.submitForMultiple(); //clear buffer, cannot call clear(), it will clear key
+          pinDisplay.current.shake(() => {});
+        } else {
+          const ps = await myRef.current.submitForMultiple();
+          setPinSecret(ps);
+          setPinCodeLength(0);
+          animateSwitchPin(animPinDisplay, true);
+          // setStep(1);
+          return;
+        }
+      }
+    } else {
+      if (length == 0 && pinCodeLength == 0) {
+        animateSwitchPin(animPinDisplay, false);
+        setPinSecret(null);
+        return;
+      }
+      if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
+        const ps2 = await myRef.current.submitForMultiple();
+        let isSame = await myRef.current.isSamePin(pinSecret, ps2);
+        if (!isSame) {
+          // animateSwitchPin(animPinInput, false);
+          // await myRef.current.clear();
+          toast(I18n.t('setup_pin_screen_alert_message_not_match'));
+          pinDisplay.current.shake(() => {
+            setPinSecret(null);
+            animateSwitchPin(animPinDisplay, false);
+          });
+        } else {
+          _submit();
+        }
+      }
+    }
   };
 
   // handle back
@@ -87,171 +156,311 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
       // setup PIN code and retain PinSecret
       await Auth.setupPinCode({ pinSecret, retain: true });
       // create default wallet with retained PinSecret
-      await Wallets.createWallet(
-        60, // currency
-        '', // tokenAddress
-        0, // parentWalletId
-        'My Ethereum', // name
-        pinSecret, // pinSecret
-        {} // extraAttributes
-      );
-      setResult({
-        type: TYPE_SUCCESS,
-        title: I18n.t('setup_successfully'),
-        message: I18n.t('setup_pin_success_desc'),
-      });
+      let initWallet = [
+        { currency: Coin.BTC, name: 'My Bitcoin', tokenAddress: '' },
+        { currency: Coin.ETH, name: 'My Ethereum', tokenAddress: '' },
+        {
+          currency: Coin.ETH,
+          name: 'My USDC',
+          tokenAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+        },
+        {
+          currency: Coin.ETH,
+          name: 'My USDT-ERC20',
+          tokenAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+        },
+      ];
+      let parentMap = {};
+      for (let i = 0; i < initWallet.length; i++) {
+        try {
+          let result = await Wallets.createWallet(
+            initWallet[i].currency, // currency
+            initWallet[i].tokenAddress, // tokenAddress
+            initWallet[i].tokenAddress == ''
+              ? 0
+              : parentMap[initWallet[i].currency], // parentWalletId
+            initWallet[i].name, // name
+            { pinSecret, retain: i < initWallet.length - 1 }, // pinSecret
+            {} // extraAttributes
+          );
+          if (initWallet[i].tokenAddress == '') {
+            parentMap[initWallet[i].currency] = result.walletId;
+          }
+
+          await sleep(500);
+        } catch (e) {
+          toastError(e);
+        }
+      }
+
+      animateSwitchPin(animPinInput, true);
+      setStep(1);
+      // setResult({
+      //   type: TYPE_SUCCESS,
+      //   title: I18n.t('setup_successfully'),
+      //   message: I18n.t('setup_pin_success_desc'),
+      // });
     } catch (error) {
       console.warn(error);
       setResult({
         type: TYPE_FAIL,
         title: I18n.t('setup_failed'),
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         tryAgain: error.code != 169,
       });
     }
+    dispatch({ type: AUTH_UPDATE_UI_FLAG, justSignup: false });
     dispatch(fetchWallets());
     dispatch(fetchUserState());
     setLoading(false);
   };
   return (
-    <Container style={Styles.bottomContainer}>
-      <Headerbar transparent title={I18n.t('setup_pin_code')} />
-
-      <Animated.View
+    <Container style={[{ flex: 1, backgroundColor: theme.colors.mask }]}>
+      <Headerbar
+        transparent
+        title={
+          fromEnterPhone
+            ? `${I18n.t('register')} - ${I18n.t('step', { num: 2 })}`
+            : I18n.t('register')
+        }
+        titleColor={theme.colors.text}
         style={{
+          zIndex: 1,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          marginTop: 62,
+          backgroundColor: theme.colors.navy,
+        }}
+        ParentIos={SafeAreaView}
+        Parent={SafeAreaView}
+        onBack={() => {
+          setLoading(true);
+          dispatch(signOut(false, true));
+        }}
+        backIcon={require('../assets/image/ic_cancel.png')}
+      />
+      <View
+        style={{
+          backgroundColor: theme.colors.navy,
           justifyContent: 'center',
           alignItems: 'center',
           flex: 1,
-          opacity: animPinInput.interpolate({
-            inputRange: [0, 0.5, 0.5, 1],
-            outputRange: [1, 0, 0, 1],
-          }),
-          transform: [
-            {
-              translateX: animPinInput.interpolate({
-                inputRange: [0, 0.5, 0.5, 1],
-                outputRange: [0, -ANIM_SWITCH_OFFSET, ANIM_SWITCH_OFFSET, 0],
-              }),
-            },
-          ],
         }}>
-        {step == 0 && (
-          <Animated.View
-            style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              flex: 1,
-              opacity: animPinInput.interpolate({
-                inputRange: [0, 0.5, 0.5, 1],
-                outputRange: [1, 0, 0, 0],
-              }),
-            }}>
-            <Text
+        <Animated.View
+          style={{
+            justifyContent: 'center',
+            alignItems: 'center',
+            flex: 1,
+            opacity: animPinInput.interpolate({
+              inputRange: [0, 0.5, 0.5, 1],
+              outputRange: [1, 0, 0, 1],
+            }),
+            transform: [
+              {
+                translateX: animPinInput.interpolate({
+                  inputRange: [0, 0.5, 0.5, 1],
+                  outputRange: [0, -ANIM_SWITCH_OFFSET, ANIM_SWITCH_OFFSET, 0],
+                }),
+              },
+            ],
+          }}>
+          {step == 0 && (
+            <Animated.View
               style={{
-                color: Theme.colors.text,
-                marginTop: 0,
-                opacity: 0.8,
-                fontSize: 20,
-              }}>
-              {I18n.t('setup_pin_code_desc')}
-            </Text>
-
-            <View
-              style={{
-                alignSelf: 'stretch',
-                flexDirection: 'row',
-                alignItems: 'center',
                 justifyContent: 'center',
-                marginTop: 30,
-                marginBottom: 50,
+                alignItems: 'center',
+                flex: 1,
+                opacity: animPinInput.interpolate({
+                  inputRange: [0, 0.5, 0.5, 1],
+                  outputRange: [1, 0, 0, 0],
+                }),
               }}>
-              <PinCodeDisplay
-                ref={pinDisplay}
-                // style={{ marginTop: 50}}
-                maxLength={PIN_CODE_LENGTH}
-                length={pinCodeLength}
-              />
-              {loading && (
-                <ActivityIndicator
-                  color={Theme.colors.primary}
-                  size="small"
+              {/*<Text*/}
+              {/*  style={{*/}
+              {/*    color: Theme.colors.textDarkBg,*/}
+              {/*    marginTop: 0,*/}
+              {/*    opacity: 0.8,*/}
+              {/*    fontSize: 20,*/}
+              {/*  }}>*/}
+              {/*  {pinSecret? I18n.t('setup_pin_screen_confirm_new_pin'): I18n.t('setup_pin_code_desc')}*/}
+              {/*</Text>*/}
+              <Text
+                style={[
+                  {
+                    fontSize: 24,
+                    color: theme.colors.text,
+                    marginTop: 40,
+                    marginHorizontal: 40,
+                  },
+                  Theme.fonts.default.heavyMax,
+                ]}>
+                {pinSecret
+                  ? I18n.t('confirm_pin_title')
+                  : I18n.t('setup_pin_title')}
+              </Text>
+              <Text
+                style={[
+                  {
+                    fontSize: 14,
+                    color: theme.colors.text,
+                    marginTop: 8,
+                    marginBottom: 0,
+                    marginHorizontal: 40,
+                    textAlign: 'center',
+                  },
+                ]}>
+                {pinSecret
+                  ? I18n.t('confirm_pin_sub')
+                  : I18n.t('setup_pin_sub')}
+              </Text>
+              <Animated.View
+                style={{
+                  opacity: animPinDisplay.interpolate({
+                    inputRange: [0, 0.5, 0.5, 1],
+                    outputRange: [1, 0, 0, 1],
+                  }),
+                  transform: [
+                    {
+                      translateX: animPinInput.interpolate({
+                        inputRange: [0, 0.5, 0.5, 1],
+                        outputRange: [0, -80, ANIM_SWITCH_OFFSET, 0],
+                      }),
+                    },
+                  ],
+                }}>
+                <View
                   style={{
-                    position: 'absolute',
-                    right: 16,
-                  }}
+                    alignSelf: 'stretch',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: 30,
+                    marginBottom: showStrength ? 0 : 50,
+                  }}>
+                  <PinCodeDisplay
+                    onLayout={onLayout}
+                    ref={pinDisplay}
+                    // style={{ marginTop: 50}}
+                    maxLength={PIN_CODE_LENGTH}
+                    length={pinCodeLength}
+                  />
+                </View>
+              </Animated.View>
+              {showStrength && (
+                <StrengthStatus
+                  widthParam={layout.width}
+                  level={pinSecret == null && pinCodeLength == 0 ? -1 : level}
+                  labelStyle={{ color: theme.colors.textDarkBg }}
                 />
               )}
-            </View>
-            <NumericPinCodeInputView
-              ref={myRef}
+              <NumericPinCodeInputView
+                ref={myRef}
+                style={{
+                  alignSelf: 'center',
+                  // marginTop: 16,
+                }}
+                maxLength={PIN_CODE_LENGTH}
+                keepKey={true}
+                hapticFeedback={false}
+                horizontalSpacing={18}
+                verticalSpacing={4}
+                buttonWidth={70}
+                buttonHeight={70}
+                buttonBorderRadius={36}
+                buttonBackgroundColor={theme.colors.navy}
+                buttonTextColor={theme.colors.text}
+                buttonTextSize={12}
+                backspaceButtonWidth={72}
+                backspaceButtonHeight={72}
+                backspaceButtonBorderRadius={36}
+                backspaceButtonBackgroundColor={theme.colors.navy}
+                buttonBackgroundColorDisabled={theme.colors.navy}
+                backspaceButtonTextColor={theme.colors.text}
+                buttonTextColorDisabled={theme.colors.text}
+                backspaceButtonTextColorDisabled={theme.colors.text}
+                backspaceButtonTextSize={9}
+                // backspaceButtonText={'←'}
+                backspaceButtonBackgroundColorDisabled={theme.colors.navy}
+                backspaceButtonBackgroundColorPressed={
+                  theme.colors.pinPressedBackgroundColor
+                }
+                buttonBackgroundColorPressed={
+                  theme.colors.pinPressedBackgroundColor
+                }
+                androidButtonRippleColor={
+                  theme.colors.pinPressedBackgroundColor
+                }
+                backspaceButtonTextColorPressed={theme.colors.text}
+                buttonTextColorPressed={theme.colors.text}
+                disabled={loading}
+                onChanged={_inputPinCode}
+              />
+            </Animated.View>
+          )}
+          {step == 1 && (
+            <Animated.View
               style={{
-                alignSelf: 'center',
-                // marginTop: 16,
-              }}
-              maxLength={PIN_CODE_LENGTH}
-              keepKey={true}
-              hapticFeedback={false}
-              horizontalSpacing={18}
-              verticalSpacing={4}
-              buttonWidth={70}
-              buttonHeight={70}
-              buttonBorderRadius={36}
-              buttonBackgroundColor={theme.colors.background}
-              buttonTextColor={theme.colors.pinTextColor}
-              buttonTextSize={12}
-              backspaceButtonWidth={72}
-              backspaceButtonHeight={72}
-              backspaceButtonBorderRadius={36}
-              backspaceButtonBackgroundColor={theme.colors.background}
-              buttonBackgroundColorDisabled={theme.colors.background}
-              backspaceButtonTextColor={theme.colors.pinTextColor}
-              buttonTextColorDisabled={theme.colors.pinDisplayInactivate}
-              backspaceButtonTextColorDisabled={
-                theme.colors.pinDisplayInactivate
-              }
-              backspaceButtonTextSize={9}
-              // backspaceButtonText={'←'}
-              backspaceButtonBackgroundColorDisabled={theme.colors.background}
-              backspaceButtonBackgroundColorPressed={
-                theme.colors.pinPressedBackgroundColor
-              }
-              buttonBackgroundColorPressed={
-                theme.colors.pinPressedBackgroundColor
-              }
-              androidButtonRippleColor={theme.colors.pinPressedBackgroundColor}
-              backspaceButtonTextColorPressed={theme.colors.pinPressedTextColor}
-              buttonTextColorPressed={theme.colors.pinPressedTextColor}
-              disabled={loading}
-              onChanged={_inputPinCode}
-            />
-          </Animated.View>
-        )}
-        {step == 1 && (
-          <Animated.View
-            style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              flexDirection: 'column',
-              flex: 1,
-              paddingHorizontal: 16,
-              backgroundColor: Theme.colors.background,
-              opacity: animPinInput.interpolate({
-                inputRange: [0, 0.5, 0.5, 1],
-                outputRange: [0, 0, 0, 1],
-              }),
-            }}>
-            <Text
-              style={[
-                Theme.fonts.default.regular,
-                {
-                  textAlign: 'left',
-                  fontSize: 18,
-                  marginTop: 16,
-                  marginBottom: 16,
-                },
-              ]}>
-              {I18n.t('before_setup_pin_desc')}
-            </Text>
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                flexDirection: 'column',
+                flex: 1,
+                paddingHorizontal: 16,
+                opacity: animPinInput.interpolate({
+                  inputRange: [0, 0.5, 0.5, 1],
+                  outputRange: [0, 0, 0, 1],
+                }),
+              }}>
+              <SvgXml xml={getSuccessSvg()} style={{ marginTop: 25 }} />
+              <Text
+                style={[
+                  {
+                    fontSize: 24,
+                    color: theme.colors.text,
+                    marginTop: 40,
+                    marginHorizontal: 16,
+                  },
+                  Theme.fonts.default.heavyMax,
+                ]}>
+                {I18n.t('setup_pin_success_title')}
+              </Text>
+              <Text
+                style={[
+                  {
+                    fontSize: 14,
+                    color: theme.colors.text,
+                    marginTop: 8,
+                    marginBottom: 24,
+                    marginHorizontal: 16,
+                    textAlign: 'center',
+                  },
+                ]}>
+                {I18n.t('setup_pin_success_sub')}
+              </Text>
+
+              <RoundButton2
+                height={ROUND_BUTTON_HEIGHT}
+                style={[
+                  {
+                    alignSelf: 'center',
+                    height: ROUND_BUTTON_HEIGHT,
+                    marginTop: 24,
+                    width: '90%',
+                    backgroundColor: Theme.colors.primary,
+                    justifyContent: 'center',
+                    borderColor: theme.colors.primary,
+                  },
+                ]}
+                outlined={true}
+                labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+                onPress={() => {
+                  NavigationService.navigate('Main');
+                }}>
+                {I18n.t('start_using')}
+              </RoundButton2>
+            </Animated.View>
+          )}
+
+          {step == 0 && (
             <TouchableOpacity
               style={[
                 Styles.bottomButton,
@@ -263,67 +472,74 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
               ]}
               disabled={loading}
               onPress={() => {
-                setPinSecret(null);
-                animateSwitchPin(animPinInput, false);
-                delaySetStep(0);
+                if (pinSecret) {
+                  myRef.current.clear();
+                  setPinSecret(null);
+                  animateSwitchPin(animPinInput, false);
+                  // setStep(0);
+                } else {
+                  dispatch({
+                    type: AUTH_UPDATE_UI_FLAG,
+                    showSigninModal: true,
+                  });
+                  dispatch(signOut(false));
+                }
               }}>
               <Text
                 style={[
                   {
                     fontSize: ROUND_BUTTON_FONT_SIZE,
-                    color: Theme.colors.error,
+                    color: Theme.colors.primary,
                     textAlign: 'center',
                   },
                   Theme.fonts.default.medium,
                 ]}>
-                {I18n.t('previous_step_desc')}
+                {pinSecret ? I18n.t('previous_step_desc') : I18n.t('back')}
               </Text>
             </TouchableOpacity>
-            <RoundButton2
-              disabled={loading}
-              height={ROUND_BUTTON_HEIGHT}
-              style={Styles.bottomButton}
-              labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
-              onPress={_submit}>
-              {I18n.t('next_step_desc')}
-            </RoundButton2>
-          </Animated.View>
+          )}
+        </Animated.View>
+        {loading && (
+          <ActivityIndicator
+            color={theme.colors.primary}
+            size="large"
+            style={{
+              position: 'absolute',
+              alignSelf: 'center',
+              top: height / 2,
+            }}
+          />
         )}
-      </Animated.View>
-      {loading && (
-        <ActivityIndicator
-          color={theme.colors.primary}
-          size="large"
-          style={{
-            position: 'absolute',
-            alignSelf: 'center',
-            top: height / 2,
-          }}
-        />
-      )}
-      {result && (
-        <ResultModal
-          failButtonText={
-            result.tryAgain ? I18n.t('try_again') : I18n.t('done')
-          }
-          visible={!!result}
-          title={result.title}
-          message={result.message}
-          errorMsg={result.error}
-          type={result.type}
-          onButtonClick={() => {
-            if (result.type === TYPE_SUCCESS || !result.tryAgain) {
-              setResult(null);
-              NavigationService.navigate('Main');
-            } else {
-              animateSwitchPin(animPinInput, false);
-              delaySetStep(0);
-              setPinSecret(null);
-              setResult(null);
+        {result && (
+          <ResultModal
+            failButtonText={
+              result.tryAgain
+                ? I18n.t('try_again')
+                : authError != null
+                ? I18n.t('back_to_signin')
+                : I18n.t('done')
             }
-          }}
-        />
-      )}
+            visible={!!result}
+            title={result.title}
+            message={result.message}
+            errorMsg={result.error}
+            type={result.type}
+            onButtonClick={() => {
+              if (result.type === TYPE_SUCCESS || !result.tryAgain) {
+                setResult(null);
+                NavigationService.navigate('Main');
+              } else if (result.type === TYPE_FAIL && authError != null) {
+                NavigationService.navigate('Auth');
+              } else {
+                animateSwitchPin(animPinInput, false);
+                setStep(0);
+                setPinSecret(null);
+                setResult(null);
+              }
+            }}
+          />
+        )}
+      </View>
     </Container>
   );
 };

@@ -7,45 +7,35 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
-  Animated,
+  ImageBackground,
 } from 'react-native';
-import { withTheme, ActivityIndicator, Text } from 'react-native-paper';
+import { Theme } from '../styles/MainTheme';
+import { withTheme, Text, IconButton } from 'react-native-paper';
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import I18n from '../i18n/i18n';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   approveSession,
+  killAllSession,
   rejectSession,
 } from '../store/actions';
-import { Container } from 'native-base';
-import Styles from '../styles/Styles';
-import Headerbar from '../components/Headerbar';
-import { SvgXml } from 'react-native-svg';
-import { getChainData, getWalletConnectSvg } from '../Helpers';
 import { Dimensions } from 'react-native';
-import { Theme } from '../styles/MainTheme';
 import { DotIndicator } from 'react-native-indicators';
-import {
-  HEADER_BAR_PADDING,
-  ROUND_BUTTON_HEIGHT,
-} from '../Constants';
+import { HEADER_BAR_PADDING, ROUND_BUTTON_HEIGHT } from '../Constants';
 import RoundButton2 from '../components/RoundButton2';
+import { useDimensions, useLayout } from '@react-native-community/hooks';
 const { height } = Dimensions.get('window');
 const DOT_SIZE = 6;
+const CIRCEL_SIZE = 32;
 
-const ConnectingScreen: () => React$Node = ({ theme }) => {
+const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
   const peerId = useNavigationParam('peerId');
+  const { onLayout, ...layout } = useLayout();
   const payload = useNavigationParam('payload');
   const address = useNavigationParam('address');
   const chainId = useNavigationParam('chainId');
-  const _onBack = () => {
-    if (peerId != null) {
-      _rejectSession();
-    }
-    goBack();
-  };
   const _rejectSession = async () => {
     dispatch(rejectSession(peerId));
     goBack();
@@ -60,15 +50,12 @@ const ConnectingScreen: () => React$Node = ({ theme }) => {
     const newSession =
       payload.method === 'wc_sessionRequest' ||
       payload.method === 'session_request';
-    // const activeChain = getChainData(chainId);
-
     return (
       <View
         style={[
           {
-            // marginTop: height * 0.3,
+            marginTop: 56,
             alignItems: 'center',
-            backgroundColor: theme.colors.background,
           },
         ]}>
         <View
@@ -91,16 +78,16 @@ const ConnectingScreen: () => React$Node = ({ theme }) => {
             style={{
               height: height * 0.5,
             }}>
+            <Text
+              style={[styles.request_message, Theme.fonts.default.heavyBold]}>
+              {I18n.t('session_request_message', peerMeta)}
+            </Text>
             <Image
               source={{ uri: peerMeta.icons[0] }}
               style={{ width: 60, height: 60 }}
             />
-            <Text style={styles.request_message}>
-              {I18n.t('session_request_message', peerMeta)}
-            </Text>
             <Text
               style={{
-                // textAlign: 'center',
                 fontSize: 12,
                 color: Theme.colors.resultTitle,
                 textAlign: 'center',
@@ -164,47 +151,131 @@ const ConnectingScreen: () => React$Node = ({ theme }) => {
   const _getConnectingView = () => {
     return (
       <View
+        onLayout={onLayout}
         style={[
           {
-            marginTop: height * 0.3,
+            marginTop: 100,
             alignItems: 'center',
-            backgroundColor: theme.colors.background,
+            justifyContent: 'flex-start',
+            flex: 1,
+            paddingBottom: 32,
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            backgroundColor: theme.colors.surface,
           },
         ]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-          <SvgXml xml={getWalletConnectSvg()} width={58} height={58} />
+        <View
+          style={{
+            height: 56,
+            borderBottomWidth: 1,
+            borderColor: 'rgba(9,16,42,0.1)',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            flexDirection: 'row',
+            width: '100%',
+          }}>
+          <View
+            style={{
+              height: 56,
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              position: 'absolute',
+              left: 0,
+            }}>
+            <Text
+              style={[
+                {
+                  fontSize: 20,
+                  color: Theme.colors.gunmetal,
+                  textAlign: 'center',
+                  paddingHorizontal: 16,
+                },
+                Theme.fonts.default.heavyBold,
+              ]}>
+              {I18n.t('walletconnecting_message')}
+            </Text>
+          </View>
+          <IconButton
+            borderless
+            style={{ marginRight: 8 }}
+            color={'rgba(255, 255, 255, 0.56)'}
+            onPress={() => {
+              goBack();
+            }}
+            icon={({ size, color }) => (
+              <Image
+                source={require('../assets/image/ic_cancel_gray.png')}
+                style={{ width: 24, height: 24 }}
+              />
+            )}
+            accessibilityTraits="button"
+            accessibilityComponentType="button"
+            accessibilityRole="button"
+          />
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignSelf: 'center',
+            marginTop: layout.height / 4,
+          }}>
+          <View
+            style={styles.logoFrame}>
+            <Image
+              source={require('../assets/image/ic_walletconnect.png')}
+              style={{ width: 32, height: 32 }}
+            />
+          </View>
           <DotIndicator
             color={theme.colors.primary}
             size={4}
             count={3}
             style={{ flex: null, marginHorizontal: 16 }}
           />
-          <Image
-            source={require('../assets/image/ic_logo.png')}
-            style={{ width: 60, height: 60 }}
-          />
+
+          <View
+            style={styles.logoFrame}>
+            <Image
+              source={require('../assets/image/ic_logo.png')}
+              style={{ width: 32, height: 32 }}
+            />
+          </View>
         </View>
         <Text
-          style={{
-            color: theme.colors.text,
-            marginTop: 16,
-            opacity: 0.8,
-            fontSize: 16,
-          }}>
+          style={[
+            Theme.fonts.default.regular,
+            {
+              color: theme.colors.battleshipGrey,
+              marginTop: 24,
+              fontSize: 16,
+              textAlign: 'center',
+              alignSelf: 'center',
+            },
+          ]}>
           {I18n.t('walletconnecting_message')}
         </Text>
       </View>
     );
   };
   return (
-    <Container style={Styles.bottomContainer}>
-      <Headerbar
-        backIcon={require('../assets/image/ic_cancel.png')}
-        transparent
-        onBack={peerId == null ? _onBack : null}
-      />
-      {peerId == null ? _getConnectingView() : _getSessionRequestView()}
-    </Container>
+    <Modal
+      animated
+      visible={true}
+      transparent={true}
+      contentContainerStyle={{
+        flex: 1,
+        shadowOpacity: 1,
+      }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+        }}>
+        {peerId == null ? _getConnectingView() : _getSessionRequestView()}
+      </View>
+    </Modal>
   );
 };
 
@@ -216,7 +287,7 @@ const styles = StyleSheet.create({
   },
   request_message: {
     fontSize: 16,
-    marginVertical: 16,
+    marginBottom: 16,
     color: Theme.colors.resultContent,
     textAlign: 'center',
   },
@@ -245,6 +316,24 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     alignSelf: 'center',
     marginRight: 16,
+  },
+  logoFrame: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 42,
+    backgroundColor: '#fff',
+    paddingHorizontal: 11,
+    //shadow
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.16,
+    shadowRadius: 16.0,
   },
 });
 export default withTheme(ConnectingScreen);

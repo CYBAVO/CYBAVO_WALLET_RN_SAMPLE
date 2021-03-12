@@ -21,6 +21,7 @@ function shouldFetchApiHistory(walletId, state) {
   }
   const apihistory = state.apihistory.apihistory[walletId];
   if (apihistory.loading != NOT_LOADING) {
+    // already loading
     return false;
   }
 }

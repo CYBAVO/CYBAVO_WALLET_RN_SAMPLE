@@ -158,7 +158,7 @@ const TransactionList: () => React$Node = ({
                     { opacity: opacity * 0.7, marginLeft: 0, marginRight: 16 },
                     Theme.fonts.default.regular,
                   ]}
-                  format="YYYY/M/D"
+                  format="YYYY-M-D"
                   unix={item.timestamp}
                 />
               ) : (
@@ -184,7 +184,7 @@ const TransactionList: () => React$Node = ({
                       },
                       Theme.fonts.default.regular,
                     ]}
-                    format="YYYY/M/D"
+                    format="YYYY-M-D"
                     unix={item.timestamp}
                   />
                 </View>

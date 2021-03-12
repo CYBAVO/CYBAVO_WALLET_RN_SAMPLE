@@ -1,23 +1,26 @@
 import React, { useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { Text, Container, Content } from 'native-base';
-import ActionList from './components/TransactionList';
+import { useAppState } from '@react-native-community/hooks';
+import { useDispatch } from 'react-redux';
+import AppNavigator from './AppNavigator';
+import { initListener, initLocale, removeListener } from './store/actions/auth';
+import NavigationService from './NavigationService';
+import * as RNLocalize from 'react-native-localize';
+import I18n from 'react-native-i18n';
 
 const App: () => React$Node = () => {
-  // const initialized = useSelector(state => !!state.service.authenticator);
   const dispatch = useDispatch();
-
+  useEffect(() => {
+    dispatch(initListener());
+    dispatch(initLocale());
+    return () => removeListener();
+  }, [dispatch]);
 
   return (
-    <>
-      <Container>
-        <Content>
-          {<ActionList />}
-          {<Text>loading...</Text>}
-        </Content>
-      </Container>
-    </>
+    <AppNavigator
+      ref={navigatorRef => {
+        NavigationService.setTopLevelNavigator(navigatorRef);
+      }}
+    />
   );
 };
-
 export default App;

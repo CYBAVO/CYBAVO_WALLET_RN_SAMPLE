@@ -17,6 +17,10 @@ import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import { startColors, endColors, Theme } from '../styles/MainTheme';
 import {
   ACCELERATE_SVG,
+  AUTH_TYPE_BIO,
+  AUTH_TYPE_OLD,
+  AUTH_TYPE_SMS,
+  ASK_USE_SMS_ERROR_CODE,
   BADGE_FONT_SIZE,
   CANCEL_SVG,
   noHigherFeeKeys,
@@ -52,6 +56,7 @@ import {
   hasMemo,
   hasValue,
   isErc20,
+  sleep,
 } from '../Helpers';
 import RoundButton2 from '../components/RoundButton2';
 import { signIn } from '../store/actions/auth';
@@ -71,13 +76,15 @@ import ResultModal, {
 import { CANCELLED } from '../store/reducers/transactions';
 import ActivityLogList from '../components/ActivityLogList';
 import { SvgXml } from 'react-native-svg';
+import InputPinSmsModal from './InputPinSmsModal';
+import NavigationService from '../NavigationService';
+import { BIO_SETTING_USE_SMS, updateBioSetting } from '../store/actions';
 
 const HEADER_EXPANDED_HEIGHT = 168;
 const HEADER_COLLAPSED_HEIGHT = 56;
 const TransactionDetailScreen: () => React$Node = ({ theme }) => {
   const [scrollY] = useState(new Animated.Value(0));
   const [transparent, setTransparent] = useState(true);
-  const [inputPinCode, setInputPinCode] = useState(null);
   const [fee, setFee] = useState({});
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -154,23 +161,66 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
       console.log('Wallets.getTransactionInfo failed', error);
     }
   };
-  const _replaceTransaction = async (type, pinSecret, feeStr) => {
+  const _replaceTransaction = async (
+    type,
+    pinSecret,
+    bioType,
+    actionToken,
+    code,
+    feeStr
+  ) => {
     let config = {
-      [TYPE_CANCEL]: { api: Wallets.cancelTransaction, i18n: 'cancel_failed' },
+      [TYPE_CANCEL]: {
+        api: {
+          [AUTH_TYPE_OLD]: Wallets.cancelTransaction,
+          [AUTH_TYPE_SMS]: Wallets.cancelTransactionSms,
+          [AUTH_TYPE_BIO]: Wallets.cancelTransactionBio,
+        },
+        i18n: 'cancel_failed',
+      },
       [TYPE_ACCELERATE]: {
-        api: Wallets.increaseTransactionFee,
+        api: {
+          [AUTH_TYPE_OLD]: Wallets.increaseTransactionFee,
+          [AUTH_TYPE_SMS]: Wallets.increaseTransactionFeeSms,
+          [AUTH_TYPE_BIO]: Wallets.increaseTransactionFeeBio,
+        },
         i18n: 'accelerate_failed',
       },
     };
     setLoading(true);
     try {
-      let result = await config[type].api(
-        wallet.walletId,
-        transaction.txid,
-        feeStr,
-        pinSecret
-      );
-      setInputPinCode(null);
+      let result;
+      switch (bioType) {
+        case AUTH_TYPE_SMS:
+          result = await config[type].api[bioType](
+            actionToken,
+            code,
+            wallet.walletId,
+            transaction.txid,
+            feeStr,
+            pinSecret
+          );
+          break;
+        case AUTH_TYPE_BIO:
+          await sleep(1000); // wait InputPinSms dismiss
+          result = await config[type].api[bioType](
+            I18n.t('bio_msg'),
+            I18n.t('cancel'),
+            wallet.walletId,
+            transaction.txid,
+            feeStr,
+            pinSecret
+          );
+          break;
+        case AUTH_TYPE_OLD:
+          result = await config[type].api[bioType](
+            wallet.walletId,
+            transaction.txid,
+            feeStr,
+            pinSecret
+          );
+          break;
+      }
       setResult({
         type: TYPE_SUCCESS,
         title: I18n.t('change_complete'),
@@ -183,20 +233,57 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
         },
       });
     } catch (error) {
-      console.log('Wallets.increaseTransactionFee failed', error.message);
-      if (error.message.indexOf('Transaction is not replaceable') != -1) {
-        //393
+      console.log(
+        'Wallets.increaseTransactionFee failed',
+        error.code,
+        error.message
+      );
+      if (error.code == 393) {
         setReplaceable(false);
       }
-      setResult({
-        type: TYPE_FAIL,
-        error: error.message,
-        title: I18n.t(config[type].i18n),
-        buttonClick: () => {
-          setResult(null);
-        },
-      });
-      setInputPinCode(null);
+
+      if (error.code == 185) {
+        let msg = I18n.t('error_msg_185_retry');
+        try {
+          await Wallets.registerPubkey();
+          await Wallets.updateDeviceInfo();
+        } catch (err) {
+          let msg2 =
+            err.code && err.code > 0
+              ? I18n.t(`error_msg_${err.code}`)
+              : err.message;
+          msg = `${msg}|${msg2}`;
+        }
+        setResult({
+          type: TYPE_FAIL,
+          error: msg,
+          title: I18n.t(config[type].i18n),
+          useSms:
+            bioType == AUTH_TYPE_BIO &&
+            ASK_USE_SMS_ERROR_CODE.includes(error.code),
+          buttonClick: () => {
+            setResult(null);
+          },
+        });
+        setLoading(false);
+        return;
+      }
+      if (error.code != -7) {
+        setResult({
+          type: TYPE_FAIL,
+          error:
+            error.code && error.code > 0
+              ? I18n.t(`error_msg_${error.code}`)
+              : error.message,
+          title: I18n.t(config[type].i18n),
+          useSms:
+            bioType == AUTH_TYPE_BIO &&
+            ASK_USE_SMS_ERROR_CODE.includes(error.code),
+          buttonClick: () => {
+            setResult(null);
+          },
+        });
+      }
     }
     setLoading(false);
   };
@@ -239,7 +326,7 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
       console.log('_fetchWithdrawInfo failed', error);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('estimate_fee_failed'),
         buttonClick: () => {
           setResult(null);
@@ -257,6 +344,13 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
     transaction.amount,
     3,
     wallet,
+    exchangeCurrency,
+    currencyPrice
+  );
+  let exchangeTransactionFee = getExchangeAmount(
+    transaction.transactionFee,
+    3,
+    isErc20(wallet) ? { currency: 60, tokenAddress: '' } : wallet,
     exchangeCurrency,
     currencyPrice
   );
@@ -543,13 +637,30 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
             </Text>
           )}
           {hasValue(transaction.transactionFee) && (
-            <View style={Styles.bottomBoarderContainer}>
+            <View
+              style={[
+                Styles.bottomBoarderContainer,
+                { flexDirection: 'column', alignItems: 'flex-start' },
+              ]}>
               <Text
                 selectable
                 style={[Styles.secContent, Theme.fonts.default.regular]}>
                 {`${transaction.transactionFee} ${
                   isErc20(wallet) ? `ETH${feeNote}` : wallet.currencySymbol
                 }`}
+              </Text>
+              <Text
+                selectable
+                style={[
+                  Styles.convertedNumText,
+                  Theme.fonts.default.regular,
+                  {
+                    marginTop: 5,
+                    fontSize: 12,
+                    textDecorationLine: decorationLine,
+                  },
+                ]}>
+                {`≈ ${exchangeCurrency} \$${exchangeTransactionFee}`}
               </Text>
             </View>
           )}
@@ -700,6 +811,7 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
             <RoundButton2
               height={ROUND_BUTTON_HEIGHT}
               style={Styles.bottomButton}
+              outlined={true}
               icon={({ size, color }) => (
                 <Image
                   source={expolreImg}
@@ -724,21 +836,6 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
           )}
         </View>
       </ScrollView>
-      <InputPinCodeModal
-        title={inputPinCode ? I18n.t(titleKeys[inputPinCode.type]) : ''}
-        isVisible={inputPinCode != null}
-        onCancel={() => {
-          setInputPinCode(null);
-        }}
-        loading={loading}
-        onInputPinCode={pinSecret => {
-          _replaceTransaction(
-            inputPinCode.type,
-            pinSecret,
-            inputPinCode.selectedFee
-          );
-        }}
-      />
       {replaceTransaction && (
         <ReplaceTransactionModal
           type={replaceTransaction}
@@ -750,11 +847,28 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
           onButtonClick={selectedFee => {
             const type = replaceTransaction;
             setReplaceTransaction(null);
-            setInputPinCode({ type, selectedFee });
+
+            NavigationService.navigate('InputPinSms', {
+              title: I18n.t(titleKeys[type]),
+              modal: true,
+              from: 'TransactionDetail',
+              callback: (pinSecret, bioType, actionToken, code) => {
+                _replaceTransaction(
+                  type,
+                  pinSecret,
+                  bioType,
+                  actionToken,
+                  code,
+                  selectedFee
+                );
+                // NavigationService.navigate('Withdraw', {});
+                // _createTransaction(pinSecret, type, actionToken, code);
+              },
+            });
           }}
         />
       )}
-      {loading && !inputPinCode && (
+      {loading && (
         <ActivityIndicator
           color={theme.colors.primary}
           size="large"
@@ -783,6 +897,18 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
           errorMsg={result.error}
           type={result.type}
           onButtonClick={result.buttonClick}
+          secondaryConfig={
+            result.type === TYPE_FAIL && result.useSms
+              ? {
+                  color: theme.colors.primary,
+                  text: I18n.t('use_sms_temp'),
+                  onClick: () => {
+                    dispatch(updateBioSetting(BIO_SETTING_USE_SMS));
+                    setResult(null);
+                  },
+                }
+              : null
+          }
         />
       )}
     </Container>

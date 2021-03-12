@@ -17,6 +17,7 @@ import { NumericPinCodeInputView } from '@cybavo/react-native-wallet-service';
 import {
   CHANGE_MODE,
   INPUT_MODE,
+  MIN_LEVEL,
   PIN_CODE_LENGTH,
   RECOVER_CODE_MODE,
   RECOVERY_CODE_LENGTH,
@@ -27,7 +28,9 @@ import { Theme } from '../styles/MainTheme';
 import I18n from '../i18n/i18n';
 import { withTheme, Text } from 'react-native-paper';
 import Headerbar from '../components/Headerbar';
-import { animateSwitchPin, animateFadeInOut } from '../Helpers';
+import { animateSwitchPin, animateFadeInOut, toast } from '../Helpers';
+import StrengthStatus from '../components/StrengthStatus';
+import { useLayout } from '@react-native-community/hooks';
 
 const ANIM_SWITCH_OFFSET = 80;
 let InputPinCodeModal: () => React$Node = ({
@@ -42,11 +45,16 @@ let InputPinCodeModal: () => React$Node = ({
   title = I18n.t('enter_pin_code'),
   message1 = I18n.t('enter_pin_code'),
   message2 = I18n.t('enter_a_new_pin_code'),
+  message3 = I18n.t('setting_confirm_new_pin'),
 }) => {
+  const { onLayout, ...layout } = useLayout();
   const myRef = useRef(null);
   const pinDisplay = useRef(null);
   const [pinCodeLength, setPinCodeLength] = useState(0);
   const [oldPinSecret, setOldPinSecret] = useState(null);
+  const [pinSecret, setPinSecret] = useState(null);
+  const [level, setLevel] = useState(-1);
+  const [toastMsg, setToastMsg] = useState(null);
   const [animPinInput] = useState(new Animated.Value(0));
   const [backClick, setBackClick] = useState(0);
   const [animOpacity] = useState(new Animated.Value(0));
@@ -57,6 +65,7 @@ let InputPinCodeModal: () => React$Node = ({
     } else {
       setPinCodeLength(0);
       setOldPinSecret(null);
+      setPinSecret(null);
       setBackClick(0);
       StatusBar.setBackgroundColor('rgba(0,0,0,0)');
     }
@@ -64,6 +73,12 @@ let InputPinCodeModal: () => React$Node = ({
       StatusBar.setBackgroundColor('rgba(0,0,0,0)');
     };
   }, [isVisible]);
+
+  useEffect(() => {
+    if (toastMsg) {
+      animateFadeInOut(animOpacity, 600, () => setToastMsg(null));
+    }
+  }, [toastMsg]);
 
   const _inputPinCode = length => {
     if (mode == CHANGE_MODE) {
@@ -149,13 +164,13 @@ let InputPinCodeModal: () => React$Node = ({
     setPinCodeLength(length);
   };
   const _changeMode = async length => {
+    setPinCodeLength(length);
     if (oldPinSecret == null) {
       if (length == 0 && pinCodeLength == 0) {
         onCancel();
         return;
       }
       if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
-        setPinCodeLength(length);
         try {
           const pinSecret = await myRef.current.submitForMultiple();
           setOldPinSecret(pinSecret);
@@ -165,27 +180,51 @@ let InputPinCodeModal: () => React$Node = ({
         }
         return;
       }
-      setPinCodeLength(length);
     } else {
-      if (length == 0 && pinCodeLength == 0) {
-        animateSwitchPin(animPinInput, false);
-        setOldPinSecret(null);
-        setPinCodeLength(0);
-        return;
-      }
-      if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
-        setPinCodeLength(length);
-        try {
-          const pinSecret = await myRef.current.submitForMultiple();
-          if (onInputPinCode) {
-            onInputPinCode(oldPinSecret, pinSecret);
-          }
-        } catch (error) {
-          console.warn(error);
+      if (pinSecret == null) {
+        if (length == 0 && pinCodeLength == 0) {
+          animateSwitchPin(animPinInput, false);
+          setOldPinSecret(null);
+          return;
         }
-        return;
+        let newLevel = await myRef.current.getStrengthLevel(3);
+        if (length != 0 && pinCodeLength != PIN_CODE_LENGTH - 1) {
+          setLevel(newLevel);
+        }
+        if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
+          if (newLevel < MIN_LEVEL) {
+            setToastMsg(I18n.t('setup_pin_screen_alert_message_too_weak'));
+            pinDisplay.current.shake(() => {});
+            // setPinCodeLength(0);
+            await myRef.current.submitForMultiple(); //clear buffer, cannot call clear(), it will clear key
+          } else {
+            animateSwitchPin(animPinInput, true, 2, 1);
+            const ps = await myRef.current.submitForMultiple();
+            setPinSecret(ps);
+          }
+        }
+      } else {
+        if (length == 0 && pinCodeLength == 0) {
+          animateSwitchPin(animPinInput, false, 2, 1);
+          setPinSecret(null);
+          return;
+        }
+        if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
+          const ps2 = await myRef.current.submitForMultiple();
+          let isSame = await myRef.current.isSamePin(pinSecret, ps2);
+          if (!isSame) {
+            setToastMsg(I18n.t('setup_pin_screen_alert_message_not_match'));
+            pinDisplay.current.shake(() => {
+              setPinSecret(null);
+              animateSwitchPin(animPinInput, false, 2, 1);
+            });
+          } else {
+            if (onInputPinCode) {
+              onInputPinCode(oldPinSecret, pinSecret);
+            }
+          }
+        }
       }
-      setPinCodeLength(length);
     }
   };
   const _submit = async () => {
@@ -199,6 +238,7 @@ let InputPinCodeModal: () => React$Node = ({
       console.warn(error);
     }
   };
+  let showStrength = mode == CHANGE_MODE && oldPinSecret && pinSecret == null;
   return (
     <Modal
       visible={isVisible}
@@ -228,7 +268,11 @@ let InputPinCodeModal: () => React$Node = ({
               opacity: 0.8,
               fontSize: 20,
             }}>
-            {oldPinSecret == null ? message1 : message2}
+            {oldPinSecret == null
+              ? message1
+              : pinSecret == null
+              ? message2
+              : message3}
           </Text>
 
           <View
@@ -238,19 +282,22 @@ let InputPinCodeModal: () => React$Node = ({
               alignItems: 'center',
               justifyContent: 'center',
               marginTop: 30,
-              marginBottom: 50,
+              marginBottom: showStrength ? 0 : 50,
             }}>
             <Animated.View
               style={{
                 opacity: animPinInput.interpolate({
-                  inputRange: [0, 0.5, 0.5, 1],
-                  outputRange: [1, 0, 0, 1],
+                  inputRange: [0, 0.5, 0.5, 1, 1.5, 1.5, 2],
+                  outputRange: [1, 0, 0, 1, 0, 0, 1],
                 }),
                 transform: [
                   {
                     translateX: animPinInput.interpolate({
-                      inputRange: [0, 0.5, 0.5, 1],
+                      inputRange: [0, 0.5, 0.5, 1, 1.5, 1.5, 2],
                       outputRange: [
+                        0,
+                        -ANIM_SWITCH_OFFSET,
+                        ANIM_SWITCH_OFFSET,
                         0,
                         -ANIM_SWITCH_OFFSET,
                         ANIM_SWITCH_OFFSET,
@@ -261,6 +308,7 @@ let InputPinCodeModal: () => React$Node = ({
                 ],
               }}>
               <PinCodeDisplay
+                onLayout={onLayout}
                 ref={pinDisplay}
                 // style={{ marginTop: 50}}
                 maxLength={
@@ -282,11 +330,17 @@ let InputPinCodeModal: () => React$Node = ({
               />
             )}
           </View>
+          {showStrength && (
+            <StrengthStatus
+              widthParam={layout.width}
+              level={pinSecret == null && pinCodeLength == 0 ? -1 : level}
+            />
+          )}
           <NumericPinCodeInputView
             ref={myRef}
             style={{
               alignSelf: 'center',
-              // marginTop: 16,
+              marginTop: 0,
             }}
             maxLength={
               mode == RECOVER_CODE_MODE && oldPinSecret == null
@@ -339,7 +393,7 @@ let InputPinCodeModal: () => React$Node = ({
             right: 0,
           }}>
           <Text style={{ flex: 1, paddingVertical: 16, paddingHorizontal: 16 }}>
-            {I18n.t('click_again_to_exit_input')}
+            {toastMsg || I18n.t('click_again_to_exit_input')}
           </Text>
         </Animated.View>
       </Container>

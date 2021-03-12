@@ -45,6 +45,7 @@ const BottomActionMenu: () => React$Node = ({
   containerStyle,
   scrollEnabled = false,
   title = I18n.t('filter'),
+  getMainView,
 }) => {
   const [iosImeHeight, setiosImeHeight] = useState(0);
 
@@ -153,23 +154,27 @@ const BottomActionMenu: () => React$Node = ({
   };
   return (
     <>
-      <TouchableOpacity
-        style={[
-          Styles.tag,
-          {
-            backgroundColor: theme.colors.pickerBg,
-            flex: 1,
-          },
-          containerStyle,
-        ]}
-        onPress={onClick}>
-        <Text
-          style={[styles.text, Theme.fonts.default.heavy]}
-          numberOfLines={1}>
-          {data[currentSelect]}
-        </Text>
-        <Image source={ARROW_ICON} />
-      </TouchableOpacity>
+      {getMainView ? (
+        getMainView(data[currentSelect])
+      ) : (
+        <TouchableOpacity
+          style={[
+            Styles.tag,
+            {
+              backgroundColor: theme.colors.pickerBg,
+              flex: 1,
+            },
+            containerStyle,
+          ]}
+          onPress={onClick}>
+          <Text
+            style={[styles.text, Theme.fonts.default.heavy]}
+            numberOfLines={1}>
+            {data[currentSelect]}
+          </Text>
+          <Image source={ARROW_ICON} />
+        </TouchableOpacity>
+      )}
       <Portal>
         <Modal
           visible={modalVisible}

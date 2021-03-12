@@ -9,12 +9,12 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { Text, Button, Icon } from 'native-base';
 import { Theme } from '../styles/MainTheme';
 import { CHECK_ICON, LIST_ICON_SIMPLE_SIZE } from '../Constants';
-import { withTheme } from 'react-native-paper';
+import { withTheme, Text } from 'react-native-paper';
+import Styles from '../styles/Styles';
 const { width } = Dimensions.get('window');
-const MENU_MARGIN_TOP = 7;
+const MENU_MARGIN_TOP = 3;
 const ITEM_WIDTH_ADD = 20;
 const Dropdown: () => React$Node = ({
   theme,
@@ -55,7 +55,7 @@ const Dropdown: () => React$Node = ({
             height: LIST_ICON_SIMPLE_SIZE,
             width: LIST_ICON_SIMPLE_SIZE,
             position: 'absolute',
-            right: 5,
+            right: 0,
           }}
         />
       )}
@@ -66,22 +66,25 @@ const Dropdown: () => React$Node = ({
   };
   return (
     <View ref={refContainer}>
-      <Button
-        iconRight
-        rounded
-        small
-        style={{
-          backgroundColor: theme.colors.pickerBg,
-          flex: 1,
-          paddingRight: 11,
-        }}
+      <TouchableOpacity
+        style={[
+          Styles.tag,
+          {
+            backgroundColor: theme.colors.pickerBg,
+            height: 24,
+            paddingRight: 11,
+            paddingLeft: 15,
+            paddingVertical: 4,
+            borderRadius: 11,
+          },
+        ]}
         onPress={event => {
           if (Platform.OS == 'ios') {
             const { current } = refContainer;
             current.measureInWindow((x, y, containerWidth, containerHeight) => {
-              setTop(y + containerHeight + MENU_MARGIN_TOP);
-              setButtonWidth(containerWidth);
-              setLeft(x);
+              setTop(y + containerHeight - MENU_MARGIN_TOP);
+              setButtonWidth(containerWidth * 2);
+              setLeft(x - containerWidth);
             });
           }
           setShowModal(true);
@@ -89,11 +92,15 @@ const Dropdown: () => React$Node = ({
         <Text
           style={{
             fontFamily: 'Avenir-Roman',
+            fontSize: 12,
           }}>
           {currentSelect}
         </Text>
-        <Image source={require('../assets/image/ic_menu_down.png')} />
-      </Button>
+        <Image
+          source={require('../assets/image/ic_menu_down.png')}
+          style={{ marginLeft: 4 }}
+        />
+      </TouchableOpacity>
       <Modal
         visible={showModal}
         transparent={true}
@@ -146,6 +153,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     height: 35,
     fontSize: 14,
+    marginRight: 10,
     fontFamily: 'Avenir-Roman',
     color: 'white',
   },

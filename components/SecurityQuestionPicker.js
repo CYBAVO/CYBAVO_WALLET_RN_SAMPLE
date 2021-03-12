@@ -101,7 +101,7 @@ const SecurityQuestionPicker: () => React$Node = ({
           </Badge>
           <Text style={[styles.listItemText]}>{getMainText(selected)}</Text>
           {pickable && (
-            <Image source={require('../assets/image/ic_arrow_right.png')} />
+            <Image source={require('../assets/image/ic_arrow_right_gray.png')} />
           )}
         </View>
       </TouchableOpacity>
@@ -147,6 +147,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flex: 1,
     marginLeft: 10,
+    alignSelf: 'center',
   },
   listItemSubText: {
     fontSize: 14,

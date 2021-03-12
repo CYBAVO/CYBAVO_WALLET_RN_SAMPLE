@@ -8,21 +8,25 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { withTheme, ActivityIndicator, Text } from 'react-native-paper';
+import { withTheme, ActivityIndicator, Text, Portal } from 'react-native-paper';
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import { FileLogger } from 'react-native-file-logger';
 import I18n from '../i18n/i18n';
 import { useDispatch, useSelector } from 'react-redux';
 const { width, height } = Dimensions.get('window');
 import ResultModal, {
+  TYPE_CONFIRM,
   TYPE_FAIL,
   TYPE_SUCCESS,
 } from '../components/ResultModal';
-import { fetchApiHistory } from '../store/actions';
+import { fetchApiHistory, startFetchFee, stopFetchFee } from '../store/actions';
 import { Container } from 'native-base';
 import Styles from '../styles/Styles';
 import Headerbar from '../components/Headerbar';
 import {
+  AUTH_TYPE_BIO,
+  AUTH_TYPE_OLD,
+  AUTH_TYPE_SMS,
   CANCEL_SVG,
   Coin,
   noHigherFeeKeys,
@@ -46,89 +50,103 @@ import {
   getWalletKey,
   hasValue,
 } from '../Helpers';
+import { useAppState } from '@react-native-community/hooks';
 import { convertHexToUtf8 } from '@walletconnect/utils';
 import { Theme } from '../styles/MainTheme';
 import BigNumber from 'bignumber.js';
 import walletconnect from '../store/reducers/walletconnect';
-import InputPinCodeModal from './InputPinCodeModal';
+import InputPinSmsModal from './InputPinSmsModal';
 import apihistory from '../store/reducers/apihistory';
 import { SvgXml } from 'react-native-svg';
 import TopDownHint from '../components/TopDownHint';
 import { CANCELLED } from '../store/reducers/transactions';
 const expolreImg = require('../assets/image/open_window.png');
 const tagConfig = {
-  0: { i18n: 'pending_up', color: Theme.colors.pending },
-  1: { i18n: 'failed_up', color: Theme.colors.error },
-  3: { i18n: 'failed_up', color: Theme.colors.errorBg },
+  0: { i18n: 'pending_up', color: Theme.colors.pending }, //WAITING
+  1: { i18n: 'failed_up', color: Theme.colors.error }, //FAILED
+  3: { i18n: 'failed_up', color: Theme.colors.errorBg }, //DROPPED
 };
 const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
   const dispatch = useDispatch();
   const config = useSelector(state => {
     return state.auth.config;
   });
+  const [selectedFeeInfo, setSelectedFeeInfo] = useState(null);
   const apihistory = useNavigationParam('apiHistory');
   const [inputPinCode, setInputPinCode] = useState(null);
-  const [fee, setFee] = useState({});
   const [usedFee, setUsedFee] = useState(null);
   const [replaceTransaction, setReplaceTransaction] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const { navigate, goBack } = useNavigation();
   const title = I18n.t('api_history_detail');
+
+  const appState = useAppState();
+  useEffect(() => {
+    if (appState == 'active' && replaceTransaction != null) {
+      dispatch(startFetchFee(Coin.ETH));
+    } else if (appState === 'background') {
+      dispatch(stopFetchFee());
+    }
+  }, [appState]);
+
+  const fee = useSelector(state => {
+    try {
+      if (
+        !state.fee.fee[Coin.ETH] ||
+        !state.fee.fee[Coin.ETH].data ||
+        !state.fee.fee[Coin.ETH].data.high
+      ) {
+        return null;
+      }
+      let ethGasFee = getEthGasFeeWithPreLimit(
+        state.fee.fee[Coin.ETH].data,
+        usedFee
+      );
+      let immediateSelectedFeeInfo = selectedFeeInfo;
+      if (immediateSelectedFeeInfo == null) {
+        immediateSelectedFeeInfo = {
+          level: 'high',
+          amount: ethGasFee.high.amount,
+        };
+        setSelectedFeeInfo(immediateSelectedFeeInfo);
+      }
+      if (
+        replaceTransaction != null &&
+        ethGasFee[immediateSelectedFeeInfo.level].amount !=
+          immediateSelectedFeeInfo.amount
+      ) {
+        setReplaceTransaction(null);
+        //need to update selectedFeeInfo, otherwise this condition will always be true
+        setSelectedFeeInfo({
+          level: immediateSelectedFeeInfo.level,
+          amount: ethGasFee[immediateSelectedFeeInfo.level].amount,
+        });
+      }
+      return ethGasFee;
+    } catch (error) {
+      console.debug('Update fee_error' + error);
+      return null;
+    }
+  });
   const _finishInputPinCode = () => {
     setInputPinCode(null);
   };
-  const _fetchWithdrawInfo = async type => {
-    setLoading(true);
-    try {
-      const rawFee = await Wallets.getTransactionFee(Coin.ETH);
-      if (
-        rawFee != null &&
-        rawFee.high != null &&
-        rawFee.medium != null &&
-        rawFee.low != null &&
-        hasValue(rawFee.high.amount) &&
-        hasValue(rawFee.medium.amount) &&
-        hasValue(rawFee.low.amount)
-      ) {
-        let ethGasFee = getEthGasFeeWithPreLimit(rawFee, usedFee);
-        setFee(ethGasFee);
-
-        if (ethGasFee.high.lessThenMin) {
-          setResult({
-            type: TYPE_FAIL,
-            error: I18n.t(noHigherFeeKeys[type]),
-            title: I18n.t('no_higher_fee_title'),
-            buttonClick: () => {
-              setResult(null);
-            },
-          });
-        } else {
-          setReplaceTransaction(type);
-        }
-      } else {
-        setFee(null);
-      }
-    } catch (error) {
-      console.log('_fetchWithdrawInfo failed', error);
-      setResult({
-        type: TYPE_FAIL,
-        error: error.message,
-        title: I18n.t('estimate_fee_failed'),
-        buttonClick: () => {
-          setResult(null);
-        },
-      });
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
+    if (apihistory.cancelable) {
+      dispatch(startFetchFee(Coin.ETH));
+    }
     setUsedFee(getTotalFeeFromLimit(apihistory.gasPrice, apihistory.gasLimit));
 
   }, []);
 
-  const _cancelWalletConnectTransaction = async (pinSecret, feeStr) => {
+  const _cancelWalletConnectTransaction = async (
+    pinSecret,
+    feeStr,
+    type,
+    actionToken,
+    code
+  ) => {
     try {
       setLoading(true);
       FileLogger.debug(
@@ -136,7 +154,35 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
           apihistory
         )}`
       );
-      let result = await Wallets.cancelWalletConnectTransaction(
+
+      let result;
+      switch (type) {
+        case AUTH_TYPE_SMS:
+          result = await Wallets.cancelWalletConnectTransaction(
+            apihistory.walletId,
+            apihistory.accessId,
+            feeStr,
+            pinSecret
+          );
+          break;
+        case AUTH_TYPE_BIO:
+          result = await Wallets.cancelWalletConnectTransaction(
+            apihistory.walletId,
+            apihistory.accessId,
+            feeStr,
+            pinSecret
+          );
+          break;
+        case AUTH_TYPE_OLD:
+          result = await Wallets.cancelWalletConnectTransaction(
+            apihistory.walletId,
+            apihistory.accessId,
+            feeStr,
+            pinSecret
+          );
+          break;
+      }
+      result = await Wallets.cancelWalletConnectTransaction(
         apihistory.walletId,
         apihistory.accessId,
         feeStr,
@@ -160,7 +206,7 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
       FileLogger.debug(`_cancelWalletConnectTransaction fail:${error.message}`);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('cancel_failed'),
         buttonClick: () => {
           setResult(null);
@@ -204,7 +250,7 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
             )}
             labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
             color={theme.colors.pickerBg}
-            onPress={() => _fetchWithdrawInfo(TYPE_CANCEL)}>
+            onPress={() => setReplaceTransaction(TYPE_CANCEL)}>
             {I18n.t('cancel')}
           </RoundButton2>
         )}
@@ -317,6 +363,7 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
     <Container
       style={[Styles.bottomContainer, { justifyContent: 'space-between' }]}>
       <Headerbar
+        // backIcon={require('../assets/image/ic_cancel.png')}
         transparent
         title={title}
         onBack={() => {
@@ -344,30 +391,41 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
           {I18n.t('explore')}
         </RoundButton2>
       )}
-      <InputPinCodeModal
+      <InputPinSmsModal
         title={inputPinCode ? I18n.t(titleKeys[inputPinCode.type]) : ''}
         isVisible={inputPinCode != null}
         onCancel={() => {
           _finishInputPinCode();
         }}
         loading={loading}
-        onInputPinCode={pinsecret => {
-          _cancelWalletConnectTransaction(pinsecret, inputPinCode.selectedFee);
+        callback={(pinSecret, type, actionToken, code) => {
+          _cancelWalletConnectTransaction(
+            pinsecret,
+            inputPinCode.selectedFee,
+            type,
+            actionToken,
+            code
+          );
         }}
       />
 
-      {replaceTransaction && (
+      {replaceTransaction && fee && (
         <ReplaceTransactionModal
           type={replaceTransaction}
           fee={fee}
           onCancel={() => {
             setReplaceTransaction(null);
+            dispatch(stopFetchFee());
           }}
           feeNote={` (${I18n.t('estimated')})`}
           onButtonClick={selectedFee => {
             const type = replaceTransaction;
             setReplaceTransaction(null);
+            dispatch(stopFetchFee());
             setInputPinCode({ type, selectedFee });
+          }}
+          onSelect={select => {
+            setSelectedFeeInfo(select);
           }}
         />
       )}

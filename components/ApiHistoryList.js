@@ -31,10 +31,6 @@ import { CANCEL_SVG, replaceConfig } from '../Constants';
 import { hasValue } from '../Helpers';
 
 const ERROR_ICON = require('../assets/image/ic_error.png');
-/*
- * 進出 金額 幣別     時間
- *      txid
- * */
 const ApiHistoryList: () => React$Node = ({
   theme,
   onPress,
@@ -52,7 +48,6 @@ const ApiHistoryList: () => React$Node = ({
       item.replaceStatus === CANCELLED ? 'line-through' : 'none';
     return (
       <TouchableOpacity
-        // disabled={rawData.length == 1}
         style={[styles.item]}
         onPress={() => {
           onPress(item);
@@ -87,56 +82,37 @@ const ApiHistoryList: () => React$Node = ({
               {item.apiName}
             </Text>
 
-            <View>
-              <View
-                style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                {replaceConfig[item.replaceStatus] && (
-                  <Text
-                    style={[
-                      // Styles.tag,
-                      {
-                        backgroundColor:
-                          replaceConfig[item.replaceStatus].color,
-                        fontSize: 8,
-                        paddingVertical: 2,
-                        borderRadius: 7,
-                        paddingHorizontal: 5,
-                        opacity: opacity,
-                        marginLeft: 8,
-                        overflow: 'hidden',
-                      },
-                    ]}>
-                    {I18n.t(replaceConfig[item.replaceStatus].i18n)}
-                  </Text>
-                )}
-                {item.nonce != null && (
-                  <Text
-                    style={[
-                      styles.listItemSubText,
-                      Theme.fonts.default.regular,
-                      {
-                        // alignSelf: 'flex-end',
-                        opacity: opacity * 0.7,
-                        marginLeft: 3,
-                        // flex: 1,
-                      },
-                    ]}>
-                    {`#${item.nonce}`}
-                  </Text>
-                )}
-              </View>
-              <Text
-                style={[
-                  styles.listItemSubText,
-                  Theme.fonts.default.regular,
-                  {
-                    // alignSelf: 'flex-end',
-                    opacity: opacity * 0.7,
-                    // flex: 1,
-                  },
-                ]}>
-                {item.formatTime}
-              </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              {replaceConfig[item.replaceStatus] && (
+                <Text
+                  style={[
+                    {
+                      backgroundColor: replaceConfig[item.replaceStatus].color,
+                      fontSize: 8,
+                      paddingVertical: 2,
+                      borderRadius: 7,
+                      paddingHorizontal: 5,
+                      opacity: opacity,
+                      marginLeft: 8,
+                      overflow: 'hidden',
+                    },
+                  ]}>
+                  {I18n.t(replaceConfig[item.replaceStatus].i18n)}
+                </Text>
+              )}
+              {item.nonce != null && (
+                <Text
+                  style={[
+                    styles.listItemSubText,
+                    Theme.fonts.default.regular,
+                    {
+                      opacity: opacity * 0.7,
+                      marginLeft: 3,
+                    },
+                  ]}>
+                  {`#${item.nonce}`}
+                </Text>
+              )}
             </View>
           </View>
           <View
@@ -149,68 +125,84 @@ const ApiHistoryList: () => React$Node = ({
             <Text
               style={[
                 styles.listItemText,
-                Theme.fonts.default.regular,
+                Theme.fonts.default.heavyBold,
                 {
                   opacity: opacity,
+                  flexShrink: 1,
+                  marginLeft: 8,
+                  marginRight: 24,
                 },
-              ]}>
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="middle">
               {item.walletName}
             </Text>
             <View style={{ flexDirection: 'row', marginTop: 3 }}>
-              {(item.status == Wallets.ApiHistoryItem.Status.FAILED ||
-                item.status == Wallets.ApiHistoryItem.Status.DROPPED) && (
-                <Image
-                  source={ERROR_ICON}
-                  style={{ marginRight: 0, alignSelf: 'flex-end' }}
-                />
-              )}
-            </View>
-          </View>
-          {hasValue(item.txid) && (
-            <View
-              style={{
-                flexDirection: 'row',
-                flex: 1,
-                marginTop: 3,
-                opacity: opacity,
-              }}>
-              <Text
-                style={[
-                  {
-                    backgroundColor: theme.colors.background,
-                    fontSize: 8,
-                    opacity: 0.5,
-                    paddingVertical: 2,
-                    borderRadius: 10,
-                    paddingHorizontal: 8,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    overflow: 'hidden',
-                  },
-                ]}>
-                {I18n.t('txid')}
-              </Text>
               <Text
                 style={[
                   styles.listItemSubText,
-                  {
-                    marginLeft: 5,
-                    flexShrink: 1,
-                    marginRight: 0,
-                    textDecorationLine: decorationLine,
-                  },
                   Theme.fonts.default.regular,
-                ]}
-                numberOfLines={1}
-                ellipsizeMode="middle">
-                {item.txid}
+                  {
+                    opacity: opacity * 0.7,
+                  },
+                ]}>
+                {item.formatTime}
               </Text>
             </View>
-          )}
-          {/*<Text style={[styles.listItemText, Theme.fonts.default.heavy]}>*/}
-          {/*  {item.accessId}*/}
-          {/*</Text>*/}
+          </View>
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            {hasValue(item.txid) && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flex: 1,
+                  marginTop: 3,
+                  marginRight: 24,
+                  opacity: opacity,
+                }}>
+                <Text
+                  style={[
+                    {
+                      backgroundColor: theme.colors.background,
+                      fontSize: 8,
+                      opacity: 0.5,
+                      paddingVertical: 2,
+                      borderRadius: 10,
+                      paddingHorizontal: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      overflow: 'hidden',
+                    },
+                  ]}>
+                  {I18n.t('txid')}
+                </Text>
+                <Text
+                  style={[
+                    styles.listItemSubText,
+                    {
+                      marginLeft: 5,
+                      flexShrink: 1,
+                      marginRight: 0,
+                      textDecorationLine: decorationLine,
+                    },
+                    Theme.fonts.default.regular,
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode="middle">
+                  {item.txid}
+                </Text>
+              </View>
+            )}
+            {(item.status == Wallets.ApiHistoryItem.Status.FAILED ||
+              item.status == Wallets.ApiHistoryItem.Status.DROPPED) && (
+              <Image
+                source={ERROR_ICON}
+                style={{ marginRight: 0, alignSelf: 'flex-end' }}
+              />
+            )}
+          </View>
           {item.status == Wallets.ApiHistoryItem.Status.WAITING && (
             <View
               style={{
@@ -302,21 +294,19 @@ const styles = StyleSheet.create({
     paddingTop: 30,
   },
   item: {
-    backgroundColor: Theme.colors.pickerBg,
+    borderBottomWidth: 1,
+    borderColor: Theme.colors.divider,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderRadius: 10,
-    // height: 80,
-    paddingHorizontal: 10,
+    paddingHorizontal: 0,
     marginBottom: 8,
     paddingVertical: 8,
   },
   listItemText: {
     marginTop: 6,
-    // fontSize: 16,
-    // marginLeft: 15,
-    // fontWeight: 'bold',
+    fontSize: 16,
+    marginRight: 24,
   },
   separator: {
     height: 0.5,
@@ -329,9 +319,7 @@ const styles = StyleSheet.create({
   footer: {
     height: 88,
     paddingTop: 16,
-    // padding: 10,
     justifyContent: 'center',
-    // alignItems: 'center',
     flexDirection: 'row',
   },
   loadMoreBtn: {

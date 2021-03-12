@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import I18n from '../i18n/i18n';
 import { useSelector, useDispatch } from 'react-redux';
-import { AUTH_LOADING, AUTH_UPDATE_DEV, initAuth } from '../store/actions';
+import { AUTH_UPDATE_DEV, initAuth} from '../store/actions';
 import { Dimensions } from 'react-native';
-const { height } = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
 import { Text } from 'react-native-paper';
 import { withTheme } from 'react-native-paper';
 import Styles from '../styles/Styles';
@@ -19,11 +19,15 @@ import VersionNumber from 'react-native-version-number';
 import * as DeviceInfo from 'react-native-device-info';
 import { WalletSdk } from '@cybavo/react-native-wallet-service';
 import { endpoint, apiCode, uniqueIds } from '../BuildConfig';
-import { checkCameraPermission } from '../Helpers';
+import { checkCameraPermission, getLoginBgSvg} from '../Helpers';
 import NavigationService from '../NavigationService';
+import { useClipboard } from '@react-native-community/hooks';
+import { SvgXml } from 'react-native-svg';
 
 const InitializeScreen: () => React$Node = ({ theme }) => {
+  const iconInitMarginTop = height * 0.35;
   const dispatch = useDispatch();
+  const [_, setClipboard] = useClipboard();
   const apnsSandbox = false;
   const [animOpacity] = useState(new Animated.Value(0));
   const _initWalletSdk = config => {
@@ -84,6 +88,7 @@ const InitializeScreen: () => React$Node = ({ theme }) => {
   };
   const _inDevList = () => {
     let uniqueId = DeviceInfo.getUniqueId();
+    setClipboard(uniqueId);
     let inList = uniqueIds.includes(uniqueId);
     console.debug('uniqueId:' + uniqueId);
     return inList;
@@ -92,7 +97,7 @@ const InitializeScreen: () => React$Node = ({ theme }) => {
     let inDevList = _inDevList();
     Animated.timing(animOpacity, {
       toValue: 1,
-      duration: 500,
+      duration: 1000,
       useNativeDriver: true,
     }).start(() => {
       setTimeout(() => {
@@ -102,14 +107,11 @@ const InitializeScreen: () => React$Node = ({ theme }) => {
   }, [dispatch]);
   return (
     <View style={[Styles.bottomContainer, { alignItems: 'center' }]}>
-      <Image
-        source={require('../assets/image/bg_login.png')}
-        style={styles.fullBg}
-      />
+      <SvgXml xml={getLoginBgSvg(width, height)} style={styles.fullBg} />
       <Animated.Image
         resizeMode="contain"
         source={require('../assets/image/splash.png')}
-        style={{ marginTop: height * 0.3, opacity: animOpacity }}
+        style={{ marginTop: iconInitMarginTop, opacity: animOpacity }}
       />
       <Text
         color={theme.colors.primary}

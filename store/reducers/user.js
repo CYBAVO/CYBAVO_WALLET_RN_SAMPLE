@@ -10,11 +10,13 @@ import {
   USER_UPDATE_USER_STATE,
 } from '../actions/user';
 import { COMMON_RESET } from '../actions/common';
+import { USER_UPDATE_BIO_SETTING } from '../actions';
 
 const defaultState = {
   userState: {
     loading: false,
     error: null,
+    enableWalletconnect: false,
   },
 };
 
@@ -38,6 +40,14 @@ function user(state = defaultState, action) {
           ...state.userState,
           loading: false,
           error: action.error,
+        },
+      };
+    case USER_UPDATE_BIO_SETTING:
+      return {
+        ...state,
+        userState: {
+          ...state.userState,
+          bioSetting: action.bioSetting,
         },
       };
     case USER_UPDATE_USER_STATE:

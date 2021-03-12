@@ -12,12 +12,24 @@ const { width, height } = Dimensions.get('window');
 import { Container, Content, Toast } from 'native-base';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from 'react-navigation-hooks';
-import { BADGE_FONT_SIZE, SERVICE_EMAIL } from '../Constants';
-import { WalletSdk, Auth } from '@cybavo/react-native-wallet-service';
-import { signOut } from '../store/actions';
+import {
+  Api,
+  BADGE_FONT_SIZE,
+  LOCALES,
+  SERVICE_EMAIL,
+  SERVICE_EMAIL_CYBAVO,
+} from '../Constants';
+import { WalletSdk, Auth, Wallets } from '@cybavo/react-native-wallet-service';
+import { BIO_SETTING_USE_SMS, signOut } from '../store/actions';
 import Styles from '../styles/Styles';
 import { Theme } from '../styles/MainTheme';
-import I18n from '../i18n/i18n';
+import { Button } from 'native-base';
+import I18n, {
+  getLanguage,
+  IndexLanguageMap,
+  LanguageIndexMap,
+  setLanguage,
+} from '../i18n/i18n';
 import InputPinCodeModal from './InputPinCodeModal';
 import { withTheme, Text, ActivityIndicator } from 'react-native-paper';
 import Headerbar from '../components/Headerbar';
@@ -27,8 +39,17 @@ import ResultModal, {
   TYPE_SUCCESS,
 } from '../components/ResultModal';
 import VersionNumber from 'react-native-version-number';
-import IconSvgXml from '../components/IconSvgXml';
-import { sendLogFilesByEmail } from '../Helpers';
+import {
+  checkCameraPermission,
+  effectiveBalance,
+  getWalletKeyByWallet,
+  inDevList,
+  sendLogFilesByEmail,
+} from '../Helpers';
+import BottomActionMenu from '../components/BottomActionMenu';
+import NavigationService from '../NavigationService';
+import AssetPicker from '../components/AssetPicker';
+import BackgroundImage from '../components/BackgroundImage';
 const {
   sdkInfo: { VERSION_NAME, VERSION_CODE, BUILD_TYPE },
 } = WalletSdk;
@@ -36,11 +57,12 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   const [result, setResult] = useState(null);
   const [inputPinCode, setInputPinCode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('current PinSecret not found');
+  const [errorMsg, setErrorMsg] = useState(I18n.t('pin_secret_not_found'));
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
   const userState = useSelector(state => state.user.userState);
   const identity = useSelector(state => state.auth.identity);
+  const [languageIndex, setLanguageIndex] = useState(0);
 
   const reportable = useSelector(state => {
     return state.walletconnect.reportable;
@@ -48,6 +70,25 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   const hasConnection = useSelector(state => {
     return Object.keys(state.walletconnect.connecting).length > 0;
   });
+
+  const enableWalletconnect = useSelector(state => {
+    console.debug(
+      `enableWalletconnect:${state.user.userState.enableWalletconnect}`
+    );
+    return state.user.userState.enableWalletconnect;
+  });
+
+  const bioSetting = useSelector(state => state.user.userState.bioSetting);
+  const enableBiometrics = useSelector(
+    state => state.user.userState.enableBiometrics
+  );
+  const skipSmsVerify = useSelector(
+    state => state.user.userState.skipSmsVerify
+  );
+
+  const [bioSettingSub, setBioSettingSub] = useState('pin');
+  const [bioSettingEditable, setBioSettingEditable] = useState(false);
+
   const hasApiHistory = useSelector(state => {
     let hasApiHistory = false;
     try {
@@ -83,7 +124,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
       console.log('_changePinCode failed', error);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('change_failed'),
         buttonClick: () => {
           setResult(null);
@@ -93,11 +134,55 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
     setInputPinCode(false);
     setLoading(false);
   };
+
+  const _getLanguageIndexFromStorage = () => {
+    getLanguage()
+      .then(lan => {
+        if (!lan) {
+          lan = 'en';
+        }
+        setLanguageIndex(LanguageIndexMap[lan] || 0);
+      })
+      .catch(error => {});
+  };
+
+  useEffect(() => {
+    _getLanguageIndexFromStorage();
+  }, []);
+
+  useEffect(() => {
+    _checkBioInfo();
+  }, [bioSetting]);
+  const _checkBioInfo = async () => {
+    if (!enableBiometrics || skipSmsVerify) {
+      return;
+    }
+    // let { exist } = await Wallets.isBioKeyExist();
+    let { biometricsType } = await Wallets.getBiometricsType();
+    if (biometricsType != Wallets.BiometricsType.NONE) {
+      let isInDevList = inDevList();
+      if (isInDevList) {
+        setBioSettingEditable(true);
+      }
+      if (bioSetting == BIO_SETTING_USE_SMS) {
+        setBioSettingSub('pin_sms');
+      } else {
+        setBioSettingSub('pin_bio');
+      }
+    } else {
+      setBioSettingEditable(false);
+      setBioSettingSub('pin_sms');
+    }
+  };
   useEffect(() => {
     if (!inputPinCode) {
       setErrorMsg('');
     }
   }, [inputPinCode]);
+  const _onBioSettingPress = () => {
+    console.debug('eee_bioSettingEditable');
+    navigate('SetBio', { key: bioSettingSub });
+  };
   const _fetchSecurityQuestions = async () => {
     setLoading(true);
     try {
@@ -117,7 +202,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
       } else {
         setResult({
           type: TYPE_FAIL,
-          error: error.message,
+          error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
           title: I18n.t('change_failed'),
           buttonClick: () => {
             setResult(null);
@@ -127,6 +212,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
     }
     setLoading(false);
   };
+
   return (
     <Container style={Styles.container}>
       <Headerbar transparent title={I18n.t('settings')} />
@@ -173,10 +259,11 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
               Styles.tag,
               Theme.fonts.default.medium,
               {
+                borderRadius: 12,
                 color: Theme.colors.background,
                 fontSize: BADGE_FONT_SIZE,
                 fontWeight: 'bold',
-                backgroundColor: '#1bcba5',
+                backgroundColor: theme.colors.primary,
                 alignSelf: 'center',
               },
             ]}>
@@ -184,6 +271,98 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
           </Text>
         </View>
 
+        <View style={[styles.listItem, { justifyContent: 'space-between' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Image
+              source={require('../assets/image/ic_setting_walletconnnect.png')}
+              style={styles.image}
+            />
+            <View
+              style={{
+                flexDirection: 'column',
+                marginLeft: 15,
+                justifyContent: 'center',
+              }}>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="middle"
+                style={[
+                  Styles.input,
+                  { flex: 0 },
+                  Theme.fonts.default.regular,
+                ]}>
+                {I18n.t('walletconnect')}
+              </Text>
+            </View>
+          </View>
+          <Button
+            iconRight
+            rounded
+            small
+            onPress={async () => {
+              if (await checkCameraPermission()) {
+                NavigationService.navigate('scanModal', {
+                  modal: true,
+                });
+              }
+            }}
+            style={{
+              backgroundColor: theme.colors.pickerBg,
+              // flex: 1,
+              padding: 11,
+            }}>
+            <Text
+              style={[
+                Theme.fonts.default.medium,
+                {
+                  color: Theme.colors.primary,
+                  fontSize: 14,
+                  alignSelf: 'center',
+                },
+              ]}>
+              {I18n.t('connect')}
+            </Text>
+          </Button>
+        </View>
+
+        <Text
+          style={[
+            Styles.secLabel,
+            { marginTop: 15 },
+            Theme.fonts.default.regular,
+          ]}>
+          {I18n.t('general')}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            navigate('SetLocale', {
+              index: languageIndex,
+              onChange: i => {
+                setLanguageIndex(i);
+              },
+            });
+          }}
+          style={[
+            styles.listItemHorizontal,
+            { justifyContent: 'space-between' },
+          ]}>
+          <Text style={[Styles.input, Theme.fonts.default.regular]}>
+            {I18n.t('language')}
+          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <Text
+              style={[
+                Styles.inputDesc,
+                { flex: 0, fontSize: 14 },
+                Theme.fonts.default.regular,
+              ]}>
+              {LOCALES[languageIndex]}
+            </Text>
+            <Image
+              source={require('../assets/image/ic_arrow_right_gray.png')}
+            />
+          </View>
+        </TouchableOpacity>
         <Text
           style={[
             Styles.secLabel,
@@ -194,29 +373,56 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
         </Text>
         <TouchableOpacity
           onPress={() => navigate('SetupSecurityQuestion')}
-          style={styles.listItemVertical}>
-          <Text style={[Styles.input, Theme.fonts.default.regular]}>
-            {I18n.t('setup_security_questions_up')}
-          </Text>
-          <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
-            {I18n.t('setup_security_questions_desc')}
-          </Text>
+          style={styles.listItemHorizontal}>
+          <View style={{ flexDirection: 'column' }}>
+            <Text style={[Styles.input, Theme.fonts.default.regular]}>
+              {I18n.t('setup_security_questions_up')}
+            </Text>
+            <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
+              {I18n.t('setup_security_questions_desc')}
+            </Text>
+          </View>
+          <Image source={require('../assets/image/ic_arrow_right_gray.png')} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={_goChangePinCode}
-          style={styles.listItemVertical}>
-          <Text style={Styles.input}>{I18n.t('change_pin_code_up')}</Text>
-          <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
-            {I18n.t('change_pin_code_desc')}
-          </Text>
+          style={styles.listItemHorizontal}>
+          <View style={{ flexDirection: 'column' }}>
+            <Text style={Styles.input}>{I18n.t('change_pin_code_up')}</Text>
+            <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
+              {I18n.t('change_pin_code_desc')}
+            </Text>
+          </View>
+          <Image source={require('../assets/image/ic_arrow_right_gray.png')} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={_fetchSecurityQuestions}
-          style={styles.listItemVertical}>
-          <Text style={Styles.input}>{I18n.t('forgot_pin_code_title')}</Text>
-          <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
-            {I18n.t('restore_pin_code_desc')}
-          </Text>
+          style={styles.listItemHorizontal}>
+          <View style={{ flexDirection: 'column' }}>
+            <Text style={Styles.input}>{I18n.t('forgot_pin_code_title')}</Text>
+            <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
+              {I18n.t('restore_pin_code_desc')}
+            </Text>
+          </View>
+          <Image source={require('../assets/image/ic_arrow_right_gray.png')} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          disabled={!bioSettingEditable}
+          onPress={_onBioSettingPress}
+          style={styles.listItemHorizontal}>
+          <View style={{ flexDirection: 'column' }}>
+            <Text style={Styles.input}>
+              {I18n.t('transaction_auth_method')}
+            </Text>
+            <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
+              {I18n.t(bioSettingSub)}
+            </Text>
+          </View>
+          {bioSettingEditable && (
+            <Image
+              source={require('../assets/image/ic_arrow_right_gray.png')}
+            />
+          )}
         </TouchableOpacity>
         <Text
           style={[
@@ -226,22 +432,27 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
           ]}>
           {I18n.t('information')}
         </Text>
-        {(reportable || hasApiHistory || hasConnection) && (
+        {enableWalletconnect && (reportable || hasApiHistory || hasConnection) && (
           <TouchableOpacity
             onPress={() => {
               sendLogFilesByEmail(
-                SERVICE_EMAIL,
-                `${I18n.t('report_issue')} - CYBAVO Wallet`
+                SERVICE_EMAIL_CYBAVO,
+                `${I18n.t('report_issue')} - ${I18n.t('app_name')}`
               ),
                 I18n.t('issue_description_template');
             }}
-            style={styles.listItemVertical}>
-            <Text style={[Styles.input, Theme.fonts.default.regular]}>
-              {I18n.t('report_issue')}
-            </Text>
-            <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
-              {I18n.t('report_issue_desc')}
-            </Text>
+            style={styles.listItemHorizontal}>
+            <View style={{ flexDirection: 'column' }}>
+              <Text style={[Styles.input, Theme.fonts.default.regular]}>
+                {I18n.t('report_issue')}
+              </Text>
+              <Text style={[Styles.inputDesc, Theme.fonts.default.regular]}>
+                {I18n.t('report_issue_desc')}
+              </Text>
+            </View>
+            <Image
+              source={require('../assets/image/ic_arrow_right_gray.png')}
+            />
           </TouchableOpacity>
         )}
         <View style={styles.listItemVertical}>
@@ -256,7 +467,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
         </View>
         <TouchableOpacity
           style={{
-            marginTop: 10,
+            marginTop: 24,
             marginBottom: 40,
             flex: 1,
             justifyContent: 'center',
@@ -347,6 +558,16 @@ const styles = StyleSheet.create({
     borderBottomColor: Theme.colors.divider,
     borderBottomWidth: 1,
     padding: 10,
+  },
+  listItemHorizontal: {
+    minHeight: 60,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderBottomColor: Theme.colors.divider,
+    borderBottomWidth: 1,
+    padding: 10,
+    paddingRight: 0,
   },
   image: {
     width: 36,

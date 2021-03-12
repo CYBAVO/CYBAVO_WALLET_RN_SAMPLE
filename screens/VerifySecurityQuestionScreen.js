@@ -32,7 +32,6 @@ import ResultModal, {
   TYPE_FAIL,
   TYPE_SUCCESS,
 } from '../components/ResultModal';
-import { WebView } from 'react-native-webview';
 const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
@@ -118,7 +117,7 @@ const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
       // setPinErrorMsg(error.message);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('restored_failed'),
         buttonClick: () => {
           setResult(null);
@@ -156,7 +155,9 @@ const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
       _goRestorePinCode(questions, answers);
     } catch (error) {
       console.log('_fetchSecurityQuestions failed', error);
-      setErrorMsg(error.message);
+      setErrorMsg(
+        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+      );
     }
     setLoading(false);
   };
@@ -176,7 +177,7 @@ const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
           onBack={() => goBack()}
         />
         <ScrollView keyboardShouldPersistTap="handle">
-          <Content contentContainerStyle={styles.contentContainer}>
+          <View style={styles.contentContainer}>
             <Text style={Styles.secLabelInputDesc}>
               {I18n.t('setup_security_questions_desc')}
             </Text>
@@ -189,7 +190,7 @@ const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
                   badgeText={i + 1}
                   width={width}
                   pickable={false}
-                  getMainText={item => questions[i]}
+                  getMainText={item => I18n.t(item)}
                 />
                 <CompoundTextInput
                   ref={refs[i]}
@@ -224,7 +225,7 @@ const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
                 {errorMsg}
               </Text>
             )}
-          </Content>
+          </View>
         </ScrollView>
         <View>
           <TouchableOpacity

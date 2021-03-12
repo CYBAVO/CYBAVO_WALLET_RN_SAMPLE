@@ -130,7 +130,7 @@ const CurrencyPicker: () => React$Node = ({
           onPress={() => {
             setShowModal(true);
           }}>
-          <View style={{ flexDirection: 'row' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <IconSvgXml xmlkey={getXmlKey(selected)} fillType={'1'} />
             <View>
               <Text style={[styles.listItemText, Theme.fonts.default.heavy]}>

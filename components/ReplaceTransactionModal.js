@@ -55,6 +55,7 @@ const ReplaceTransactionModal: () => React$Node = ({
   onCancel = () => {},
   type = TYPE_CANCEL,
   feeNote,
+  onSelectFee = select => {},
 }) => {
   const feeUnit = 'ETH';
   const balanceItem = useSelector(state => {
@@ -74,6 +75,11 @@ const ReplaceTransactionModal: () => React$Node = ({
       StatusBar.setBackgroundColor('rgba(0,0,0,0)');
     };
   }, [visible]);
+  useEffect(() => {
+    if (onSelectFee) {
+      onSelectFee({ level: selectedFee, amount: fee[selectedFee].amount });
+    }
+  }, [selectedFee]);
   //for react-native-paper Modal
   useBackHandler(() => {
     if (visible) {
@@ -98,11 +104,6 @@ const ReplaceTransactionModal: () => React$Node = ({
   };
   const _getInitValue = () => {
     let keys = ['low', 'medium', 'high'];
-    // for (let i = 0; i < keys.length; i++) {
-    //   if (fee[keys[i]].lessThenMin == false) {
-    //     return i;
-    //   }
-    // }
     let last = keys.length - 1;
     return last;
   };
@@ -172,6 +173,24 @@ const ReplaceTransactionModal: () => React$Node = ({
           </View>
         </ScrollView>
         <>
+          {type === TYPE_CANCEL && (
+            <View style={[Styles.infoBackground, { marginHorizontal: 16 }]}>
+              <Image
+                style={{ marginTop: 3 }}
+                source={require('../assets/image/ic_Info.png')}
+              />
+              <Text
+                style={[
+                  styles.text,
+                  {
+                    textAlign: 'left',
+                    marginLeft: 5,
+                  },
+                ]}>
+                {I18n.t('cancel_transaction_hint')}
+              </Text>
+            </View>
+          )}
           <RoundButton2
             height={ROUND_BUTTON_HEIGHT}
             style={[Styles.bottomButton]}
@@ -182,17 +201,6 @@ const ReplaceTransactionModal: () => React$Node = ({
             }}>
             {I18n.t('submit')}
           </RoundButton2>
-          {type === TYPE_CANCEL && (
-            <View style={[styles.roundButtonContainer]}>
-              <Image
-                style={{ marginHorizontal: 8 }}
-                source={require('../assets/image/ic_Info.png')}
-              />
-              <Text style={[styles.text]}>
-                {I18n.t('cancel_transaction_hint')}
-              </Text>
-            </View>
-          )}
         </>
         {backClick > 0 && (
           <Animated.View
@@ -241,7 +249,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   iconContainer: {
-    // margin: 24,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',

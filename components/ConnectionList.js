@@ -15,13 +15,6 @@ import { Theme } from '../styles/MainTheme';
 import { DotIndicator } from 'react-native-indicators';
 import { Surface, Text, TouchableRipple, withTheme } from 'react-native-paper';
 import ListEmptyView from './ListEmptyView';
-import IconSvgXml from './IconSvgXml';
-
-const ERROR_ICON = require('../assets/image/ic_error.png');
-/*
- * 進出 金額 幣別     時間
- *      txid
- * */
 const ConnectionList: () => React$Node = ({
   theme,
   onPress,
@@ -39,16 +32,17 @@ const ConnectionList: () => React$Node = ({
           style={{ flexDirection: 'row', flex: 1, alignItems: 'flex-start' }}>
           <View
             style={{
-              width: 60,
-              height: 60,
-              borderRadius: 60 / 2,
+              width: 48,
+              height: 48,
+              borderRadius: 48 / 2,
               backgroundColor: theme.colors.surface,
               justifyContent: 'center',
               alignItems: 'center',
+              alignSelf: 'center',
             }}>
             <Image
               source={{ uri: item.icon }}
-              style={{ width: 50, height: 50 }}
+              style={{ width: 32, height: 32 }}
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -75,7 +69,6 @@ const ConnectionList: () => React$Node = ({
                 styles.listItemSubText,
                 Theme.fonts.default.regular,
                 {
-                  alignSelf: 'flex-end',
                   flex: 1,
                 },
               ]}>
@@ -100,7 +93,7 @@ const ConnectionList: () => React$Node = ({
         keyExtractor={(data, idx) => `${data.peerId}`}
         renderItem={_renderItem}
         ListEmptyComponent={
-          <ListEmptyView text={I18n.t('add_connection_hint')} />
+          <ListEmptyView text={I18n.t('add_connection_hint')} img={require('../assets/image/ic_tips_no_connection.png')}/>
         }
       />
     </View>
@@ -133,7 +126,9 @@ const styles = StyleSheet.create({
   footer: {
     height: 88,
     paddingTop: 16,
+    // padding: 10,
     justifyContent: 'center',
+    // alignItems: 'center',
     flexDirection: 'row',
   },
   loadMoreBtn: {
@@ -154,11 +149,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 4,
     // height: 80,
-    paddingHorizontal: 10,
-    marginBottom: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 16,
   },
   listItemText: {
     fontSize: 16,
@@ -166,8 +161,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   listItemSubText: {
-    fontSize: 14,
+    fontSize: 12,
     marginLeft: 15,
+    marginTop: 4,
     color: Theme.colors.placeholder,
   },
 });

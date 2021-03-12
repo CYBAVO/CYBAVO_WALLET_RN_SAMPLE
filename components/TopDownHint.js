@@ -59,6 +59,7 @@ const TopDownHint: () => React$Node = ({
           style={[
             {
               backgroundColor: theme.colors.primary,
+              elevation: 0,
             },
           ]}>
           <View style={[styles.footer]}>

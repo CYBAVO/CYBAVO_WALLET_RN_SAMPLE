@@ -8,10 +8,7 @@
 import { NativeModules } from 'react-native';
 
 const { RNTwitterSignIn } = NativeModules;
-import {
-  TWITTER_CONSUMER_KEY,
-  TWITTER_CONSUMER_SECRET,
-} from '../../../../BuildConfig.json';
+import I18n from '../../../../i18n/i18n';
 
 export default {
   async signIn() {
@@ -29,11 +26,8 @@ export default {
       };
     } catch (error) {
       console.log('Twitter.signIn failed', error, error.message);
-      if (
-        error.message == 'The user has denied the approval' ||
-        error.message == 'Line login canceled by user'
-      ) {
-        throw new Error('Twitter sign in has been cancelled');
+      if (error.message == 'Twitter signin error') {
+        throw new Error(I18n.t('twitter_signin_cancelled'));
       }
       throw error;
     }

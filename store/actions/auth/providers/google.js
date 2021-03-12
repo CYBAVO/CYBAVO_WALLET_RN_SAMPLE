@@ -5,6 +5,7 @@
  * All rights reserved.
  */
 import { GoogleSignin, statusCodes } from 'react-native-google-signin';
+import I18n from '../../../../i18n/i18n';
 
 export default {
   async signIn() {
@@ -40,11 +41,11 @@ export default {
       console.log('GoogleSignin.signIn failed', error);
       switch (error.code) {
         case statusCodes.SIGN_IN_CANCELLED:
-          throw new Error('Google sign in has been cancelled');
+          throw new Error(I18n.t('google_signin_cancelled'));
         case statusCodes.IN_PROGRESS:
-          throw new Error('Google sign in is in progress');
+          throw new Error(I18n.t('google_signin_in_progress'));
         case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-          throw new Error('Google play service is not available');
+          throw new Error(I18n.t('google_play_not_available'));
         default:
           throw error;
       }

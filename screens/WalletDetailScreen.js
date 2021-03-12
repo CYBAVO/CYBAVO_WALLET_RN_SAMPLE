@@ -16,7 +16,8 @@ import {
   Coin,
   HEADER_BAR_PADDING,
   ROUND_BUTTON_HEIGHT,
-  ROUND_BUTTON_ICON_SIZE, ROUND_BUTTON_MEDIUM_HEIGHT,
+  ROUND_BUTTON_ICON_SIZE,
+  ROUND_BUTTON_MEDIUM_HEIGHT,
 } from '../Constants';
 import Styles from '../styles/Styles';
 const RECEIVE_ICON = require('../assets/image/receive.png');
@@ -193,6 +194,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
   const [renameLoading, setRenameLoading] = useState(false);
   const [result, setResult] = useState(null);
   const wallet = useNavigationParam('wallet');
+  const [walletName, setWalletName] = useState(wallet.name);
   const { navigate, goBack } = useNavigation();
   const dispatch = useDispatch();
   const balanceItem = useSelector(state => {
@@ -421,11 +423,12 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
     setRenameLoading(true);
     try {
       await Wallets.renameWallet(wallet.walletId, newName);
-      wallet.name = newName;
+      setWalletName(newName);
+      let w = { ...wallet, name: newName };
       dispatch({
         type: WALLETS_UPDATE_WALLET,
         walletId: wallet.walletId,
-        wallet,
+        wallet: w,
       });
       setResult({
         type: TYPE_SUCCESS,
@@ -440,7 +443,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
       console.log('_renameWallet failed', error);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('change_failed'),
         buttonClick: () => {
           setResult(null);
@@ -465,7 +468,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
         <View>
           <Headerbar
             transparent
-            title={wallet.name}
+            title={walletName}
             onBack={() => goBack()}
             actions={
               <View style={{ flexDirection: 'row' }}>
@@ -596,6 +599,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
       </BackgroundImage>
       {/*<Text style={styles.type}>{wallet.name}</Text>*/}
       <ScrollView
+        showsHorizontalScrollIndicator={false}
         horizontal={true}
         style={{ flexGrow: 0, backgroundColor: theme.colors.background }}>
         <View style={styles.filterContainer}>
@@ -671,7 +675,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
           title={I18n.t('rename_wallet')}
           visible={showModal}
           loading={renameLoading}
-          value={wallet.name}
+          value={walletName}
           onConfirm={_performRename}
           onCancel={() => {
             setRenameLoading(false);

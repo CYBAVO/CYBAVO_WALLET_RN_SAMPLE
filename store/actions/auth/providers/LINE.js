@@ -8,6 +8,7 @@
 import { NativeModules } from 'react-native';
 
 const { LineLoginManager } = NativeModules;
+import I18n from '../../../../i18n/i18n';
 
 export default {
   async signIn() {
@@ -33,11 +34,8 @@ export default {
       return { idToken, name, avatar };
     } catch (error) {
       console.log('LINE.signIn failed', error, error.message);
-      if (
-        error.message == 'The user has denied the approval' ||
-        error.message == 'Line login canceled by user'
-      ) {
-        throw new Error('LINE sign in has been cancelled');
+      if (error.message == 'Cancel authentication') {
+        throw new Error(I18n.t('line_signin_cancelled'));
       }
       throw error;
     }

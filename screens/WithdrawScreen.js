@@ -9,20 +9,32 @@ import {
   Platform,
   Animated,
   Share,
+  TouchableOpacity,
+  Image,
+  TextInput,
 } from 'react-native';
+
+import { TextInput as PaperInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import moment from 'moment';
+import { useAppState } from '@react-native-community/hooks';
 import { Container, Content } from 'native-base';
 const { width, height } = Dimensions.get('window');
 const HEADER_EXPANDED_HEIGHT = 220;
 const HEADER_COLLAPSED_HEIGHT = 56;
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
-import { useLayout } from '@react-native-community/hooks';
 import { startColors, endColors, Theme } from '../styles/MainTheme';
 import {
+  AUTH_TYPE_BIO,
+  AUTH_TYPE_OLD,
+  AUTH_TYPE_SMS,
+  ASK_USE_SMS_ERROR_CODE,
+  CLEAR_ICON,
   Coin,
+  COOL_TIME,
   ROUND_BUTTON_FONT_SIZE,
   ROUND_BUTTON_HEIGHT,
+  SCAN_ICON,
   sliderInnerWidth,
   sliderOuterWidth,
 } from '../Constants';
@@ -32,7 +44,8 @@ import BackgroundImage from '../components/BackgroundImage';
 import { Wallets, WalletSdk } from '@cybavo/react-native-wallet-service';
 import { CardPatternImg } from '../components/CurrencyIcon';
 import InputPinCodeModal from './InputPinCodeModal';
-import DegreeSlider from '../components/DegreeSlider';
+import InputPinSmsModal from './InputPinSmsModal';
+
 import {
   checkCameraPermission,
   effectiveBalance,
@@ -41,16 +54,25 @@ import {
   getAvailableBalance,
   getEstimateFee,
   getExchangeAmount,
+  getRankSvg,
+  getTopRightMarkerSvg,
   getWalletKey,
   getWalletKeyByWallet,
   hasMemo,
   hasValue,
   isErc20,
   isValidEosAccount,
+  sleep,
   toastError,
 } from '../Helpers';
 import Headerbar from '../components/Headerbar';
-import { withTheme, Text, ActivityIndicator } from 'react-native-paper';
+import {
+  withTheme,
+  Text,
+  ActivityIndicator,
+  Surface,
+  IconButton,
+} from 'react-native-paper';
 import AssetPicker from '../components/AssetPicker';
 import RoundButton2 from '../components/RoundButton2';
 import CompoundTextInput from '../components/CompoundTextInput';
@@ -62,12 +84,22 @@ import ResultModal, {
   TYPE_SUCCESS,
 } from '../components/ResultModal';
 import { BigNumber } from 'bignumber.js';
+import { fetchFee, stopFetchFee } from '../store/actions/fee';
+import {
+  BIO_SETTING_USE_SMS,
+  startFetchFee,
+  updateBioSetting,
+} from '../store/actions';
+import NavigationService from '../NavigationService';
+import DegreeSelecter from '../components/DegreeSelecter';
 const paddingBottom = {
-  ios: 220,
+  ios: 220 * (height / 667),
   android: 0,
 };
 
 const WithdrawScreen: () => React$Node = ({ theme }) => {
+  const appState = useAppState();
+  const dispatch = useDispatch();
   const [transparent, setTransparent] = useState(true);
   const refs = [useRef(), useRef(), useRef(), useRef()];
   const scrollView = useRef();
@@ -79,6 +111,32 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
   const exchangeCurrency = useSelector(
     state => state.currencyPrice.exchangeCurrency
   );
+
+  const time = useSelector(state => state.clock.time);
+  const lastRequestSmsTime = useSelector(
+    state => state.clock.lastRequestSmsTime
+  );
+  const countDown = COOL_TIME - (time - lastRequestSmsTime);
+  const inCoolTime = countDown > 0;
+
+  const fee = useSelector(state => {
+    if (!state.fee.fee[wallet.currency]) {
+      return {};
+    }
+    if (result != null && result.type == TYPE_CONFIRM) {
+      if (
+        result.transactionFee != null &&
+        state.fee.fee[wallet.currency].data[result.selectedFee].amount !=
+          result.transactionFee.amount
+      ) {
+        setResult(null);
+        if (scrollView.current) {
+          scrollView.current.scrollTo({ y: 0, animated: true });
+        }
+      }
+    }
+    return state.fee.fee[wallet.currency];
+  });
   const currencyPrice = useSelector(
     state => state.currencyPrice.currencyPrice || {}
   );
@@ -141,42 +199,15 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
   const [description, setDescription] = useState('');
   const [selectedFee, setSelectedFee] = useState('high');
   const [selectedTokenId, setSelectedTokenId] = useState(0);
-  const [fee, setFee] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [inputPinCode, setInputPinCode] = useState(null);
   const [iosImeHeight, setiosImeHeight] = useState(0);
   const [receiverError, setReceiverError] = useState(null);
   const [amountError, setAmountError] = useState(null);
   const [tokenIdError, setTokenIdError] = useState(null);
   const [result, setResult] = useState(null);
-  const _fetchWithdrawInfo = async () => {
-    setLoading(true);
-    try {
-      const rawFee = await Wallets.getTransactionFee(wallet.currency);
-      if (
-        rawFee != null &&
-        rawFee.high != null &&
-        rawFee.medium != null &&
-        rawFee.low != null &&
-        hasValue(rawFee.high.amount) &&
-        hasValue(rawFee.medium.amount) &&
-        hasValue(rawFee.low.amount)
-      ) {
-        setFee(rawFee);
-      } else {
-        setFee(null);
-      }
-    } catch (error) {
-      console.log('_fetchWithdrawInfo failed', error);
-    }
-    setLoading(false);
-  };
   useEffect(() => {
     focusInput(refs, hasValue(qrCode) ? 1 : 0);
   }, [qrCode]);
-  const _finishInputPinCode = () => {
-    setInputPinCode(null);
-  };
   const _submit = () => {
     let r = _trimReceiver(receiver);
     setReceiver(r);
@@ -192,7 +223,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     _estimateTransaction();
   };
   const _hasTransactionFee = () => {
-    return fee != null;
+    return fee != null && fee.data != null;
   };
   const _setReceiver = value => {
     let r = _trimReceiver(value);
@@ -207,7 +238,10 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
   };
   const _goScan = async () => {
     if (await checkCameraPermission()) {
-      navigate('Scan2', { onResult: _setReceiver });
+      NavigationService.navigate('scanModal', {
+        onResult: _setReceiver,
+        modal: true,
+      });
     }
   };
   const _trimReceiver = value => {
@@ -275,7 +309,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
       return false;
     }
     let balance = getAvailableBalance(balanceItem);
-    const feeStr = _hasTransactionFee() ? fee[selectedFee].amount : '0';
+    const feeStr = _hasTransactionFee() ? fee.data[selectedFee].amount : '0';
     if (balance) {
       let balanceNum = Number(balance);
       let b = new BigNumber(balanceNum);
@@ -333,7 +367,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     return false;
   };
   const _estimateTransaction = async () => {
-    const transactionFee = _hasTransactionFee() ? fee[selectedFee] : null;
+    const transactionFee = _hasTransactionFee() ? fee.data[selectedFee] : null;
     setLoading(true);
     try {
       let {
@@ -351,36 +385,61 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
         estimate.amount = tranasctionAmout;
       }
       let unit = '';
+      let exchangeBlockchainFee = '';
       //for ERC20
       if (isErc20(wallet)) {
         unit = ` ${feeUnit}`;
+        exchangeBlockchainFee = `≈ ${exchangeCurrency} \$${getExchangeAmount(
+          blockchainFee,
+          3,
+          { currency: 60, tokenAddress: '' },
+          exchangeCurrency,
+          currencyPrice
+        )}`;
       } else {
         unit = wallet.isFungible ? '' : ` ${wallet.currencySymbol}`;
+        exchangeBlockchainFee = `≈ ${exchangeCurrency} \$${getExchangeAmount(
+          blockchainFee,
+          3,
+          wallet,
+          exchangeCurrency,
+          currencyPrice
+        )}`;
       }
       if (platformFee && platformFee !== '0') {
         estimate.platformFee = `${platformFee} ${wallet.currencySymbol}`;
+        estimate.exchangePlatformFee = `≈ ${exchangeCurrency} \$${getExchangeAmount(
+          platformFee,
+          3,
+          wallet,
+          exchangeCurrency,
+          currencyPrice
+        )}`;
       }
       if (blockchainFee && blockchainFee !== '0') {
         estimate.blockchainFee = `${blockchainFee}${unit}${feeNote}`;
+        estimate.exchangeBlockchainFee = `${exchangeBlockchainFee}`;
       }
       setEstimateResult(estimate);
       setResult({
         type: TYPE_CONFIRM,
         title: I18n.t('confirm_send_currency', wallet),
+        transactionFee: transactionFee,
+        selectedFee: selectedFee,
       });
     } catch (error) {
       setEstimateResult(null);
       console.log('Wallets.estimateTransaction failed', error.message);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('transaction_failed'),
       });
     }
     setLoading(false);
   };
-  const _createTransaction = async pinSecret => {
-    const transactionFee = _hasTransactionFee() ? fee[selectedFee] : null;
+  const _createTransaction = async (pinSecret, type, actionToken, code) => {
+    const transactionFee = _hasTransactionFee() ? fee.data[selectedFee] : null;
     let extras = {};
     if (hasMemo(wallet)) {
       extras = {
@@ -390,25 +449,93 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     }
     setLoading(true);
     try {
-      let result = await Wallets.createTransaction(
-        wallet.walletId,
-        receiver,
-        amount,
-        transactionFee ? transactionFee.amount : '0',
-        description,
-        pinSecret,
-        extras
-      );
-      _finishInputPinCode();
+      let result;
+      switch (type) {
+        case AUTH_TYPE_SMS:
+          result = await Wallets.createTransactionSms(
+            actionToken,
+            code,
+            wallet.walletId,
+            receiver,
+            amount,
+            transactionFee ? transactionFee.amount : '0',
+            description,
+            pinSecret,
+            extras
+          );
+
+          break;
+        case AUTH_TYPE_BIO:
+          await sleep(1000); // wait InputPinSms dismiss
+          result = await Wallets.createTransactionBio(
+            I18n.t('bio_msg'),
+            I18n.t('cancel'),
+            wallet.walletId,
+            receiver,
+            amount,
+            transactionFee ? transactionFee.amount : '0',
+            description,
+            pinSecret,
+            extras
+          );
+          break;
+        case AUTH_TYPE_OLD:
+          result = await Wallets.createTransaction(
+            wallet.walletId,
+            receiver,
+            amount,
+            transactionFee ? transactionFee.amount : '0',
+            description,
+            pinSecret,
+            extras
+          );
+          break;
+      }
       setResult({ type: TYPE_SUCCESS, title: I18n.t('transaction_complete') });
     } catch (error) {
-      console.log('Wallets.createTransaction failed', error.message);
-      setResult({
-        type: TYPE_FAIL,
-        error: error.message,
-        title: I18n.t('transaction_failed'),
-      });
-      _finishInputPinCode();
+      console.log(
+        'Wallets.createTransaction failed',
+        error.code,
+        error.message
+      );
+      if (error.code == 185) {
+        //Biometrics setting not found
+        let msg = I18n.t('error_msg_185_retry');
+        try {
+          await Wallets.registerPubkey();
+          await Wallets.updateDeviceInfo();
+        } catch (err) {
+          let msg2 =
+            err.code && err.code > 0
+              ? I18n.t(`error_msg_${err.code}`)
+              : err.message;
+          msg = `${msg}|${msg2}`;
+        }
+        setResult({
+          type: TYPE_FAIL,
+          error: msg,
+          title: I18n.t('transaction_failed'),
+          useSms:
+            type == AUTH_TYPE_BIO &&
+            ASK_USE_SMS_ERROR_CODE.includes(error.code),
+        });
+        setLoading(false);
+        return;
+      }
+      if (error.code != -7) {
+        //Operation Cancelled
+        setResult({
+          type: TYPE_FAIL,
+          error:
+            error.code && error.code > 0
+              ? I18n.t(`error_msg_${error.code}`)
+              : error.message,
+          title: I18n.t('transaction_failed'),
+          useSms:
+            type == AUTH_TYPE_BIO &&
+            ASK_USE_SMS_ERROR_CODE.includes(error.code),
+        });
+      }
     }
     setLoading(false);
   };
@@ -428,16 +555,20 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     }
     return null;
   };
+
   useEffect(() => {
-    Keyboard.addListener('keyboardWillShow', _updateKeyboardSpace);
-    Keyboard.addListener('keyboardWillHide', _resetKeyboardSpace);
+    if (appState == 'active') {
+      dispatch(startFetchFee(wallet.currency));
+    } else if (appState === 'background') {
+      dispatch(stopFetchFee());
+    }
+  }, [appState]);
+  useEffect(() => {
+    dispatch(stopFetchFee());
+    dispatch(startFetchFee(wallet.currency));
     return () => {
-      Keyboard.removeListener('keyboardWillShow', _updateKeyboardSpace);
-      Keyboard.removeListener('keyboardWillHide', _resetKeyboardSpace);
+      dispatch(stopFetchFee());
     };
-  }, []);
-  useEffect(() => {
-    _fetchWithdrawInfo();
   }, [wallet]);
   useEffect(() => {
     _checkTokenId();
@@ -502,6 +633,15 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
               ? I18n.t('share_transaction_tokenid_template', detail)
               : I18n.t('share_transaction_template', detail),
           }).catch(console.error);
+        },
+      };
+    } else if (result.type === TYPE_FAIL && result.useSms) {
+      return {
+        color: theme.colors.primary,
+        text: I18n.t('use_sms_temp'),
+        onClick: () => {
+          dispatch(updateBioSetting(BIO_SETTING_USE_SMS));
+          setResult(null);
         },
       };
     } else {
@@ -702,9 +842,9 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
           ) : (
             <CompoundTextInput
               ref={refs[1]}
-              onSubmitEditing={() => {
-                focusNext(refs, 1);
-              }}
+              // onSubmitEditing={() => {
+              //   focusNext(refs, 1);
+              // }}
               style={Styles.compoundInput}
               value={amount}
               maxLength={21}
@@ -736,7 +876,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
                 let valueText = getAvailableBalance(balanceItem);
                 let value = Number(valueText);
                 const feeStr = _hasTransactionFee()
-                  ? fee[selectedFee].amount
+                  ? fee.data[selectedFee].amount
                   : '0';
                 if (isNaN(value)) {
                   setAmount(valueText);
@@ -789,17 +929,19 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
 
           {_hasTransactionFee() && (
             <>
-              <Text style={Styles.labelBlock}>{I18n.t('blockchain_fee')}</Text>
-              <DegreeSlider
+              <Text style={[Styles.labelBlock, { marginBottom: 8 }]}>
+                {I18n.t('blockchain_fee')}
+              </Text>
+              <DegreeSelecter
+                itemStyle={Styles.block}
                 getValue={(item = {}) => `${item.amount} ${feeUnit}`}
-                valueObj={fee}
+                valueObj={fee.data}
+                reserveErrorMsg={false}
                 outerWidth={sliderOuterWidth[Platform.OS || 'android']}
                 innerWidth={sliderInnerWidth[Platform.OS || 'android']}
-                style={{
-                  paddingHorizontal: 16,
-                }}
+                style={{}}
                 labels={[I18n.t('slow'), I18n.t('medium'), I18n.t('fast')]}
-                onSlidingComplete={value => {
+                onSelect={value => {
                   setSelectedFee(value);
                   _checkAmount(amount, value);
                 }}
@@ -842,7 +984,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
 
         <RoundButton2
           height={ROUND_BUTTON_HEIGHT}
-          disable={fee == null}
+          disable={fee.data == null}
           style={[
             //only show disabled style but still can press, so that can do check, mainly for Android
             Styles.bottomButton,
@@ -855,21 +997,6 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
           {I18n.t('send')}
         </RoundButton2>
       </View>
-      <InputPinCodeModal
-        title={title}
-        isVisible={inputPinCode != null}
-        onCancel={() => {
-          _finishInputPinCode();
-        }}
-        loading={loading}
-        onInputPinCode={pinSecret => {
-          if (inputPinCode === ACTION_WITHDRAW) {
-            _createTransaction(pinSecret);
-          } else {
-            // this._requestSecureToken(pinSecret);
-          }
-        }}
-      />
 
       {result && (
         <ResultModal
@@ -893,7 +1020,11 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
               ? null
               : moment().format('YYYY-MM-DD HH:mm:ss'),
             platformFee: estimateResult && estimateResult.platformFee,
+            exchangePlatformFee:
+              estimateResult && estimateResult.exchangePlatformFee,
             blockchainFee: estimateResult && estimateResult.blockchainFee,
+            exchangeBlockchainFee:
+              estimateResult && estimateResult.exchangeBlockchainFee,
             description: description,
             memo: memo,
             exchangeCurrency: exchangeCurrency,
@@ -910,7 +1041,14 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
           onButtonClick={() => {
             if (result.type === TYPE_CONFIRM) {
               setResult(null);
-              setInputPinCode(ACTION_WITHDRAW);
+              NavigationService.navigate('InputPinSms', {
+                modal: true,
+                from: 'Withdraw',
+                callback: (pinSecret, type, actionToken, code) => {
+                  // NavigationService.navigate('Withdraw', {});
+                  _createTransaction(pinSecret, type, actionToken, code);
+                },
+              });
             } else if (result.type === TYPE_SUCCESS) {
               setResult(null);
               if (onComplete) {
@@ -938,7 +1076,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
         />
       )}
 
-      {loading && !inputPinCode && (
+      {(loading || fee.loading) && (
         <ActivityIndicator
           color={theme.colors.primary}
           size="large"

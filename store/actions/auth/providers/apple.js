@@ -5,6 +5,7 @@ import appleAuth, {
   AppleAuthError,
 } from '@invertase/react-native-apple-authentication';
 import { getFullName } from '../../../../Helpers';
+import I18n from '../../../../i18n/i18n';
 
 export default {
   async signIn() {
@@ -44,7 +45,7 @@ export default {
       console.log('AppleAuth sign in failed', error);
       switch (error.code) {
         case AppleAuthError.CANCELED:
-          throw new Error('Apple sign in has been cancelled');
+          throw new Error(I18n.t('apple_signin_cancelled'));
         default:
           throw error;
       }

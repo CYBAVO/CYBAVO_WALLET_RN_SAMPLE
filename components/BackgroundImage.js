@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Image} from 'react-native';
+import { StyleSheet, Image, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 const BackgroundImage: () => React$Node = ({
   children,
@@ -8,9 +8,11 @@ const BackgroundImage: () => React$Node = ({
   endColor,
   containerStyle = {},
   imageStyle = {},
+  onLayout,
 }) => {
   return (
     <LinearGradient
+      onLayout={onLayout}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
       style={[styles.container, containerStyle]}
@@ -27,9 +29,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 8,
-    padding: 10,
     paddingBottom: 0,
     paddingLeft: 24,
+    paddingRight: 24,
   },
 });
 

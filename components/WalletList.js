@@ -118,16 +118,22 @@ const WalletList: () => React$Node = ({
           }
           desc={wallet.name}
           amount={balance}
-          amount2={
-            !hide &&
-            !wallet.isFungible &&
-            currencyPrice && (
-              <CurrencyPriceText
-                wallets={[wallet]}
-                textStyle={[Styles.cardDesc, Theme.fonts.default.regular]}
-              />
-            )
-          }
+          amount2={maxWidth => {
+            return (
+              !hide &&
+              !wallet.isFungible &&
+              currencyPrice && (
+                <CurrencyPriceText
+                  wallets={[wallet]}
+                  textStyle={[
+                    Styles.cardDesc,
+                    Theme.fonts.default.heavyBold,
+                    { maxWidth: maxWidth, textAlign: 'right' },
+                  ]}
+                />
+              )
+            );
+          }}
           // onPress={() => onClickAction(wallet)}
         />
       </View>
@@ -168,7 +174,7 @@ const WalletList: () => React$Node = ({
       contentContainerStyle={{
         flexGrow: 1,
         paddingHorizontal: 16,
-        minHeight: height * 0.5,
+        minHeight: '105%',
       }}
       refreshControl={
         onRefresh ? (

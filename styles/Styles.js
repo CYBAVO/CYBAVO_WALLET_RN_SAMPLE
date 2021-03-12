@@ -58,7 +58,6 @@ export default StyleSheet.create({
   },
   cardTitle: {
     color: Theme.colors.text,
-    marginRight: 5,
     fontSize: 16,
     fontWeight: '500',
   },
@@ -126,12 +125,12 @@ export default StyleSheet.create({
   inputError: {
     color: Theme.colors.error,
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 5,
   },
   inputAvailableValue: {
     color: Theme.colors.primary,
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 5,
   },
   secContentFade: {
     color: 'white',
@@ -170,7 +169,7 @@ export default StyleSheet.create({
   },
   bottomButton: {
     // position: 'absolute',
-    marginBottom: 16,
+    marginBottom: 36,
     marginTop: 16,
     alignSelf: 'center',
     height: ROUND_BUTTON_HEIGHT,
@@ -203,6 +202,7 @@ export default StyleSheet.create({
   labelBlock: {
     marginTop: 25,
     width: FULL_WIDTH_WITH_PADDING,
+    // alignSelf: 'center',
     flexDirection: 'column',
     color: Theme.colors.text,
     fontSize: 14,
@@ -210,6 +210,7 @@ export default StyleSheet.create({
   },
   formItem: {
     minHeight: 80,
+    // marginLeft: 10,
   },
   headerLeft: { flex: 0.3 },
   headerBody: { flex: 2 },
@@ -263,15 +264,74 @@ export default StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    margin: 24,
+    margin: 16,
     right: 0,
     bottom: 0,
-    width: 44,
-    height: 44,
+    width: 56,
+    height: 56,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: '#FFF',
+    backgroundColor: Theme.colors.pickerBg,
+  },
+  infoBackground: {
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    backgroundColor: Theme.colors.primary16,
+    borderColor: Theme.colors.primary,
+    padding: 8,
+    borderWidth: 1,
+    borderRadius: 4,
+    marginTop: 24,
+    marginHorizontal: 36,
+    flexDirection: 'row',
+  },
+  inputCell: {
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: Theme.colors.text,
+  },
+  inputCellText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  requestNewCodeContainer: {
+    marginTop: 8,
+    justifyContent: 'center',
+    height: 36,
+  },
+  phoneInvalid: {
+    fontSize: 12,
+    marginTop: 8,
+  },
+  registerMainText: {
+    fontSize: 24,
+    color: Theme.colors.text,
+    marginTop: 40,
+    marginHorizontal: 16,
+    textAlign: 'center',
+  },
+  registerSubText: {
+    fontSize: 14,
+    color: Theme.colors.text,
+    marginTop: 8,
+    marginHorizontal: 16,
+    textAlign: 'center',
+  },
+  shadowSurface: {
+    backgroundColor: Theme.colors.backgroundPressed,
+    borderRadius: 4,// marginLeft: 12, marginRight: 16, marginVertical: 14,
+    //marginHorizontal: 16,
+    // zIndex: 10,
+    // elevation: 10,//Android need elevation
+    //shadow
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 16.0,
   },
 });

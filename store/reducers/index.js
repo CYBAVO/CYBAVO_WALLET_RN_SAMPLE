@@ -10,6 +10,8 @@ import currencyPrice from './currencyPrice';
 import transactions from './transactions';
 import walletconnect from './walletconnect';
 import apihistory from './apihistory';
+import fee from './fee';
+import clock from './clock';
 const root = combineReducers({
   notifications,
   auth,
@@ -21,6 +23,8 @@ const root = combineReducers({
   transactions,
   walletconnect,
   apihistory,
+  fee,
+  clock,
 });
 
 export default root;

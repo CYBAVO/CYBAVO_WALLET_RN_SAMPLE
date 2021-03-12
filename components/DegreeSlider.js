@@ -6,6 +6,7 @@ import Styles from '../styles/Styles';
 import { Theme } from '../styles/MainTheme';
 import { withTheme, Text } from 'react-native-paper';
 import I18n from '../i18n/i18n';
+import { getFeeDescI18n } from '../Helpers';
 
 const DegreeSlider: () => React$Node = ({
   theme,
@@ -16,7 +17,7 @@ const DegreeSlider: () => React$Node = ({
     medium: { amount: 0.005, description: '<3m' },
     high: { amount: 0.007, description: '<1m' },
   },
-  getDesc = (item = {}) => item.description,
+  getDesc = (item = {}) => getFeeDescI18n(item.description),
   getValue = (item = {}) => item.amount,
   getLabel = (key = {}) => {
     switch (key) {

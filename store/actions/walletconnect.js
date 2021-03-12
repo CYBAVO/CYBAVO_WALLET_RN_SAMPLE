@@ -11,6 +11,7 @@ import NavigationService from '../../NavigationService';
 import { CHAIN_ID } from '../../BuildConfig';
 import moment from 'moment';
 import { FileLogger } from 'react-native-file-logger';
+import I18n from '../../i18n/i18n';
 
 export const WALLETCONNECT_UPDATE_REPORTABLE = 'walletConnect/WALLETCONNECT_UPDATE_REPORTABLE';
 export const WALLETCONNECT_INIT_REQUEST =
@@ -40,14 +41,17 @@ export const WALLETCONNECT_CALL_APPROVAL =
 
 export const WALLETCONNECT_CALL_REJECTION =
   'walletConnect/WALLETCONNECT_CALL_REJECTION';
+
+export const WALLETCONNECT_PENDING_URI =
+  'walletConnect/WALLETCONNECT_PENDING_URI';
 export function newSession(uri, address, walletId) {
   return async (dispatch, getState) => {
     try {
       let clientMeta = {
-        description: 'CYBAVO Wallet',
+        description: I18n.t('app_name'),
         url: 'https://www.cybavo.com/',
         icons: ['https://www.cybavo.com/img/header-logo-color.svg'],
-        name: 'CYBAVO Wallet',
+        name: I18n.t('app_name'),
         ssl: true,
       };
       dispatch({ type: WALLETCONNECT_UPDATE_REPORTABLE, value: true });
@@ -93,13 +97,7 @@ export function approveSession(
 ) {
   return async (dispatch, getState) => {
     if (getState().auth.config == 'test') {
-      let map = WalletConnectManager.getPendingMap();
-      if (map[peerId]) {
-        const { peerMeta } = map[peerId].getSessionPayload().params[0];
-        if (['Uniswap Interface', 'Uniswap Exchange'].includes(peerMeta.name)) {
-          response.accounts = ['0xaad9ebc005efa45f53e59ff8dadba14e59225155'];
-        }
-      }
+      response.accounts = ['0xaad9ebc005efa45f53e59ff8dadba14e59225155'];
     }
     FileLogger.debug(
       `>> approveSession_peerId:${peerId}, response:${JSON.stringify(response)}`
@@ -128,7 +126,7 @@ export function approveSession(
           toastError(error);
           return;
         }
-        toast(`Receive disconnect:${peerId}`);
+        toast(I18n.t('receive_disconnect_template', {peerId}));
         FileLogger.debug(`>> Receive disconnect_peerId:${peerId}`);
         dispatch({
           type: WALLETCONNECT_SESSION_DISCONNECTED,
@@ -147,52 +145,52 @@ export function approveSession(
 }
 function getHandledPayload(peerId, payload, config) {
   let map = WalletConnectManager.getConnectingMap();
-  if (map[peerId]) {
-    const { peerMeta } = map[peerId].getSessionPayload().params[0];
-    if (peerMeta.name == 'WalletConnect Example') {
-      switch (payload.method) {
-        case 'eth_sendTransaction':
-          const tx = payload.params[0];
-          tx.to =
-            tx.from == tx.to
-              ? '0x346E8A6e240b73dC700574fdd46D26d4C9FF5AAD'
-              : tx.to;
-          tx.value =
-            tx.value == '0x0'
-              ? '0xe8d4a51000'
-              : tx.value;
-          payload.params[0] = tx;
-          break;
-        case 'eth_signTypedData':
-        case 'eth_signTypedData_v1':
-        case 'eth_signTypedData_v3':
-          let typedData = JSON.parse(payload.params[1]);
-          typedData.types.EIP712Domain.splice(2, 0, {
-            name: 'chainId',
-            type: 'uint256',
-          });
-          payload.params[1] = JSON.stringify(typedData);
-          break;
+  if (!map[peerId]) {
+    return payload;
+  }
+  const { peerMeta } = map[peerId].getSessionPayload().params[0];
+  switch (payload.method) {
+    case 'eth_sendTransaction':
+      const tx = payload.params[0];
+      if (!tx.value) {
+        tx.value = '0x0';
       }
-    } else if (peerMeta.name == 'Uniswap Interface' && config == 'test') {
-      switch (payload.method) {
-        case 'eth_sendTransaction':
-          const tx = payload.params[0];
-          tx.from = WalletConnectManager.getAddress(peerId);
-          tx.to = '0x7a250d5630b4cf539739df2c5dacb4c659f2488d';
-          // tx.value = '0xe8d4a51000';
-          tx.data =
-            '0x7ff36ab500000000000000000000000000000000000000000000000000000000' +
-            '00078aec' +
-            '0000000000000000000000000000000000000000000000000000000000000080000000000000000000000000' +
-            tx.from.substring(2, tx.from.length) +
-            '00000000000000000000000000000000000000000000000000000000' +
-            getTimeHex() +
-            '0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000c778417e063141139fce010982780140aa0cd5ab0000000000000000000000000957c4d096dcb6daf9c7b1a865b3ec9df0d12883';
-          payload.params[0] = tx;
-          break;
+      if (peerMeta.name == 'WalletConnect Example') {
+        tx.to =
+          tx.from == tx.to
+            ? '0x346E8A6e240b73dC700574fdd46D26d4C9FF5AAD'
+            : tx.to;
+        tx.value =
+          tx.value == '0x0'
+            ? '0xe8d4a51000'
+            : tx.value;
+        payload.params[0] = tx;
+      } else if (config == 'test') {
+        tx.from = WalletConnectManager.getAddress(peerId);
+        tx.to = '0x7a250d5630b4cf539739df2c5dacb4c659f2488d';
+        tx.data =
+          '0x7ff36ab500000000000000000000000000000000000000000000000000000000' +
+          '00078aec' +
+          '0000000000000000000000000000000000000000000000000000000000000080000000000000000000000000' +
+          tx.from.substring(2, tx.from.length) +
+          '00000000000000000000000000000000000000000000000000000000' +
+          getTimeHex() +
+          '0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000c778417e063141139fce010982780140aa0cd5ab0000000000000000000000000957c4d096dcb6daf9c7b1a865b3ec9df0d12883';
+        payload.params[0] = tx;
       }
-    }
+      break;
+    case 'eth_signTypedData':
+    case 'eth_signTypedData_v1':
+    case 'eth_signTypedData_v3':
+      if (peerMeta.name == 'WalletConnect Example') {
+        let typedData = JSON.parse(payload.params[1]);
+        typedData.types.EIP712Domain.splice(2, 0, {
+          name: 'chainId',
+          type: 'uint256',
+        });
+        payload.params[1] = JSON.stringify(typedData);
+      }
+      break;
   }
   return payload;
 }

@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import {
-  StyleSheet,
-  View,
-  Dimensions,
-  Image,
-} from 'react-native';
+import { StyleSheet, View, Dimensions, Image } from 'react-native';
 import CameraRoll from '@react-native-community/cameraroll';
 import { Container } from 'native-base';
 import { Text, withTheme } from 'react-native-paper';
@@ -179,13 +174,9 @@ const DepositScreen: () => React$Node = ({ theme }) => {
           </RoundButton2>
         </View>
 
-        <View
-          style={[
-            styles.roundButtonContainer,
-            { alignItems: 'flex-start', justifyContent: 'flex-start' },
-          ]}>
+        <View style={Styles.infoBackground}>
           <Image
-            style={{ marginHorizontal: 8 }}
+            style={{ marginTop: 3 }}
             source={require('../assets/image/ic_Info.png')}
           />
           <Text
@@ -195,6 +186,7 @@ const DepositScreen: () => React$Node = ({ theme }) => {
               Theme.fonts.default.regular,
               {
                 textAlign: 'left',
+                marginLeft: 5,
               },
             ]}>
             {I18n.t('deposit_desc', wallet)}

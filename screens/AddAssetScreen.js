@@ -144,7 +144,7 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
       console.log('_createWallet failed', error);
       setResult({
         type: TYPE_FAIL,
-        error: error.message,
+        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('add_failed'),
         buttonClick: () => {
           setResult(null);
@@ -308,27 +308,15 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
             />
           )}
         </ScrollView>
-        <View>
-          <RoundButton2
-            height={ROUND_BUTTON_HEIGHT}
-            style={[Styles.bottomButton, { marginTop: 50 }]}
-            labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
-            onPress={_submit}
-            disabled={loading}>
-            {I18n.t('submit')}
-          </RoundButton2>
+        <View style={{ marginTop: 50 }}>
           {_needParent() && (
             <View
               style={[
-                {
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                  flexDirection: 'row',
-                  marginTop: 0,
-                },
+                Styles.infoBackground,
+                { marginHorizontal: 16, marginTop: 0, marginBottom: 4 },
               ]}>
               <Image
-                style={{ marginHorizontal: 8 }}
+                style={{ marginTop: 3 }}
                 source={require('../assets/image/ic_Info.png')}
               />
               <Text
@@ -336,6 +324,7 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
                   Theme.fonts.default.regular,
                   {
                     textAlign: 'left',
+                    marginLeft: 5,
                   },
                 ]}>
                 {I18n.t(
@@ -345,6 +334,14 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
               </Text>
             </View>
           )}
+          <RoundButton2
+            height={ROUND_BUTTON_HEIGHT}
+            style={[Styles.bottomButton]}
+            labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+            onPress={_submit}
+            disabled={loading}>
+            {I18n.t('submit_confirm')}
+          </RoundButton2>
         </View>
       </Container>
       <InputPinCodeModal
