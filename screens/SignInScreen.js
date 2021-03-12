@@ -96,7 +96,6 @@ const SignInScreen: () => React$Node = ({ theme }) => {
       </View>
       <Animated.View
         style={{
-          // backgroundColor: colorPrimaryDark,
           flexDirection: 'column',
           justifyContent: 'flex-end',
           alignItems: 'center',

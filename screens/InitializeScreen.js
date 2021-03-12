@@ -88,7 +88,6 @@ const InitializeScreen: () => React$Node = ({ theme }) => {
   };
   const _inDevList = () => {
     let uniqueId = DeviceInfo.getUniqueId();
-    setClipboard(uniqueId);
     let inList = uniqueIds.includes(uniqueId);
     console.debug('uniqueId:' + uniqueId);
     return inList;
