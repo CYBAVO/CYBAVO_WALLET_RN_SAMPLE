@@ -13,6 +13,7 @@ import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import { FileLogger } from 'react-native-file-logger';
 import I18n from '../i18n/i18n';
 import { useDispatch, useSelector } from 'react-redux';
+import NavigationService from '../NavigationService';
 const { width, height } = Dimensions.get('window');
 import ResultModal, {
   TYPE_CONFIRM,
@@ -73,7 +74,6 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
   });
   const [selectedFeeInfo, setSelectedFeeInfo] = useState(null);
   const apihistory = useNavigationParam('apiHistory');
-  const [inputPinCode, setInputPinCode] = useState(null);
   const [usedFee, setUsedFee] = useState(null);
   const [replaceTransaction, setReplaceTransaction] = useState(null);
   const [result, setResult] = useState(null);
@@ -129,15 +129,11 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
       return null;
     }
   });
-  const _finishInputPinCode = () => {
-    setInputPinCode(null);
-  };
   useEffect(() => {
     if (apihistory.cancelable) {
       dispatch(startFetchFee(Coin.ETH));
     }
     setUsedFee(getTotalFeeFromLimit(apihistory.gasPrice, apihistory.gasLimit));
-
   }, []);
 
   const _cancelWalletConnectTransaction = async (
@@ -158,7 +154,9 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
       let result;
       switch (type) {
         case AUTH_TYPE_SMS:
-          result = await Wallets.cancelWalletConnectTransaction(
+          result = await Wallets.cancelWalletConnectTransactionSms(
+            actionToken,
+            code,
             apihistory.walletId,
             apihistory.accessId,
             feeStr,
@@ -166,7 +164,9 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
           );
           break;
         case AUTH_TYPE_BIO:
-          result = await Wallets.cancelWalletConnectTransaction(
+          result = await Wallets.cancelWalletConnectTransactionBio(
+            I18n.t('bio_msg'),
+            I18n.t('cancel'),
             apihistory.walletId,
             apihistory.accessId,
             feeStr,
@@ -182,13 +182,6 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
           );
           break;
       }
-      result = await Wallets.cancelWalletConnectTransaction(
-        apihistory.walletId,
-        apihistory.accessId,
-        feeStr,
-        pinSecret
-      );
-      setInputPinCode(null);
       setResult({
         type: TYPE_SUCCESS,
         title: I18n.t('change_complete'),
@@ -204,15 +197,16 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
     } catch (error) {
       console.debug(`cancelWalletConnectTransactionF:${error}`);
       FileLogger.debug(`_cancelWalletConnectTransaction fail:${error.message}`);
-      setResult({
-        type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
-        title: I18n.t('cancel_failed'),
-        buttonClick: () => {
-          setResult(null);
-        },
-      });
-      setInputPinCode(null);
+      if (error.code != -7) {
+        setResult({
+          type: TYPE_FAIL,
+          error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+          title: I18n.t('cancel_failed'),
+          buttonClick: () => {
+            setResult(null);
+          },
+        });
+      }
     }
     // dispatch(walletconnectSync());
     setLoading(false);
@@ -391,24 +385,6 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
           {I18n.t('explore')}
         </RoundButton2>
       )}
-      <InputPinSmsModal
-        title={inputPinCode ? I18n.t(titleKeys[inputPinCode.type]) : ''}
-        isVisible={inputPinCode != null}
-        onCancel={() => {
-          _finishInputPinCode();
-        }}
-        loading={loading}
-        callback={(pinSecret, type, actionToken, code) => {
-          _cancelWalletConnectTransaction(
-            pinsecret,
-            inputPinCode.selectedFee,
-            type,
-            actionToken,
-            code
-          );
-        }}
-      />
-
       {replaceTransaction && fee && (
         <ReplaceTransactionModal
           type={replaceTransaction}
@@ -422,14 +398,31 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
             const type = replaceTransaction;
             setReplaceTransaction(null);
             dispatch(stopFetchFee());
-            setInputPinCode({ type, selectedFee });
+            NavigationService.navigate('InputPinSms', {
+              modal: true,
+              from: 'ApiHistoryDetail',
+              callback: (pinSecret, type, actionToken, code) => {
+                _cancelWalletConnectTransaction(
+                  pinSecret,
+                  selectedFee,
+                  type,
+                  actionToken,
+                  code
+                );
+              },
+              onError: error => {
+                FileLogger.debug(
+                  `_cancelWalletConnectTransaction fail:${error.message}`
+                );
+              },
+            });
           }}
           onSelect={select => {
             setSelectedFeeInfo(select);
           }}
         />
       )}
-      {loading && !inputPinCode && (
+      {loading && (
         <ActivityIndicator
           color={theme.colors.primary}
           size="large"

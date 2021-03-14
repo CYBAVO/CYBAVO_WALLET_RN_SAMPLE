@@ -36,6 +36,7 @@ import {
 import { useBackHandler } from '@react-native-community/hooks';
 import DegreeSlider from './DegreeSlider';
 import { BigNumber } from 'bignumber.js';
+import DegreeSelecter from './DegreeSelecter';
 
 export const TYPE_CANCEL = 'cancel';
 export const TYPE_ACCELERATE = 'accelerate';
@@ -48,15 +49,15 @@ const messageKeys = {
   [TYPE_ACCELERATE]: 'select_accelerate_gas_fee_desc',
 };
 const ReplaceTransactionModal: () => React$Node = ({
-  visible = true,
-  theme,
-  fee,
-  onButtonClick = () => {},
-  onCancel = () => {},
-  type = TYPE_CANCEL,
-  feeNote,
-  onSelectFee = select => {},
-}) => {
+                                                     visible = true,
+                                                     theme,
+                                                     fee,
+                                                     onButtonClick = () => {},
+                                                     onCancel = () => {},
+                                                     type = TYPE_CANCEL,
+                                                     feeNote,
+                                                     onSelectFee = select => {},
+                                                   }) => {
   const feeUnit = 'ETH';
   const balanceItem = useSelector(state => {
     let balances = state.balance.balances || {};
@@ -103,8 +104,7 @@ const ReplaceTransactionModal: () => React$Node = ({
     return true;
   };
   const _getInitValue = () => {
-    let keys = ['low', 'medium', 'high'];
-    let last = keys.length - 1;
+    let last = 0;
     return last;
   };
   const _checkFee = selected => {
@@ -119,10 +119,10 @@ const ReplaceTransactionModal: () => React$Node = ({
       let f = BigNumber(fee[selected].amountUi);
       if (b.isZero() || b.isLessThan(f)) {
         setFeeError(
-          I18n.t('error_insufficient_template', {
-            name: feeUnit,
-            balance: b.toFixed(b.decimalPlaces()),
-          })
+            I18n.t('error_insufficient_template', {
+              name: feeUnit,
+              balance: b.toFixed(b.decimalPlaces()),
+            })
         );
         return;
       }
@@ -130,97 +130,103 @@ const ReplaceTransactionModal: () => React$Node = ({
     setFeeError(null);
   };
   return (
-    <RNModal
-      visible={visible}
-      transparent={true}
-      style={Styles.container}
-      onRequestClose={_onBackHandle}
-      animationType={'none'}>
-      <Container
-        style={[Styles.bottomContainer, { justifyContent: 'space-between' }]}>
-        <Headerbar
-          backIcon={require('../assets/image/ic_cancel.png')}
-          transparent
-          title={I18n.t(titleKeys[type])}
-          onBack={onCancel}
-          Parent={View}
-        />
+      <RNModal
+          visible={visible}
+          transparent={true}
+          style={Styles.container}
+          onRequestClose={_onBackHandle}
+          animationType={'none'}>
+        <Container
+            style={[Styles.bottomContainer, { justifyContent: 'space-between' }]}>
+          <Headerbar
+              backIcon={require('../assets/image/ic_cancel.png')}
+              transparent
+              title={I18n.t(titleKeys[type])}
+              onBack={onCancel}
+              Parent={View}
+          />
 
-        <ScrollView>
-          <View
-            style={{
-              flex: 1,
-              padding: 16,
-              backgroundColor: theme.colors.background,
-            }}>
-            <Text style={Styles.secLabel}>{I18n.t(messageKeys[type])}</Text>
-            <DegreeSlider
-              callbackForInit={true}
-              valueObj={fee}
-              getValue={item => `${item.amountUi} ${feeUnit}${feeNote}`}
-              outerWidth={sliderOuterWidth[Platform.OS || 'android']}
-              innerWidth={sliderInnerWidth[Platform.OS || 'android']}
-              labels={[I18n.t('slow'), I18n.t('medium'), I18n.t('fast')]}
-              hasAlert={key => fee[key].lessThenMin}
-              reserveErrorMsg={true}
-              errorMsg={feeError}
-              initValue={_getInitValue()}
-              onSlidingComplete={value => {
-                setSelectedFee(value);
-                _checkFee(value);
-              }}
-            />
-          </View>
-        </ScrollView>
-        <>
-          {type === TYPE_CANCEL && (
-            <View style={[Styles.infoBackground, { marginHorizontal: 16 }]}>
-              <Image
-                style={{ marginTop: 3 }}
-                source={require('../assets/image/ic_Info.png')}
+          <ScrollView>
+            <View
+                style={{
+                  flex: 1,
+                  padding: 16,
+                  backgroundColor: theme.colors.background,
+                }}>
+              <Text style={Styles.secLabel}>{I18n.t(messageKeys[type])}</Text>
+              <DegreeSelecter
+                  itemStyle={Styles.block}
+                  valueObj={fee}
+                  getValue={item => `${item.amountUi} ${feeUnit}${feeNote}`}
+                  outerWidth={sliderOuterWidth[Platform.OS || 'android']}
+                  innerWidth={sliderInnerWidth[Platform.OS || 'android']}
+                  style={{
+                    marginTop: 16,
+                  }}
+                  labels={[I18n.t('slow'), I18n.t('medium'), I18n.t('fast')]}
+                  hasAlert={key => fee[key].lessThenMin}
+                  initValue={_getInitValue()}
+                  onSelect={value => {
+                    setSelectedFee(value);
+                    _checkFee(value);
+                  }}
               />
-              <Text
-                style={[
-                  styles.text,
-                  {
-                    textAlign: 'left',
-                    marginLeft: 5,
-                  },
-                ]}>
-                {I18n.t('cancel_transaction_hint')}
-              </Text>
             </View>
+          </ScrollView>
+          <>
+            {type === TYPE_CANCEL && (
+                <View style={Styles.infoBackground}>
+                  <View style={{ flexDirection: 'row' }}>
+                    <Image
+                        style={{ marginTop: 3 }}
+                        source={require('../assets/image/ic_Info.png')}
+                    />
+                  </View>
+                  <Text
+                      style={[
+                        styles.text,
+                        Theme.fonts.default.regular,
+                        {
+                          textAlign: 'left',
+                          marginLeft: 5,
+                          marginBottom: 0,
+                          marginTop: 8,
+                        },
+                      ]}>
+                    {I18n.t('cancel_transaction_hint')}
+                  </Text>
+                </View>
+            )}
+            <RoundButton2
+                height={ROUND_BUTTON_HEIGHT}
+                style={[Styles.bottomButton]}
+                disabled={feeError != null}
+                labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+                onPress={() => {
+                  onButtonClick(fee[selectedFee].amount);
+                }}>
+              {I18n.t('submit')}
+            </RoundButton2>
+          </>
+          {backClick > 0 && (
+              <Animated.View
+                  style={{
+                    opacity: animOpacity,
+                    backgroundColor: 'black',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    elevation: 2,
+                  }}>
+                <Text
+                    style={{ flex: 1, paddingVertical: 16, paddingHorizontal: 16 }}>
+                  {I18n.t('click_again_to_cancel')}
+                </Text>
+              </Animated.View>
           )}
-          <RoundButton2
-            height={ROUND_BUTTON_HEIGHT}
-            style={[Styles.bottomButton]}
-            disabled={feeError != null}
-            labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
-            onPress={() => {
-              onButtonClick(fee[selectedFee].amount);
-            }}>
-            {I18n.t('submit')}
-          </RoundButton2>
-        </>
-        {backClick > 0 && (
-          <Animated.View
-            style={{
-              opacity: animOpacity,
-              backgroundColor: 'black',
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              elevation: 2,
-            }}>
-            <Text
-              style={{ flex: 1, paddingVertical: 16, paddingHorizontal: 16 }}>
-              {I18n.t('click_again_to_cancel')}
-            </Text>
-          </Animated.View>
-        )}
-      </Container>
-    </RNModal>
+        </Container>
+      </RNModal>
   );
 };
 

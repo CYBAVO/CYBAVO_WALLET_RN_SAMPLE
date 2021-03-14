@@ -138,9 +138,9 @@ function updateSignInState(signInState) {
       });
     } else if (signInState === Auth.SignInState.NEED_VERIFY_OTP) {
       await sleep(1000);
-      let userState = getState().user.userState;
-      let countryCode = userState.countryCode;
-      let phone = getState().user.userState.phone;
+      let state = getState().user.userState || {};
+      let countryCode = state.countryCode;
+      let phone = state.phone;
       if (!countryCode || !phone) {
         try {
           await sleep(3000); // prevent ErrOperationTooFrequent

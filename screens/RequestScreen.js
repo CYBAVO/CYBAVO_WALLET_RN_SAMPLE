@@ -35,6 +35,9 @@ import Styles from '../styles/Styles';
 import Headerbar from '../components/Headerbar';
 import DegreeSlider from '../components/DegreeSlider';
 import {
+  AUTH_TYPE_BIO,
+  AUTH_TYPE_OLD,
+  AUTH_TYPE_SMS,
   Coin,
   ROUND_BUTTON_HEIGHT,
   sliderInnerWidth,
@@ -53,6 +56,7 @@ import {
   getExchangeAmount,
   getWalletKeyByWallet,
   hasValue,
+  sleep,
   toastError,
 } from '../Helpers';
 import { convertHexToUtf8 } from '@walletconnect/utils';
@@ -60,6 +64,7 @@ import { Theme } from '../styles/MainTheme';
 import BigNumber from 'bignumber.js';
 import walletconnect from '../store/reducers/walletconnect';
 import InputPinCodeModal from './InputPinCodeModal';
+import DegreeSelecter from '../components/DegreeSelecter';
 
 const RequestScreen: () => React$Node = ({ theme }) => {
   const [result, setResult] = useState(null);
@@ -69,7 +74,6 @@ const RequestScreen: () => React$Node = ({ theme }) => {
   const walletId = useNavigationParam('walletId');
   const [amountError, setAmountError] = useState({});
   const isSessionRequest = WalletConnectHelper.isSessionRequest(payload.method);
-  const [inputPinCode, setInputPinCode] = useState(null);
   const [fee, setFee] = useState({});
   const [feeKeys, setFeeKeys] = useState([]);
   const [selectedFee, setSelectedFee] = useState('high');
@@ -93,9 +97,6 @@ const RequestScreen: () => React$Node = ({ theme }) => {
   const currencyPrice = useSelector(
     state => state.currencyPrice.currencyPrice || {}
   );
-  const _finishInputPinCode = () => {
-    setInputPinCode(null);
-  };
   const _getFeeKey = feeObj => {
     let keys = Object.keys(feeObj);
     keys.sort((a, b) => {
@@ -178,43 +179,65 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     }
   }, []);
 
-  const _walletConnectSignTypedData = async pinSecret => {
+  const _walletConnectSignTypedData = async (
+    pinSecret,
+    type,
+    actionToken,
+    code
+  ) => {
+    let tag = '_walletConnectSignTypedData';
     try {
       setLoading(true);
       let message = payload.params[1];
+      let result;
       FileLogger.debug(
         `>>_walletConnectSignTypedData${message}, walletId:${walletId}`
       );
-      let result = await Wallets.walletConnectSignTypedData(
-        walletId,
-        message,
-        pinSecret
-      );
+      switch (type) {
+        case AUTH_TYPE_SMS:
+          tag = 'walletConnectSignTypedDataSms';
+          result = await Wallets.walletConnectSignTypedDataSms(
+            actionToken,
+            code,
+            walletId,
+            message,
+            pinSecret
+          );
+          break;
+        case AUTH_TYPE_BIO:
+          tag = 'walletConnectSignTypedDataBio';
+          result = await Wallets.walletConnectSignTypedDataBio(
+            I18n.t('bio_msg'),
+            I18n.t('cancel'),
+            walletId,
+            message,
+            pinSecret
+          );
+          break;
+        case AUTH_TYPE_OLD:
+          tag = 'walletConnectSignTypedData';
+          result = await Wallets.walletConnectSignTypedData(
+            walletId,
+            message,
+            pinSecret
+          );
+          break;
+      }
       let response = { result: '0x' + result.signedTx, id: payload.id };
       await dispatch(approveRequest(peerId, response));
-      _finishInputPinCode();
       goBack();
     } catch (error) {
-      _finishInputPinCode();
-
-      FileLogger.debug(`_walletConnectSignTypedData fail:${error.message}`);
-      setResult({
-        type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
-        title: I18n.t('failed_template', { name: 'SignTypedData' }),
-        buttonClick: () => {
-          setResult(null);
-          goBack();
-        },
-      });
-      _rejectRequest(
-        peerId,
-        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
-      );
+      _handleFail('SignTypedData', tag, error);
     }
     setLoading(false);
   };
-  const _walletConnectSignMessage = async pinSecret => {
+  const _walletConnectSignMessage = async (
+    pinSecret,
+    type,
+    actionToken,
+    code
+  ) => {
+    let tag = '_walletConnectSignMessage';
     try {
       setLoading(true);
       let message = payload.params[0];
@@ -223,57 +246,149 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       FileLogger.debug(
         `>>_walletConnectSignMessage_${message},utf8:${utf8Msg}`
       );
-      let result = await Wallets.walletConnectSignMessage(
-        walletId,
-        utf8Msg,
-        pinSecret
-      );
+      let result;
+      switch (type) {
+        case AUTH_TYPE_SMS:
+          tag = '_walletConnectSignMessageSms';
+          result = await Wallets.walletConnectSignMessageSms(
+            actionToken,
+            code,
+            walletId,
+            utf8Msg,
+            pinSecret
+          );
+          break;
+        case AUTH_TYPE_BIO:
+          tag = '_walletConnectSignMessageBio';
+          result = await Wallets.walletConnectSignMessageBio(
+            I18n.t('bio_msg'),
+            I18n.t('cancel'),
+            walletId,
+            utf8Msg,
+            pinSecret
+          );
+          break;
+        case AUTH_TYPE_OLD:
+          tag = '_walletConnectSignMessage';
+          result = await Wallets.walletConnectSignMessage(
+            walletId,
+            utf8Msg,
+            pinSecret
+          );
+          break;
+      }
       let response = { result: result.signedMessage, id: payload.id };
       await dispatch(approveRequest(peerId, response));
-      _finishInputPinCode();
       goBack();
     } catch (error) {
-      _finishInputPinCode();
-      FileLogger.debug(`>>_walletConnectSignMessage fail:${error}`);
+      _handleFail('SignMessage', tag, error);
+    }
+    setLoading(false);
+  };
+  const _handleFail = async (name, tag, error) => {
+    FileLogger.debug(`${tag} fail: ${error.message}`);
+    if (error.code != -7) {
+      let msg;
+      if (error.code == 185) {
+        //Biometrics setting not found
+        msg = I18n.t('error_msg_185_retry');
+        try {
+          await Wallets.registerPubkey();
+          await Wallets.updateDeviceInfo();
+        } catch (err) {
+          let msg2 =
+            err.code && err.code > 0
+              ? I18n.t(`error_msg_${err.code}`)
+              : err.message;
+          msg = `${msg}|${msg2}`;
+        }
+      } else {
+        msg = error.code ? I18n.t(`error_msg_${error.code}`) : error.message;
+      }
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
-        title: I18n.t('failed_template', { name: 'SignMessage' }),
+        error: msg,
+        title: I18n.t('failed_template', { name: name }),
         buttonClick: () => {
           setResult(null);
           goBack();
         },
       });
+      console.debug(error);
       _rejectRequest(
-        peerId,
         error.code ? I18n.t(`error_msg_${error.code}`) : error.message
       );
+    } else {
+      console.debug(error);
+      _rejectRequest(
+        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+      );
+      goBack();
     }
-    setLoading(false);
   };
-  const _walletConnectSignTransaction = async pinSecret => {
+  const _walletConnectSignTransaction = async (
+    pinSecret,
+    type,
+    actionToken,
+    code
+  ) => {
+    let tag = '_walletConnectSignTransaction';
     try {
       setLoading(true);
       const tx = payload.params[0];
       const transactionFee = fee[selectedFee];
       // let signParams = JSON.stringify(tx);
-      let result = await Wallets.walletConnectSignTransaction(
-        walletId,
-        tx,
-        transactionFee.amount,
-        pinSecret,
-        true,
-        value => {
-          console.debug('onLog', value);
-          FileLogger.debug(
-            `>>_walletConnectSignTransaction_${payload.method}, ${value}`
+      let result;
+      switch (type) {
+        case AUTH_TYPE_SMS:
+          tag = '_walletConnectSignTransactionSms';
+          result = await Wallets.walletConnectSignTransactionSms(
+            actionToken,
+            code,
+            walletId,
+            tx,
+            transactionFee.amount,
+            pinSecret,
+            true,
+            value => {
+              console.debug('onLog', value);
+              FileLogger.debug(`>>${tag}_${payload.method}, ${value}`);
+            }
           );
-        }
-      );
-      console.debug(
-        '_walletConnectSignTransaction1:' + result.signedTx,
-        payload.id
-      );
+          break;
+        case AUTH_TYPE_BIO:
+          tag = '_walletConnectSignTransactionBio';
+          await sleep(1000); // wait InputPinSms dismiss
+          result = await Wallets.walletConnectSignTransactionBio(
+            I18n.t('bio_msg'),
+            I18n.t('cancel'),
+            walletId,
+            tx,
+            transactionFee.amount,
+            pinSecret,
+            true,
+            value => {
+              console.debug('onLog', value);
+              FileLogger.debug(`>>${tag}_${payload.method}, ${value}`);
+            }
+          );
+          break;
+        case AUTH_TYPE_OLD:
+          tag = '_walletConnectSignTransaction';
+          result = await Wallets.walletConnectSignTransaction(
+            walletId,
+            tx,
+            transactionFee.amount,
+            pinSecret,
+            true,
+            value => {
+              console.debug('onLog', value);
+              FileLogger.debug(`>>${tag}_${payload.method}, ${value}`);
+            }
+          );
+          break;
+      }
+      console.debug(tag + result.signedTx, payload.id);
       FileLogger.debug(
         `walletConnectSignTransaction success: ${result.signedTx}, walletId:${walletId}`
       );
@@ -293,22 +408,9 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         'walletConnectSignTransaction3:' + JSON.stringify(response)
       );
       await dispatch(approveRequest(peerId, response));
-      _finishInputPinCode();
       goBack();
     } catch (error) {
-      FileLogger.debug(`_walletConnectSignTransaction fail: ${error.message}`);
-      _finishInputPinCode();
-      setResult({
-        type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
-        title: I18n.t('failed_template', { name: 'SignTransaction' }),
-        buttonClick: () => {
-          setResult(null);
-          goBack();
-        },
-      });
-      console.debug(error);
-      _rejectRequest(error.code ? I18n.t(`error_msg_${error.code}`) : error.message);
+      _handleFail('SignTransaction', tag, error);
     }
     // dispatch(walletconnectSync());
     dispatch(fetchApiHistory());
@@ -322,20 +424,19 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       })
     );
   };
-  const _approveRequest = async pinSecret => {
-    let response;
+  const _approveRequest = async (pinSecret, type, actionToken, code) => {
     switch (payload.method) {
       case 'eth_sendTransaction':
-        _walletConnectSignTransaction(pinSecret);
+        _walletConnectSignTransaction(pinSecret, type, actionToken, code);
         break;
       case 'eth_sign':
       case 'personal_sign':
-        _walletConnectSignMessage(pinSecret);
+        _walletConnectSignMessage(pinSecret, type, actionToken, code);
         break;
       case 'eth_signTypedData':
       case 'eth_signTypedData_v1':
       case 'eth_signTypedData_v3':
-        _walletConnectSignTypedData(pinSecret);
+        _walletConnectSignTypedData(pinSecret, type, actionToken, code);
         break;
     }
   };
@@ -564,15 +665,18 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         {!HIDE_TRANSACTION_ERRORS.includes(amountError.key) && (
           <>
             <Text style={[Styles.labelBlock]}>{I18n.t('blockchain_fee')}</Text>
-            <DegreeSlider
+            <DegreeSelecter
+              itemStyle={Styles.block}
               getValue={(item = {}) => `${item.amount} ETH`}
               valueObj={fee}
               outerWidth={sliderOuterWidth[Platform.OS || 'android']}
               innerWidth={sliderInnerWidth[Platform.OS || 'android']}
+              reserveErrorMsg={false}
               style={{
-                paddingHorizontal: 16,
+                marginTop: 16,
               }}
-              onSlidingComplete={value => {
+              labels={[I18n.t('slow'), I18n.t('medium'), I18n.t('fast')]}
+              onSelect={value => {
                 setSelectedFee(value);
                 _checkAmountNumerical(amountNum, value, fee);
               }}
@@ -645,7 +749,23 @@ const RequestScreen: () => React$Node = ({ theme }) => {
             disabled={amountError.key != null}
             labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
             onPress={() => {
-              setInputPinCode(payload.method);
+              NavigationService.navigate('InputPinSms', {
+                modal: true,
+                from: 'Request',
+                callback: (pinSecret, type, actionToken, code) => {
+                  // NavigationService.navigate('Withdraw', {});
+                  _approveRequest(pinSecret, type, actionToken, code);
+                },
+                onError: error => {
+                  FileLogger.debug(`${payload.method} fail: ${error.message}`);
+                  _rejectRequest(
+                    error.code
+                      ? I18n.t(`error_msg_${error.code}`)
+                      : error.message
+                  );
+                  goBack();
+                },
+              });
             }}>
             {I18n.t('approve')}
           </RoundButton2>
@@ -664,15 +784,6 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           secondaryConfig={result.secondaryConfig}
         />
       )}
-      <InputPinCodeModal
-        title={title}
-        isVisible={inputPinCode != null}
-        onCancel={() => {
-          _finishInputPinCode();
-        }}
-        loading={loading}
-        onInputPinCode={_approveRequest}
-      />
     </Container>
   );
 };

@@ -57,6 +57,7 @@ import AnimatedProgressButton from '../components/AnimatedProgressButton';
 let InputPinSmsScreen: () => React$Node = ({ theme }) => {
   const from = useNavigationParam('from') || 'Assets';
   const callback = useNavigationParam('callback');
+  const onError = useNavigationParam('onError');
   const { navigate, goBack } = useNavigation();
   const dispatch = useDispatch();
   const errorMsg = '';
@@ -186,6 +187,13 @@ let InputPinSmsScreen: () => React$Node = ({ theme }) => {
         type: TYPE_FAIL,
         error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
         title: I18n.t('get_sms_failed'),
+        buttonClick: () => {
+          setResult(null);
+          if (onError) {
+            onError(error);
+          }
+          goBack();
+        },
       });
     }
   };
