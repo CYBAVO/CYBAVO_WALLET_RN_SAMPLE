@@ -31,6 +31,10 @@ import { CANCEL_SVG, replaceConfig } from '../Constants';
 import { hasValue } from '../Helpers';
 
 const ERROR_ICON = require('../assets/image/ic_error.png');
+/*
+ * 進出 金額 幣別     時間
+ *      txid
+ * */
 const ApiHistoryList: () => React$Node = ({
   theme,
   onPress,
@@ -48,6 +52,7 @@ const ApiHistoryList: () => React$Node = ({
       item.replaceStatus === CANCELLED ? 'line-through' : 'none';
     return (
       <TouchableOpacity
+        // disabled={rawData.length == 1}
         style={[styles.item]}
         onPress={() => {
           onPress(item);
@@ -86,6 +91,7 @@ const ApiHistoryList: () => React$Node = ({
               {replaceConfig[item.replaceStatus] && (
                 <Text
                   style={[
+                    // Styles.tag,
                     {
                       backgroundColor: replaceConfig[item.replaceStatus].color,
                       fontSize: 8,
@@ -106,8 +112,10 @@ const ApiHistoryList: () => React$Node = ({
                     styles.listItemSubText,
                     Theme.fonts.default.regular,
                     {
+                      // alignSelf: 'flex-end',
                       opacity: opacity * 0.7,
                       marginLeft: 3,
+                      // flex: 1,
                     },
                   ]}>
                   {`#${item.nonce}`}
@@ -143,7 +151,9 @@ const ApiHistoryList: () => React$Node = ({
                   styles.listItemSubText,
                   Theme.fonts.default.regular,
                   {
+                    // alignSelf: 'flex-end',
                     opacity: opacity * 0.7,
+                    // flex: 1,
                   },
                 ]}>
                 {item.formatTime}
@@ -203,6 +213,9 @@ const ApiHistoryList: () => React$Node = ({
               />
             )}
           </View>
+          {/*<Text style={[styles.listItemText, Theme.fonts.default.heavy]}>*/}
+          {/*  {item.accessId}*/}
+          {/*</Text>*/}
           {item.status == Wallets.ApiHistoryItem.Status.WAITING && (
             <View
               style={{
@@ -299,6 +312,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    // borderRadius: 10,
+    // height: 80,
     paddingHorizontal: 0,
     marginBottom: 8,
     paddingVertical: 8,
@@ -307,6 +322,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 16,
     marginRight: 24,
+    // fontWeight: 'bold',
   },
   separator: {
     height: 0.5,
@@ -319,7 +335,9 @@ const styles = StyleSheet.create({
   footer: {
     height: 88,
     paddingTop: 16,
+    // padding: 10,
     justifyContent: 'center',
+    // alignItems: 'center',
     flexDirection: 'row',
   },
   loadMoreBtn: {

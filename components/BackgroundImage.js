@@ -9,15 +9,17 @@ const BackgroundImage: () => React$Node = ({
   containerStyle = {},
   imageStyle = {},
   onLayout,
+  start = { x: 0, y: 0 },
+  end = { x: 1, y: 0 },
 }) => {
   return (
     <LinearGradient
       onLayout={onLayout}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
+      start={start}
+      end={end}
       style={[styles.container, containerStyle]}
       colors={[startColor, endColor]}>
-      <Image style={imageStyle} source={imageSource} />
+      <Image style={imageStyle} source={imageSource} resizeMode="stretch" />
       {children}
     </LinearGradient>
   );

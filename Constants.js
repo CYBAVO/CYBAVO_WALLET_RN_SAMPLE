@@ -12,6 +12,7 @@ import {
   TYPE_CANCEL,
 } from './components/ReplaceTransactionModal';
 
+export const INACTIVE_OPACITY = 0.2;
 export const BADGE_FONT_SIZE = 13;
 export const ROUND_BUTTON_FONT_SIZE = 16;
 export const ROUND_BUTTON_HEIGHT = 44;
@@ -22,6 +23,7 @@ export const PIN_CODE_LENGTH = 6;
 export const RECOVERY_CODE_LENGTH = 8;
 export const SMALL_ICON_SIMPLE_SIZE = '24';
 export const LIST_ICON_SIMPLE_SIZE = 30;
+export const SET_MODE = 'set';
 export const INPUT_MODE = 'input';
 export const CHANGE_MODE = 'change';
 export const RECOVER_CODE_MODE = 'recover_code';
@@ -40,6 +42,8 @@ export const SMS_VERIFY_OTP = 1;
 export const SMS_LOGIN_OTP = 2;
 export const EMAIL_VERIFY_OTP = 3;
 
+export const CBO_SEPARATOR = '#CBO#'; //address#CBO#chainId#CBO#walletconnectUri, address/chainId: return to DAPP
+
 export const CANCEL_SVG =
   '<svg width="24" height="24" viewBox="0 0 24 24">\n' +
   '    <path fill="#FFF" d="M16.5 10c3.59 0 6.5 2.91 6.5 6.5S20.09 23 16.5 23 10 20.09 10 16.5s2.91-6.5 6.5-6.5zm0 2c-2.485 0-4.5 2.015-4.5 4.5s2.015 4.5 4.5 4.5c2.414 0 4.384-1.902 4.495-4.288L21 16.5l-.005-.212C20.885 13.902 18.914 12 16.5 12zm1.423-11c1.08 0 1.99.8 2.071 1.849L20 3v4.5c0 .552-.448 1-1 1-.513 0-.936-.386-.993-.883L18 7.5V3l-.004.007-.036-.005L17.923 3H6.077l-.037.002-.036.005L6 3v15l.004-.007.073.007H8.23c.552 0 1 .448 1 1 0 .513-.386.936-.884.993L8.231 20H6.077c-1.08 0-1.99-.8-2.071-1.849L4 18V3c0-1.07.862-1.92 1.924-1.995L6.077 1h11.846zm1.052 13.025c.363.363.388.935.078 1.327l-.078.087-1.061 1.061 1.06 1.06c.391.391.391 1.024 0 1.415-.362.363-.934.388-1.326.078l-.087-.078-1.061-1.061-1.06 1.06c-.391.391-1.024.391-1.415 0-.363-.362-.388-.934-.078-1.326l.078-.087 1.061-1.061-1.06-1.06c-.391-.391-.391-1.024 0-1.415.362-.363.934-.388 1.326-.078l.087.078 1.061 1.061 1.06-1.06c.391-.391 1.024-.391 1.415 0zM12 8c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L12 10H9c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L9 8h3zm3.083-3c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L15.083 7H9c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L9 5h6.083z"/>\n' +
@@ -48,20 +52,93 @@ export const ACCELERATE_SVG =
   '<svg width="24" height="24" viewBox="0 0 24 24">\n' +
   '    <path fill="#FFF" d="M20.577 2c.499 0 .966.258 1.223.686.268.445.266.998-.005 1.443l-2.92 4.767h1.702c.508 0 .98.267 1.233.702l.064.123c.24.523.131 1.136-.269 1.548L11.61 21.568c-.272.28-.645.432-1.028.432-.262 0-.521-.07-.747-.21-.595-.36-.84-1.1-.562-1.743l2.972-6.883-1.822.001c-.42 0-.82-.183-1.09-.5l-.094-.125c-.276-.408-.316-.93-.104-1.374l3.975-8.359c.236-.497.741-.807 1.288-.807zm-1.049 2h-4.771l-3.407 7.164 2.417.001c.68 0 1.149.657.958 1.286l-.04.11-2.31 5.346 6.804-7.011h-2.088c-.742 0-1.212-.772-.908-1.421l.055-.101L19.528 4zM6 11c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L6 13H4c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L4 11h2zm2-4c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L8 9H2c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L2 7h6zm2-4c.552 0 1 .448 1 1 0 .513-.386.936-.883.993L10 5H6c-.552 0-1-.448-1-1 0-.513.386-.936.883-.993L6 3h4z"/>\n' +
   '</svg>';
+export const ADD_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">\n' +
+  '    <g fill="none" fill-rule="evenodd">\n' +
+  '        <g>\n' +
+  '            <g>\n' +
+  '                <g>\n' +
+  '                    <path stroke="#FFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 16.5c0 3.037-2.463 5.5-5.5 5.5S11 19.537 11 16.5s2.463-5.5 5.5-5.5 5.5 2.463 5.5 5.5" transform="translate(-131 -2870) translate(86 2858) translate(45 12)"/>\n' +
+  '                    <path stroke="#FFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.23 19H6.078C5.482 19 5 18.552 5 18V3c0-.552.482-1 1.077-1h11.846C18.518 2 19 2.448 19 3v4.5M15.083 6L9 6M12 9L9 9" transform="translate(-131 -2870) translate(86 2858) translate(45 12)"/>\n' +
+  '                    <g stroke="#FFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">\n' +
+  '                        <path d="M2.5 5L2.5 0" transform="translate(-131 -2870) translate(86 2858) translate(45 12) translate(14 14) rotate(90 2.5 2.5)"/>\n' +
+  '                        <path d="M2.5 5L2.5 0" transform="translate(-131 -2870) translate(86 2858) translate(45 12) translate(14 14)"/>\n' +
+  '                    </g>\n' +
+  '                </g>\n' +
+  '            </g>\n' +
+  '        </g>\n' +
+  '    </g>\n' +
+  '</svg>\n';
 export const Coin = {
   BTC: 0,
   LTC: 2,
+  DOGE: 3,
+  DASH: 5,
   ETH: 60,
   XRP: 144,
   BCH: 145,
+  XLM: 148,
   EOS: 194,
   TRX: 195,
+  BSV: 236,
+  ALGO: 283,
+  DOT: 354,
+  KSM: 434,
+  FIL: 461,
+  FLOW: 539,
+  BNB: 714,
+  MATIC: 966,
+  ADA: 1815,
+  SOL: 501,
+  HNS: 5353,
+  AR: 472,
+  XDAI: 700,
+  TT: 1001,
+  ONE: 1023,
+  CELO: 52752,
+  LBTC: 1776,
+  KUB: 99999999986,
+  KOVAN: 99999999987,
+  AVAXC: 99999999988,
+  PALM: 99999999989,
+  FTM: 99999999990,
+  OKT: 99999999991,
+  OPTIMISM: 99999999992,
+  ARBITRUM: 99999999993,
+  HECO: 99999999994,
+  CPSC: 99999999995,
+  WND: 99999999996,
+  BSC: 99999999997,
 };
 export const Status = {
   LOADING: 0,
   SUCCESS: 1,
   FAIL: -1,
 };
+export const NFT_EXPLORER_URIS = {
+  main: {
+    [`${Coin.ETH}`]: 'https://etherscan.io/token/%s1?a=%s2#inventory', // ETH
+    [`${Coin.BSC}`]: 'https://bscscan.com/token/%s1?a=%s2', // BSC
+    [`${Coin.ONE}`]: 'https://explorer.harmony.one/inventory/erc721/%s1/%s2', // ONE
+  },
+  test: {
+    [`${Coin.ETH}`]: 'https://ropsten.etherscan.io/token/%s1?a=%s2#inventory', // ETH
+    [`${Coin.BSC}`]: 'https://testnet.bscscan.com/token/%s1?a=%s2', // BSC
+    [`${Coin.ONE}`]: 'https://explorer.testnet.harmony.one/inventory/erc721/%s1/%s2', // ONE
+  },
+};
+export const nftIcons = [
+  require('./assets/image/nft/nft0.png'),
+  require('./assets/image/nft/nft1.png'),
+  require('./assets/image/nft/nft2.png'),
+  require('./assets/image/nft/nft3.png'),
+  require('./assets/image/nft/nft4.png'),
+  require('./assets/image/nft/nft5.png'),
+  require('./assets/image/nft/nft6.png'),
+  require('./assets/image/nft/nft7.png'),
+  require('./assets/image/nft/nft8.png'),
+  require('./assets/image/nft/nft9.png'),
+];
 export const TX_EXPLORER_URIS = {
   main: {
     [`${Coin.BTC}#`]: 'https://blockexplorer.com/tx/%s', // BTC
@@ -85,6 +162,11 @@ export const TX_EXPLORER_URIS = {
   },
 };
 
+export const chainI18n = {
+  [`${Coin.ETH}`]: 'eth_desc', // ETH
+  [`${Coin.BSC}`]: 'bsc_desc', // BSC
+  [`${Coin.ONE}`]: 'one_desc', // ONE
+};
 //need's to increase left space, because it's easy to trigger iOS's back gesture
 export const sliderOuterWidth = {
   ios: '96%',
@@ -95,9 +177,6 @@ export const sliderInnerWidth = {
   android: '100%',
 };
 
-export const isFungibleToken = currencyItem => {
-  return currencyItem && currencyItem.tokenVersion == 721;
-};
 export const CHECK_ICON = require('./assets/image/ic_check.png');
 export const CLEAR_ICON = require('./assets/image/ic_input_clear.png');
 export const SCAN_ICON = require('./assets/image/ic_scan.png');

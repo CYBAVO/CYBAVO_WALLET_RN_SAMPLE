@@ -30,6 +30,7 @@ import { Container } from 'native-base';
 import Headerbar from './Headerbar';
 import { animateFadeInOut, hasValue } from '../Helpers';
 import { useBackHandler } from '@react-native-community/hooks';
+import CheckBox from './CheckBox';
 
 const ICON_SIZE = 48;
 const PROGRESS_STROKE = 2;
@@ -48,7 +49,7 @@ const ResultModal: () => React$Node = ({
   // detail = {
   //   amount: '100',
   //   currency: 'ETH',
-  //   isFungible: false,
+  //   isNft: false,
   //   from: '0x123345',
   //   to: '0x123987',
   //   time: '2020/07/28 14:04:53',
@@ -83,6 +84,7 @@ const ResultModal: () => React$Node = ({
   });
   //for react-native Modal
   const [backClick, setBackClick] = useState(0);
+  const [amlConfirmed, setAmlConfirmed] = useState(false);
   const [animOpacity] = useState(new Animated.Value(0));
   const _onBackHandle = () => {
     if (!visible || !full) {
@@ -116,6 +118,60 @@ const ResultModal: () => React$Node = ({
       );
     }
   };
+
+  const _getAmlView = addressTags => {
+    if (!addressTags) {
+      return;
+    }
+    return (
+      <React.Fragment>
+        <View style={styles.infoBackground}>
+          <Text
+            style={[
+              {
+                textAlign: 'left',
+                // marginLeft: 5,
+                // paddingRight: 10,
+              },
+              Platform.OS == 'android' ? { lineHeight: 20 } : {},
+            ]}>
+            {I18n.t('aml_warning')}
+          </Text>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+            {addressTags.map(tagStr => {
+              let color = '#ef637e';
+              return (
+                <Text
+                  style={[
+                    Styles.tag,
+                    {
+                      color: 'white',
+                      marginRight: 8,
+                      marginTop: 8,
+                      fontSize: 13,
+                      fontWeight: 'bold',
+                      backgroundColor: color,
+                      alignSelf: 'center',
+                    },
+                  ]}>
+                  {tagStr}
+                </Text>
+              );
+            })}
+          </View>
+          <CheckBox
+            style={{ marginTop: 8 }}
+            text={I18n.t('aml_checkbox_hint')}
+            size={24}
+            textStyle={{ fontWeight: 'bold' }}
+            selected={amlConfirmed}
+            onPress={() => setAmlConfirmed(!amlConfirmed)}
+          />
+        </View>
+      </React.Fragment>
+    );
+  };
   const bgOvalSize = size * SHADOW_SCALE;
   const _getFullContentByStatus = () => {
     if (type === TYPE_CONFIRM && detail) {
@@ -127,19 +183,36 @@ const ResultModal: () => React$Node = ({
               padding: 16,
               backgroundColor: theme.colors.background,
             }}>
-            <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
-              {detail.isFungible
-                ? I18n.t('token_id')
-                : I18n.t('transfer_amount')}
-            </Text>
-            {!hasValue(detail.exchangeAmount) ? (
+            {_getAmlView(detail.addressTags)}
+            {detail.tokenId && (
+              <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
+                {I18n.t('token_id')}
+              </Text>
+            )}
+            {detail.tokenId && (
               <View style={Styles.bottomBoarderContainer}>
                 <Text
                   selectable
                   style={[Styles.secContent, Theme.fonts.default.regular]}>
-                  {`${detail.amount}`}
+                  {`#${detail.tokenId}`}
                 </Text>
               </View>
+            )}
+            {(hasValue(detail.exchangeAmount) || hasValue(detail.amount)) && (
+              <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
+                {I18n.t('transfer_amount')}
+              </Text>
+            )}
+            {!hasValue(detail.exchangeAmount) ? (
+              detail.amount != null ? (
+                <View style={Styles.bottomBoarderContainer}>
+                  <Text
+                    selectable
+                    style={[Styles.secContent, Theme.fonts.default.regular]}>
+                    {detail.amount}
+                  </Text>
+                </View>
+              ) : null
             ) : (
               <View
                 style={[
@@ -258,6 +331,7 @@ const ResultModal: () => React$Node = ({
             height={ROUND_BUTTON_HEIGHT}
             style={Styles.bottomButton}
             labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+            disabled={detail.addressTags != null && amlConfirmed == false}
             onPress={onButtonClick}>
             {type === TYPE_FAIL ? failButtonText : successButtonText}
           </RoundButton2>
@@ -313,16 +387,22 @@ const ResultModal: () => React$Node = ({
 
         {detail && (
           <ScrollView style={{ height: height * 0.3, width: '100%' }}>
-            <Text style={detailTitle}>
-              {detail.isFungible
-                ? I18n.t('token_id')
-                : I18n.t('transfer_amount')}
-            </Text>
-            <Text style={styles.detailContent}>
-              {detail.isFungible
-                ? `${detail.amount}`
-                : `${detail.amount} ${detail.currency}`}
-            </Text>
+            {detail.tokenId && (
+              <Text style={detailTitle}>{I18n.t('token_id')}</Text>
+            )}
+            {detail.tokenId && (
+              <Text style={styles.detailContent}>{`#${detail.tokenId}`}</Text>
+            )}
+            {hasValue(detail.amount) && (
+              <Text style={detailTitle}>{I18n.t('transfer_amount')}</Text>
+            )}
+            {hasValue(detail.amount) && (
+              <Text style={styles.detailContent}>
+                {detail.isNft
+                  ? `${detail.amount}`
+                  : `${detail.amount} ${detail.currency}`}
+              </Text>
+            )}
             {detail.platformFee && (
               <Text style={detailTitle}>{I18n.t('platform_fee')}</Text>
             )}
@@ -362,7 +442,7 @@ const ResultModal: () => React$Node = ({
         {message && (
           <Text
             style={[style2, messageStyle]}
-            numberOfLines={5}
+            // numberOfLines={5}
             ellipsizeMode="tail">
             {message}
           </Text>
@@ -525,6 +605,17 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 16,
     alignSelf: 'stretch',
+  },
+  infoBackground: {
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    backgroundColor: 'rgba(232,32,17,0.16)',
+    borderColor: 'rgba(232,32,17,1)',
+    padding: 8,
+    borderWidth: 1,
+    borderRadius: 4,
+    marginVertical: 8,
+    flexDirection: 'column',
   },
 });
 

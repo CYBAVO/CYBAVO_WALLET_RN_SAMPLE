@@ -10,8 +10,6 @@ const FlagDisplay: () => React$Node = ({ style, theme, regionCode }) => {
 
 const styles = StyleSheet.create({
   flag: {
-    // width: 21,
-    // height: 15,
   },
 });
 

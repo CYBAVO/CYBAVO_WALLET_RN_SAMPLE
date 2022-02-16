@@ -201,7 +201,12 @@ const CurrencyPicker: () => React$Node = ({
             renderItem={_renderItem}
             keyExtractor={getKey}
             contentContainerStyle={styles.listContainer}
-            ListEmptyComponent={<ListEmptyView />}
+            ListEmptyComponent={
+              <ListEmptyView
+                text={I18n.t('no_search_result')}
+                img={require('../assets/image/ic_no_search_result.png')}
+              />
+            }
           />
         </Container>
       </Modal>

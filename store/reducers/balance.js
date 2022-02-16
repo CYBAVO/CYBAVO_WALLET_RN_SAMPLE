@@ -6,7 +6,7 @@
  */
 import { BALANCE_ENQUEUE, BALANCE_UPDATE_BALANCES } from '../actions/balance';
 import { COMMON_RESET } from '../actions/common';
-import {getWalletKey} from '../../Helpers';
+import { getWalletKey } from '../../Helpers';
 
 const defaultState = {
   balances: {},
@@ -48,7 +48,7 @@ function balance(state = defaultState, action) {
           ...balances.reduce((acc, res) => {
             const { currency, tokenAddress, address, balance, failed } = res;
             const key = getWalletKey(currency, tokenAddress, address);
-            return {
+            let nextState = {
               ...acc,
               [key]: {
                 ...balance,
@@ -60,6 +60,8 @@ function balance(state = defaultState, action) {
                 loading: false,
               },
             };
+
+            return nextState;
           }, {}),
         },
       };

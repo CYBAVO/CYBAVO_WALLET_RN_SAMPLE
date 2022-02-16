@@ -58,6 +58,7 @@ let InputPinSmsScreen: () => React$Node = ({ theme }) => {
   const from = useNavigationParam('from') || 'Assets';
   const callback = useNavigationParam('callback');
   const onError = useNavigationParam('onError');
+  const isSms = useNavigationParam('isSms');
   const { navigate, goBack } = useNavigation();
   const dispatch = useDispatch();
   const errorMsg = '';
@@ -74,7 +75,7 @@ let InputPinSmsScreen: () => React$Node = ({ theme }) => {
   const [lastRequestTime, setLastRequestTime] = useState(-1);
   const [result, setResult] = useState(null);
   const [page, setPage] = useState(0);
-  const [isSms, setIsSms] = useState(false);
+  // const [isSms, setIsSms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lock, setLock] = useState(true);
   const enableBiometrics = useSelector(
@@ -83,7 +84,9 @@ let InputPinSmsScreen: () => React$Node = ({ theme }) => {
   const skipSmsVerify = useSelector(
     state => state.user.userState.skipSmsVerify
   );
-  const bioSetting = useSelector(state => state.user.userState.bioSetting);
+  const accountSkipSmsVerify = useSelector(
+    state => state.user.userState.accountSkipSmsVerify
+  );
   const countryCode = useSelector(state => state.user.userState.countryCode);
   const phone = useSelector(state => state.user.userState.phone);
   const time = useSelector(state => state.clock.time);
@@ -91,7 +94,9 @@ let InputPinSmsScreen: () => React$Node = ({ theme }) => {
   const inCoolTime = countDown > 0;
 
   useEffect(() => {
-    _checkAuthType();
+    if (isSms) {
+      dispatch(startClock());
+    }
     return function cleanup() {
       dispatch(stopClock());
     };
@@ -115,40 +120,6 @@ let InputPinSmsScreen: () => React$Node = ({ theme }) => {
       _submit(AUTH_TYPE_SMS, actionToken, verifyCode);
     }
   }, [actionToken, verifyCode]);
-  const _checkAuthType = async () => {
-    console.log('_checkAuthType' + enableBiometrics + ',' + skipSmsVerify);
-    if (!enableBiometrics || skipSmsVerify) {
-      setIsSms(false);
-      return;
-    }
-    try {
-      if (bioSetting == BIO_SETTING_USE_SMS) {
-        await Wallets.updateDeviceInfoWithType(Wallets.BiometricsType.NONE);
-        setIsSms(true);
-        dispatch(startClock());
-        return;
-      }
-      let { exist } = await Wallets.isBioKeyExist();
-      let { biometricsType } = await Wallets.getBiometricsType();
-      console.debug(`exist:${exist}, biometricsType:${biometricsType}`);
-      if (biometricsType == Wallets.BiometricsType.NONE) {
-        dispatch(startClock());
-        setIsSms(true);
-        await Wallets.updateDeviceInfo();
-      } else {
-        setIsSms(false);
-        await Wallets.updateDeviceInfo();
-        await Wallets.registerPubkey();
-      }
-    } catch (error) {
-      console.debug('_checkAuthType pack fail', error);
-      setResult({
-        type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
-        title: I18n.t('check_failed'),
-      });
-    }
-  };
   const _inputPinCode = length => {
     _inputMode(length);
   };
@@ -185,7 +156,9 @@ let InputPinSmsScreen: () => React$Node = ({ theme }) => {
       console.debug('_getSmsCode fail', error);
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('get_sms_failed'),
         buttonClick: () => {
           setResult(null);

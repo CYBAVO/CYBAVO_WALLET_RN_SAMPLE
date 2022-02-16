@@ -93,7 +93,6 @@ const CurrencyPickerLite: () => React$Node = ({
             renderItem={_renderItem}
             keyExtractor={getKey}
             contentContainerStyle={styles.listContainer}
-            ListEmptyComponent={<ListEmptyView />}
           />
         </Container>
       </Modal>

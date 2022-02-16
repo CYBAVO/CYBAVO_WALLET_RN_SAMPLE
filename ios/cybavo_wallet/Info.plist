@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>CYBAVO Wallet</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,21 +27,13 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>MY_GOOGLE_SIGN_IN_WEB_CLI_ID</string>
+				<string>com.googleusercontent.apps.15875226638-eh813g9pdti2g0qm59ehsvb36lf7aqqi</string>
 			</array>
 		</dict>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>fbMY_FACEBOOK_SIGN_IN_APP_ID</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>MY_LINE_CHANNEL_SCHEME</string>
+				<string>fb1038360986579838</string>
 			</array>
 		</dict>
 		<dict>
@@ -49,16 +41,36 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>twitterkit-MY_TWITTER_COMSUMER_KEY</string>
+				<string>line3rdp.com.cybavo.btc.wallet</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>twitterkit-BtWWQ8T6IYYJwC6CMBPjFXTf3</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>cybavowallet</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>cybavowallet</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>FacebookAppID</key>
-	<string>MY_FACEBOOK_SIGN_IN_APP_ID</string>
+	<string>1038360986579838</string>
 	<key>FacebookDisplayName</key>
 	<string>CYBAVO Wallet</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>lineauth2</string>
@@ -81,8 +93,6 @@
 		<string>fbauth2</string>
 		<string>fbshareextension</string>
 	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -101,7 +111,7 @@
 	<key>LineSDKConfig</key>
 	<dict>
 		<key>ChannelID</key>
-		<string>MY_LINE_CHANNEL_ID</string>
+		<string>1654360939</string>
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera required to scan QR code to for wallet address</string>

@@ -92,7 +92,7 @@ function formatNationalNumber(countryCoce, nationalNumber) {
     return '';
   }
   const international = `${nationalNumber}`;
-  return international.replace(/^(\+\d*) /g, '');
+  return international;
 }
 
 let EnterPhoneScreen: () => React$Node = ({
@@ -100,10 +100,12 @@ let EnterPhoneScreen: () => React$Node = ({
   navigation: { goBack, navigate },
   // route: { params = {} },
 }) => {
-
   const webviewRef = useRef(null);
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const selectRegionCode = useNavigationParam('regionCode');
+  const selectCountryCode = useNavigationParam('countryCode');
+  const number = useNavigationParam('number');
   const [regionCode, setRegionCode] = useState('US');
   const [countryCode, setCountryCode] = useState('1');
   const [nationalNumber, setNationalNumber] = useState(null);
@@ -123,6 +125,13 @@ let EnterPhoneScreen: () => React$Node = ({
     _initRegionCode();
   }, [dispatch]);
 
+  useEffect(() => {
+    if (selectRegionCode == null) {
+      return;
+    }
+    setNationalNumber(number);
+    _onSelectCountryCode(selectRegionCode, selectCountryCode);
+  }, [selectRegionCode]);
 
   // handle keyboard
   const { keyboardVisible, keyboardHeight } = useKeyboard();
@@ -136,16 +145,10 @@ let EnterPhoneScreen: () => React$Node = ({
   const _onSelectCountryCode = (regionCode, countryCode) => {
     setCountryCode(countryCode);
     setRegionCode(regionCode);
-    let result = validatePhoneNumber(countryCode, nationalNumber);
-    if (result.possible && !result.valid) {
-      setNumberError(I18n.t('message_phone_invalid'));
-    } else {
-      setNumberError(null);
+    if (nationalNumber == null) {
+      return;
     }
-  };
-  const _onInputNationalNumber = text => {
-    let value = Number(text.replace(/[^0-9]/g, ''));
-    setNationalNumber(value);
+    let value = Number(nationalNumber.replace(/[^0-9]/g, ''));
     let result = validatePhoneNumber(countryCode, value);
     if (result.possible && !result.valid) {
       setNumberError(I18n.t('message_phone_invalid'));
@@ -153,26 +156,43 @@ let EnterPhoneScreen: () => React$Node = ({
       setNumberError(null);
     }
   };
+  const _onInputNationalNumber = text => {
+    let value = text.replace(/[^0-9]/g, '');
+    setNationalNumber(value);
+    if (numberError) {
+      setNumberError(null);
+    }
+  };
 
   const _submit = () => {
-    let result = validatePhoneNumber(countryCode, nationalNumber);
+    if (nationalNumber == null) {
+      setNumberError(
+        I18n.t('error_input_empty', { label: I18n.t('phone_number') })
+      );
+      return;
+    }
+    let value = Number(nationalNumber.replace(/[^0-9]/g, ''));
+    let result = validatePhoneNumber(countryCode, value);
     if (!result.possible || !result.valid) {
       setNumberError(I18n.t('message_phone_invalid'));
       return;
     }
     setNumberError(null);
-    _registerPhoneNumber();
+    let trim0Value = `${value}`;
+    _registerPhoneNumber(trim0Value);
   };
-  const _registerPhoneNumber = async () => {
+  const _registerPhoneNumber = async trim0Value => {
     setLoading(true);
     try {
-      console.log(
-        `+registerPhoneNumber:${countryCode},${fotmattedNationalNumber}`
-      );
+      let appendC = countryCode;
+      if (`${appendC}`.substring(0, 1) != '+') {
+        appendC = `+${appendC}`;
+      }
+      console.log(`+registerPhoneNumber:${appendC},${trim0Value}`);
       const now = Math.floor(Date.now() / 1000);
       const res = await Auth.registerPhoneNumber(
-        countryCode,
-        fotmattedNationalNumber,
+        appendC,
+        trim0Value,
         COOL_TIME
       );
       console.log('-registerPhoneNumber:', res.actionToken);
@@ -180,15 +200,17 @@ let EnterPhoneScreen: () => React$Node = ({
       NavigationService.navigate('VerifyOtp', {
         actionToken: res.actionToken,
         type: Wallets.OtpType.SMS_SETUP_PHONE_OTP,
-        countryCode,
-        phone: fotmattedNationalNumber,
+        countryCode: appendC,
+        phone: trim0Value,
         lastRequestTime: now,
       });
     } catch (error) {
-      console.warn('registerPhoneNumber failed:', error);
+      console.warn('registerPhoneNumber failed:', error, error.code);
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('register_failed'),
         buttonClick: () => {
           setResult(null);
@@ -201,7 +223,6 @@ let EnterPhoneScreen: () => React$Node = ({
     countryCode,
     nationalNumber
   );
-
 
   return (
     <Container style={[{ flex: 1, backgroundColor: theme.colors.mask }]}>
@@ -248,6 +269,17 @@ let EnterPhoneScreen: () => React$Node = ({
             style={styles.countryCode}
             initSelected={regionCode}
             clickItem={_onSelectCountryCode}
+            onPress={() => {
+              NavigationService.navigate('SelectCountry', {
+                modal: true,
+                from: 'EnterPhone',
+                initSelected: regionCode,
+                number: nationalNumber,
+                // callback: (regionCode, countryCode) => {
+                //   _onSelectCountryCode(regionCode, countryCode);
+                // },
+              });
+            }}
           />
           <TextInput
             autoFocus={true}

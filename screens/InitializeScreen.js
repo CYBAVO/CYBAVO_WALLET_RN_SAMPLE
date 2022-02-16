@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import I18n from '../i18n/i18n';
 import { useSelector, useDispatch } from 'react-redux';
-import { AUTH_UPDATE_DEV, initAuth} from '../store/actions';
+import {AUTH_UPDATE_DEV, AUTH_UPDATE_FOR_NEWS, initAuth, setSkipNews} from '../store/actions';
 import { Dimensions } from 'react-native';
 const { height, width } = Dimensions.get('window');
 import { Text } from 'react-native-paper';
@@ -19,7 +19,7 @@ import VersionNumber from 'react-native-version-number';
 import * as DeviceInfo from 'react-native-device-info';
 import { WalletSdk } from '@cybavo/react-native-wallet-service';
 import { endpoint, apiCode, uniqueIds } from '../BuildConfig';
-import { checkCameraPermission, getLoginBgSvg} from '../Helpers';
+import { checkCameraPermission, getLoginBgSvg } from '../Helpers';
 import NavigationService from '../NavigationService';
 import { useClipboard } from '@react-native-community/hooks';
 import { SvgXml } from 'react-native-svg';
@@ -88,11 +88,13 @@ const InitializeScreen: () => React$Node = ({ theme }) => {
   };
   const _inDevList = () => {
     let uniqueId = DeviceInfo.getUniqueId();
-    let inList = uniqueIds.includes(uniqueId);
+    setClipboard(uniqueId);
+    let inList = uniqueIds.includes(uniqueId) || uniqueIds.includes('all');
     console.debug('uniqueId:' + uniqueId);
     return inList;
   };
   useEffect(() => {
+    // setSkipNews('');
     let inDevList = _inDevList();
     Animated.timing(animOpacity, {
       toValue: 1,

@@ -12,7 +12,7 @@ import {
   NOT_LOADING,
   WALLETS_UPDATE_CURRENCIES,
 } from '../actions';
-import { Api, isFungibleToken } from '../../Constants';
+import { Api, isNft } from '../../Constants';
 import { getWalletKey, hasValue } from '../../Helpers';
 import moment from 'moment';
 import {

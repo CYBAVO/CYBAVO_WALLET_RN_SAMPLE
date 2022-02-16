@@ -26,6 +26,7 @@ const WalletList: () => React$Node = ({
   onClickAction = ({ item }) => {},
   onRefresh,
   refreshing,
+  renderFooter,
 }) => {
   const h = 120;
   const offset = 100;
@@ -105,6 +106,7 @@ const WalletList: () => React$Node = ({
           }}
           bgImageStyle={{ width: w, height: h }}
           type={wallet.currencySymbol}
+          type2={wallet.currency}
           hide={hide}
           title={wallet.currencySymbol}
           subTitle={
@@ -121,7 +123,7 @@ const WalletList: () => React$Node = ({
           amount2={maxWidth => {
             return (
               !hide &&
-              !wallet.isFungible &&
+              !wallet.isNft &&
               currencyPrice && (
                 <CurrencyPriceText
                   wallets={[wallet]}
@@ -185,6 +187,7 @@ const WalletList: () => React$Node = ({
           />
         ) : null
       }
+      ListFooterComponent={renderFooter}
       ListEmptyComponent={<ListEmptyView style={{ height: height * 0.5 }} />}
     />
   );

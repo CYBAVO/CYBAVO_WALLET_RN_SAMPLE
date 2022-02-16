@@ -18,6 +18,7 @@ import { sub } from 'react-native-reanimated';
 
 const CardItem: () => React$Node = ({
   type = 'BTC',
+  type2 = 'UNKNOWN',
   hide = false,
   title = 'BTC',
   subTitle,
@@ -62,11 +63,14 @@ const CardItem: () => React$Node = ({
             // left: 90,
             overflow: 'hidden',
             width: '100%',
-            height: '110%',
+            height: '100%',
             position: 'absolute',
           }}
+          resizeMode={'stretch'}
           imageSource={CardPatternSmallImg}
+          // startColor={startColors[type] || startColors[type2] || startColors.UNKNOWN}
           startColor={startColors[type] || startColors.UNKNOWN}
+          // endColor={endColors[type] || endColors[type2] || endColors.UNKNOWN}>
           endColor={endColors[type] || endColors.UNKNOWN}>
           <IconSvgXml xmlkey={type} width={'40'} height={'40'} />
           <View style={{ flexDirection: 'column', flex: 1 }}>

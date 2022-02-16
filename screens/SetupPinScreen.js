@@ -151,6 +151,11 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
   });
   const _submit = async () => {
     try {
+      if (false) {
+        animateSwitchPin(animPinInput, true);
+        setStep(1);
+        return;
+      }
       setLoading(true);
       // const pinSecret = await myRef.current.submit();
       // setup PIN code and retain PinSecret
@@ -205,7 +210,9 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
       setResult({
         type: TYPE_FAIL,
         title: I18n.t('setup_failed'),
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         tryAgain: error.code != 169,
       });
     }
@@ -350,7 +357,7 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
                 <StrengthStatus
                   widthParam={layout.width}
                   level={pinSecret == null && pinCodeLength == 0 ? -1 : level}
-                  labelStyle={{ color: theme.colors.textDarkBg }}
+                  labelStyle={{ color: theme.colors.text }}
                 />
               )}
               <NumericPinCodeInputView
@@ -453,7 +460,7 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
                 outlined={true}
                 labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
                 onPress={() => {
-                  NavigationService.navigate('Main');
+                  NavigationService.navigate('News');
                 }}>
                 {I18n.t('start_using')}
               </RoundButton2>

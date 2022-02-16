@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, SectionList } from 'react-native';
-import { withTheme, Text, Surface, TouchableRipple } from 'react-native-paper';
+import { StyleSheet, View, SectionList, Image, Modal } from 'react-native';
+import {
+  withTheme,
+  Text,
+  Surface,
+  TouchableRipple,
+  Searchbar,
+} from 'react-native-paper';
 import Headerbar from '../components/Headerbar';
 import FlagDisplay from '../components/FlagDisplay';
 import Styles from '../styles/Styles';
 import I18n, { Country } from '../i18n/i18n';
-import { COUNTRIES } from '../Constants';
+import { CHECK_ICON, COUNTRIES, LIST_ICON_SIMPLE_SIZE } from '../Constants';
 import { useNavigationParam } from 'react-navigation-hooks';
-import {Theme} from '../styles/MainTheme';
+import { Theme } from '../styles/MainTheme';
+import { Container } from 'native-base';
+import ListEmptyView from '../components/ListEmptyView';
+import NavigationService from '../NavigationService';
+import { useDispatch } from 'react-redux';
 
 function localeCompare(a, b) {
   return a.localeCompare(b);
@@ -17,22 +27,38 @@ function getSortKey({ displayName, regionCode }) {
   return (displayName || regionCode).charAt(0).toUpperCase() || '#';
 }
 
-function generateCountries() {
-  // console.log('Country:', Country);
-  const countries = Object.entries(COUNTRIES).map(
-    ([regionCode, { countryCode }]) => {
+const _filter = (item, keyword, searchables) => {
+  if (!keyword) {
+    return true;
+  }
+  const regex = new RegExp(keyword, 'i');
+  for (let i = 0; i < searchables.length; i++) {
+    const f = searchables[i];
+    if (item[f] && item[f].toString().match(regex)) {
+      return true;
+    }
+  }
+  return false;
+};
+function generateCountries(arr, keyword, searchables) {
+  let countries = [];
+  for (let i = 0; i < arr.length; i++) {
+    let [regionCode, { countryCode }] = arr[i];
+    let displayName = I18n.t(regionCode) || regionCode;
+    if (
+      _filter({ regionCode, countryCode, displayName }, keyword, searchables)
+    ) {
       const country = {
         regionCode,
         countryCode,
-        displayName: I18n.t(regionCode) || regionCode,
+        displayName,
       };
-      return {
+      countries.push({
         ...country,
         sortKey: getSortKey(country),
-      };
+      });
     }
-  );
-
+  }
   let suggested = null;
   const map = {};
   countries.forEach(country => {
@@ -68,141 +94,225 @@ function generateCountries() {
   return sections;
 }
 
-const COUNTRY_SECTIONS = generateCountries();
-
 const SelectCountryScreen: () => React$Node = ({
   theme,
   navigation: { goBack, navigate },
 }) => {
-  const source = useNavigationParam('source');
-  const selected = useNavigationParam('selected');
-  const onSelectCountry = useNavigationParam('onSelectCountry');
-  const _selectCountry = (regionCode, countryCode) => {
-    if (source) {
-      navigate(source, {
-        selected: {
-          regionCode,
-          countryCode,
-        },
-      });
-    } else {
-      goBack();
+  const clearIcon = require('../assets/image/ic_input_clear.png');
+  const from = useNavigationParam('from') || 'EnterPhone';
+  const callback = useNavigationParam('callback');
+  const initSelected = useNavigationParam('initSelected');
+  const number = useNavigationParam('number');
+  const [keyword, setKeyword] = useState('');
+  const dispatch = useDispatch();
+  const [selected, setSelected] = useState(initSelected);
+  const isSelected = regionCode => {
+    if (!selected == null || regionCode == null) {
+      return false;
     }
+    return selected === regionCode;
   };
+  let rawData = COUNTRIES;
+  let searchables = ['regionCode', 'countryCode', 'displayName'];
 
-  const _renderHeader = ({ section: { title } }) => (
-    <Text
-      style={[
-        styles.listHeader,
-        theme.fonts.medium,
-        {
-          color: theme.colors.gray600,
-          backgroundColor: theme.colors.backgroundColor,
-        },
-      ]}>
-      {title}
-    </Text>
-  );
+  const getData = () => {
+    let arr = Object.entries(rawData);
+    return generateCountries(arr, keyword, searchables);
+  };
+  const data = getData();
 
+  const _renderSectionHeader = ({ section: { title } }) => {
+    return (
+      <View
+        style={{
+          backgroundColor: theme.colors.navy,
+          paddingHorizontal: 16,
+        }}>
+        <Text
+          style={[
+            Theme.fonts.default.regular,
+            Styles.secHeaderLabel,
+            { paddingVertical: 15, fontSize: 14, color: theme.colors.sliver },
+          ]}>
+          {title}
+        </Text>
+      </View>
+    );
+  };
   const _renderItem = ({
     item: { displayName, regionCode, countryCode },
     index,
     section: { data },
-  }) => {
-    const isLast = index === data.length - 1;
-    const isSelected = selected === regionCode;
-    return (
-      <Surface style={[styles.listItem]}>
-        <TouchableRipple
-          onPress={() => _selectCountry(regionCode, countryCode)}>
+  }) => (
+    <Surface
+      style={[
+        Styles.listItem,
+        {
+          backgroundColor: theme.colors.navy,
+          paddingHorizontal: 16,
+        },
+      ]}>
+      <TouchableRipple
+        onPress={() => {
+          setSelected(regionCode);
+          NavigationService.navigate(from, {
+            regionCode: regionCode,
+            countryCode: countryCode,
+            number: number,
+          });
+        }}
+        style={styles.listItem}>
+        <>
           <View
-            style={[
-              styles.listItemContent,
-              { borderColor: isLast ? 'transparent' : theme.colors.countryCodeDivider },
-            ]}>
-            <View style={styles.itemLeft}>
-              <FlagDisplay style={styles.flag} regionCode={regionCode} />
-            </View>
-            <Text
-              style={[
-                styles.countryName,
-                isSelected
-                  ? {
-                      ...theme.fonts.medium,
-                      color: theme.colors.primary,
-                    }
-                  : null,
-              ]}>
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+            <FlagDisplay regionCode={regionCode} />
+            <Text style={[styles.listItemText, Theme.fonts.default.heavy]}>
               {displayName}
             </Text>
+            <Text style={[styles.listItemSubText, Theme.fonts.default.regular]}>
+              {`+${countryCode}`}
+            </Text>
+          </View>
+          <View />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+            }}>
             <Text
               style={[
-                styles.countryCode,
-                { color: theme.colors.countryCodeText },
-              ]}>{`+${countryCode}`}</Text>
+                Theme.fonts.default.regular,
+                styles.listItemSubText,
+                { marginRight: 3, paddingBottom: 3 },
+              ]}>
+              {''}
+            </Text>
+            {isSelected(regionCode) ? (
+              <Image
+                source={CHECK_ICON}
+                style={{
+                  height: LIST_ICON_SIMPLE_SIZE,
+                  width: LIST_ICON_SIMPLE_SIZE,
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  height: LIST_ICON_SIMPLE_SIZE,
+                  width: LIST_ICON_SIMPLE_SIZE,
+                }}
+              />
+            )}
           </View>
-        </TouchableRipple>
-      </Surface>
-    );
+        </>
+      </TouchableRipple>
+    </Surface>
+  );
+  const _getKey = item => {
+    const s = `${item.regionCode}`;
+    return s;
   };
-
   return (
-    <View style={Styles.Container}>
+    <Container style={[{ flex: 1, backgroundColor: theme.colors.navy }]}>
       <Headerbar
-        dark
-        onBack={goBack}
-        title={I18n.t('title_select_country')}
-        style={styles.headerbar}
+        style={{
+          zIndex: 1,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          marginTop: 62,
+          backgroundColor: theme.colors.navy,
+        }}
+        ParentIos={View}
+        Parent={View}
+        titleColor={theme.colors.text}
+        title={I18n.t('register')}
+        onBack={() => {
+          NavigationService.navigate(from, {
+            regionCode: selected,
+            countryCode: rawData[selected].countryCode,
+            number: number,
+          });
+        }}
       />
-      <View style={[Styles.Body, styles.body]}>
-        <SectionList
-          style={styles.list}
-          sections={COUNTRY_SECTIONS}
-          keyExtractor={(item, index) => item + index}
-          renderSectionHeader={_renderHeader}
-          renderItem={_renderItem}
-        />
-      </View>
-    </View>
+      <Searchbar
+        inputStyle={[
+          {
+            backgroundColor: theme.colors.navy,
+            fontSize: 14,
+            color: theme.colors.text,
+          },
+          Theme.fonts.default.regular,
+        ]}
+        icon={require('../assets/image/ic_search_dark_bg.png')}
+        style={styles.searchBar}
+        iconColor={theme.colors.blueGrey}
+        clearIcon={clearIcon}
+        placeholderTextColor={theme.colors.blueGrey}
+        placeholder={I18n.t('search_placeholder')}
+        onChangeText={keyword => setKeyword(keyword)}
+        value={keyword}
+      />
+      <SectionList
+        sections={data}
+        renderItem={_renderItem}
+        renderSectionHeader={_renderSectionHeader}
+        keyExtractor={_getKey}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          <ListEmptyView
+            text={I18n.t('no_search_result')}
+            img={require('../assets/image/ic_no_search_result.png')}
+          />
+        }
+      />
+    </Container>
   );
 };
 
 const styles = StyleSheet.create({
-  headerbar: {},
-  body: {},
-  list: {
-    flex: 1,
-  },
-  listHeader: {
-    fontSize: 12,
-    paddingHorizontal: 16,
-    paddingTop: 22,
-    paddingBottom: 6,
-    textTransform: 'uppercase',
-  },
   listItem: {
-    // borderBottomWidth: 1,
-    shadowOpacity: 0,
-  },
-  listItemContent: {
-    minHeight: 44,
-    borderBottomWidth: 1,
-    marginLeft: 16,
-    paddingRight: 16,
-    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 60,
+    borderBottomColor: Theme.colors.dividerDarkBg,
+    borderBottomWidth: 1,
   },
-  itemLeft: {
-    width: 40,
-  },
-  flag: {},
-  countryName: {
-    flex: 1,
+  listItemText: {
+    fontSize: 16,
+    marginLeft: 15,
+    fontWeight: 'bold',
     color: Theme.colors.text,
   },
-  countryCode: {
-    fontSize: 12,
+  listItemSubText: {
+    fontSize: 14,
+    marginLeft: 15,
+    color: Theme.colors.text,
+  },
+  searchBar: {
+    alignSelf: 'center',
+    backgroundColor: Theme.colors.navy,
+    borderBottomColor: Theme.colors.dividerDarkBg,
+    marginHorizontal: 16,
+    borderBottomWidth: 1,
+    elevation: 0,
+  },
+  listContainer: {
+    flexGrow: 1,
+    backgroundColor: Theme.colors.navy,
+  },
+  item: {
+    backgroundColor: Theme.colors.pickerBgTransparent,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 40,
+    marginLeft: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
   },
 });
 

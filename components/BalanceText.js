@@ -22,7 +22,11 @@ const BalanceText: () => React$Node = ({
   });
 
   const _effectiveBalance = () => {
-    return balanceItem.tokenBalance || balanceItem.balance || '…';
+    if (balanceItem.tokenAddress) {
+      return balanceItem.tokenBalance || '0';
+    } else {
+      return balanceItem.balance || '0';
+    }
   };
   useEffect(() => {
     dispatch(fetchBalance(currency, tokenAddress, address, false));

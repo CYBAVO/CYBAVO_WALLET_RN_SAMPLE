@@ -44,7 +44,12 @@ const ScanScreen: () => React$Node = ({ theme }) => {
   const { navigate, goBack } = useNavigation();
   const onResult = useNavigationParam('onResult');
   const isModal = useNavigationParam('modal');
+  const scanHint = useNavigationParam('scanHint');
+  const disableWalletConnect = useNavigationParam('disableWalletConnect');
 
+  const enableWalletconnect = useSelector(
+    state => state.user.userState.enableWalletconnect
+  );
   const dispatch = useDispatch();
   const [possibleCurrencies, setPossibleCurrencies] = useState([]);
   const _getCoinKey = item => `${item.currency}#`;
@@ -67,19 +72,23 @@ const ScanScreen: () => React$Node = ({ theme }) => {
     if (qrCode == null) {
       return;
     }
+    if (disableWalletConnect == true || !enableWalletconnect) {
+      _qrCodeAsAddress(qrCode);
+      return;
+    }
     let result = checkWalletConnectUri(qrCode);
     if (result.valid) {
-      _qrCodeAsWalletConnect(qrCode);
+      _qrCodeAsWalletConnect(result.uri, result.address, result.chainId);
     } else {
       _qrCodeAsAddress(qrCode);
     }
   }, [qrCode]);
 
-  const _qrCodeAsWalletConnect = qrCode => {
+  const _qrCodeAsWalletConnect = (qrCode, address, chainId) => {
     if (ethWallet) {
       goBack();
       NavigationService.navigate('Connecting', {});
-      dispatch(newSession(qrCode, ethWallet.address, ethWallet.walletId));
+      dispatch(newSession(qrCode, ethWallet.address, ethWallet.walletId, address, chainId));
     } else {
       let item = currencies.find(
         w => w.currency === Coin.ETH && !w.tokenAddress
@@ -271,7 +280,11 @@ const ScanScreen: () => React$Node = ({ theme }) => {
               marginHorizontal: 16,
               fontSize: 12,
             }}>
-            {I18n.t('scan_hint')}
+            {scanHint
+              ? scanHint
+              : enableWalletconnect
+              ? I18n.t('scan_hint')
+              : I18n.t('scan_hint_address_only')}
           </Text>
         </View>
       </View>

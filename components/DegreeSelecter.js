@@ -3,7 +3,7 @@ import {
   Image,
   Platform,
   StyleSheet,
-  TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import moment from 'moment';
@@ -47,6 +47,7 @@ const DegreeSlider: () => React$Node = ({
   reserveErrorMsg = valueObj.low && valueObj.low.lessThenMin,
   initValue = 0,
   callbackForInit = false,
+  line3 = true,
 }) => {
   const [value, setValue] = useState(initValue);
   useEffect(() => {
@@ -57,11 +58,13 @@ const DegreeSlider: () => React$Node = ({
   return (
     <View style={[{ flexDirection: 'column' }, style]}>
       {keys.map((item, i) => (
-        <View>
+        <View style={{ flex: 1 }}>
           <Surface
             style={[
               Styles.shadowSurface,
               {
+                flex: 1,
+                marginRight: i < keys.length - 1 ? 8 : 0,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
                 marginBottom: reserveErrorMsg ? 0 : 8,
@@ -79,28 +82,33 @@ const DegreeSlider: () => React$Node = ({
                 style={{ position: 'absolute', right: 0 }}
               />
             )}
-            <TouchableOpacity
+            <TouchableWithoutFeedback
               onPress={() => {
                 setValue(i);
                 onSelect(item);
               }}
-              style={{ justifyContent: 'space-between' }}
               disabled={getErrMsg(valueObj[item])}>
-              <Text
-                style={[
-                  { fontSize: 14, color: theme.colors.text },
-                  Theme.fonts.default.heavyMax,
-                ]}>
-                {getLabel(item)}
-              </Text>
-              <Text style={[{ fontSize: 14, color: theme.colors.text }]}>
-                {getValue(valueObj[item]) || ''}
-              </Text>
-              <Text
-                style={[{ fontSize: 14, color: theme.colors.battleshipGrey }]}>
-                {getDesc(valueObj[item]) || ''}
-              </Text>
-            </TouchableOpacity>
+              <View style={{ justifyContent: 'space-between' }}>
+                <Text
+                  style={[
+                    { fontSize: 14, color: theme.colors.text },
+                    Theme.fonts.default.heavyMax,
+                  ]}>
+                  {getLabel(item)}
+                </Text>
+                <Text style={[{ fontSize: 14, color: theme.colors.text }]}>
+                  {getValue(valueObj[item]) || ''}
+                </Text>
+                {line3 && (
+                  <Text
+                    style={[
+                      { fontSize: 14, color: theme.colors.battleshipGrey },
+                    ]}>
+                    {getDesc(valueObj[item]) || ''}
+                  </Text>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
           </Surface>
           {reserveErrorMsg && (
             <Text

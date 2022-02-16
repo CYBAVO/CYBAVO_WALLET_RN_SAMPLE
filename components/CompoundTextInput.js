@@ -47,7 +47,7 @@ const CompoundTextInput = React.forwardRef(
     const _getPaddingRight = () => {
       let value = 0;
       if (onClear) {
-        value += 24;
+        value += 34;
       }
       if (goScan) {
         value += 24;
@@ -55,7 +55,7 @@ const CompoundTextInput = React.forwardRef(
       return value;
     };
     const _getPaddingBottom = () => {
-      let value = 10;
+      let value = 16;
       if (convertText) {
         value += 20;
       }

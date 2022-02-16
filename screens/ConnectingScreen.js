@@ -32,18 +32,23 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
   const peerId = useNavigationParam('peerId');
+  const peerName = useNavigationParam('peerName');
   const { onLayout, ...layout } = useLayout();
   const payload = useNavigationParam('payload');
   const address = useNavigationParam('address');
   const chainId = useNavigationParam('chainId');
+  const returnAddress = useNavigationParam('returnAddress');
+  const returnChainId = useNavigationParam('returnChainId');
   const _rejectSession = async () => {
     dispatch(rejectSession(peerId));
     goBack();
   };
   const _approveSession = async () => {
-    const response = { accounts: [address], chainId };
+    let addr = returnAddress || address;
+    let cId = returnChainId || chainId;
+    const response = { accounts: [addr], chainId };
     goBack();
-    await dispatch(approveSession(peerId, response));
+    await dispatch(approveSession(peerId, peerName, response));
   };
   const _getSessionRequestView = () => {
     const { peerMeta, chainId } = payload.params[0];
@@ -221,8 +226,7 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
             alignSelf: 'center',
             marginTop: layout.height / 4,
           }}>
-          <View
-            style={styles.logoFrame}>
+          <View style={styles.logoFrame}>
             <Image
               source={require('../assets/image/ic_walletconnect.png')}
               style={{ width: 32, height: 32 }}
@@ -235,8 +239,7 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
             style={{ flex: null, marginHorizontal: 16 }}
           />
 
-          <View
-            style={styles.logoFrame}>
+          <View style={styles.logoFrame}>
             <Image
               source={require('../assets/image/ic_logo.png')}
               style={{ width: 32, height: 32 }}

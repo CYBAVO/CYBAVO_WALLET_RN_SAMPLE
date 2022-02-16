@@ -12,9 +12,21 @@ import { Text } from 'react-native-paper';
 const BalanceTextLite: () => React$Node = ({
   textStyle = {},
   balanceItem = {},
+  isErc1155,
+  tokenIdIndex,
 }) => {
   const _effectiveBalance = () => {
-    return balanceItem.tokenBalance || balanceItem.balance || '…';
+    if (isErc1155) {
+      if (tokenIdIndex == null) {
+        return balanceItem.tokenIdAmounts.length || '0';
+      } else {
+        return balanceItem.tokenIdAmounts[tokenIdIndex].amount || '0';
+      }
+    } else if (balanceItem.tokenAddress) {
+      return balanceItem.tokenBalance || '0';
+    } else {
+      return balanceItem.balance || '0';
+    }
   };
   return (
     <React.Fragment>

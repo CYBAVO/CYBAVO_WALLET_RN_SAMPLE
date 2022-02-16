@@ -64,7 +64,9 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
       setResult({
         title: I18n.t('get_handle_number_failed'),
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         buttonClick: () => {
           setResult(null);
         },
@@ -81,7 +83,9 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
     } catch (error) {
       console.log('_resetPinCode failed', error);
       setPinErrorMsg(
-        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+        I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        })
       );
     }
     setLoading(false);
@@ -119,7 +123,9 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
       setLoading(false);
       console.log('_verifyRecoveryCode failed', error);
       setPinErrorMsg(
-        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+        I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        })
       );
       return false;
     }
@@ -154,6 +160,7 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
                   backgroundColor: theme.colors.error,
                   borderRadius: 40,
                   opacity: handleNum ? 0.5 : 1,
+                  marginBottom: 0,
                 },
               ]}
               onPress={_forgotPinCode}>
@@ -234,39 +241,45 @@ const ForgotPinCodeScreen: () => React$Node = ({ theme }) => {
                 </Text>
                 <RoundButton2
                   height={ROUND_BUTTON_HEIGHT}
-                  style={Styles.bottomButton}
+                  style={[
+                    Styles.bottomButton,
+                    {
+                      marginBottom: 0,
+                    },
+                  ]}
                   labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
                   onPress={_composeMailAndSend}>
                   {I18n.t('contact_us')}
                 </RoundButton2>
               </View>
             )}
+            <TouchableOpacity
+              style={[
+                Styles.bottomButton,
+                {
+                  backgroundColor: 'transparent',
+                  borderRadius: 40,
+                  marginTop: 33,
+                },
+              ]}
+              onPress={() => {
+                setInputPinCode(true);
+              }}>
+              <Text
+                style={[
+                  {
+                    fontSize: ROUND_BUTTON_FONT_SIZE,
+                    color: Theme.colors.primary,
+                    textAlign: 'center',
+                  },
+                  Theme.fonts.default.medium,
+                ]}>
+                {I18n.t('i_ve_got_the_verification_code')}
+              </Text>
+            </TouchableOpacity>
             <View />
           </View>
         </ScrollView>
-        <TouchableOpacity
-          style={[
-            Styles.bottomButton,
-            {
-              backgroundColor: 'transparent',
-              borderRadius: 40,
-            },
-          ]}
-          onPress={() => {
-            setInputPinCode(true);
-          }}>
-          <Text
-            style={[
-              {
-                fontSize: ROUND_BUTTON_FONT_SIZE,
-                color: Theme.colors.primary,
-                textAlign: 'center',
-              },
-              Theme.fonts.default.medium,
-            ]}>
-            {I18n.t('i_ve_got_the_verification_code')}
-          </Text>
-        </TouchableOpacity>
       </Container>
 
       <InputPinCodeModal

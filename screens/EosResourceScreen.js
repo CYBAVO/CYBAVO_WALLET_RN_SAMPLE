@@ -212,7 +212,9 @@ const EosResourceScreen: () => React$Node = ({ theme }) => {
     } catch (error) {
       if (hasValue(numBytesError)) {
         setNumBytesError(
-          error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+          I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          })
         );
       }
       return;

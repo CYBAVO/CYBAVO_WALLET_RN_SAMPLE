@@ -45,6 +45,7 @@ import ReplaceTransactionModal, {
 import { Wallets, WalletConnectSdk } from '@cybavo/react-native-wallet-service';
 const { WalletConnectManager, WalletConnectHelper } = WalletConnectSdk;
 import {
+  checkAuthType,
   explorer,
   getEthGasFeeWithPreLimit,
   getTotalFeeFromLimit,
@@ -81,6 +82,16 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
   const { navigate, goBack } = useNavigation();
   const title = I18n.t('api_history_detail');
 
+  const enableBiometrics = useSelector(
+    state => state.user.userState.enableBiometrics
+  );
+  const skipSmsVerify = useSelector(
+    state => state.user.userState.skipSmsVerify
+  );
+  const accountSkipSmsVerify = useSelector(
+    state => state.user.userState.accountSkipSmsVerify
+  );
+  const bioSetting = useSelector(state => state.user.userState.bioSetting);
   const appState = useAppState();
   useEffect(() => {
     if (appState == 'active' && replaceTransaction != null) {
@@ -200,7 +211,9 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
       if (error.code != -7) {
         setResult({
           type: TYPE_FAIL,
-          error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+          error: I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          }),
           title: I18n.t('cancel_failed'),
           buttonClick: () => {
             setResult(null);
@@ -394,13 +407,32 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
             dispatch(stopFetchFee());
           }}
           feeNote={` (${I18n.t('estimated')})`}
-          onButtonClick={selectedFee => {
-            const type = replaceTransaction;
+          onButtonClick={async selectedFee => {
             setReplaceTransaction(null);
             dispatch(stopFetchFee());
+
+            setLoading(true);
+            let { isSms, error } = await checkAuthType(
+              enableBiometrics,
+              skipSmsVerify,
+              bioSetting,
+              accountSkipSmsVerify
+            );
+            setLoading(false);
+            if (error) {
+              setResult({
+                type: TYPE_FAIL,
+                error: I18n.t(`error_msg_${error.code}`, {
+                  defaultValue: error.message,
+                }),
+                title: I18n.t('check_failed'),
+              });
+              return;
+            }
             NavigationService.navigate('InputPinSms', {
               modal: true,
               from: 'ApiHistoryDetail',
+              isSms: isSms,
               callback: (pinSecret, type, actionToken, code) => {
                 _cancelWalletConnectTransaction(
                   pinSecret,

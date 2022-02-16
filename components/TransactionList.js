@@ -24,7 +24,8 @@ import {
   ACCELERATED,
   ACCELERATE_FAILED,
 } from '../store/reducers/transactions';
-import {replaceConfig} from '../Constants';
+import { replaceConfig } from '../Constants';
+import { renderTxItem } from '../Helpers';
 
 const ERROR_ICON = require('../assets/image/ic_error.png');
 /*
@@ -44,170 +45,14 @@ const TransactionList: () => React$Node = ({
 }) => {
   const receiveImg = require('../assets/image/receive.png');
   const sendImg = require('../assets/image/send.png');
-  const _renderItem = ({ item }) => {
-    const opacity = item.pending ? 0.35 : 1;
-    const decorationLine =
-      item.replaceStatus === CANCELLED ? 'line-through' : 'none';
-    return (
-      <Surface
-        style={[
-          Styles.listItem,
-          {
-            backgroundColor: theme.colors.background,
-          },
-        ]}>
-        <TouchableRipple
-          onPress={() => onTransactionPress(item)}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            borderColor: Theme.colors.backgroundPressed,
-            borderBottomWidth: 1,
-            borderTopWidth: 0,
-            borderLeftWidth: 0,
-            borderRightWidth: 0,
-          }}>
-          <>
-            <Image
-              source={item.out ? sendImg : receiveImg}
-              resizeMode="stretch"
-              style={{
-                width: 24,
-                height: 24,
-                opacity: opacity,
-                marginLeft: 16,
-              }}
-            />
-            <View style={[Styles.itemBody]}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  marginLeft: 8,
-                }}>
-                <Text
-                  style={[
-                    Styles.cardTitle,
-                    Theme.fonts.default.heavy,
-                    { opacity: opacity, textDecorationLine: decorationLine },
-                  ]}>
-                  {item.amount}
-                </Text>
-                <Text
-                  style={[
-                    Styles.cardDescHorizontal,
-                    Theme.fonts.default.heavy,
-                    { opacity: opacity },
-                  ]}>
-                  {getCurrencySymbol(item)}
-                </Text>
-                {replaceConfig[item.replaceStatus] && (
-                  <Text
-                    style={[
-                      // Styles.tag,
-                      {
-                        backgroundColor:
-                          replaceConfig[item.replaceStatus].color,
-                        fontSize: 8,
-                        paddingVertical: 2,
-                        borderRadius: 7,
-                        paddingHorizontal: 5,
-                        opacity: opacity,
-                        marginLeft: 8,
-                        overflow: 'hidden',
-                      },
-                    ]}>
-                    {I18n.t(replaceConfig[item.replaceStatus].i18n)}
-                  </Text>
-                )}
-              </View>
-              {item.txid != null && item.txid.length > 0 && (
-                <View style={{ flexDirection: 'row', flex: 1, marginTop: 3 }}>
-                  <Text
-                    style={[
-                      Styles.tag,
-                      {
-                        backgroundColor: theme.colors.pickerBg,
-                        fontSize: 8,
-                        opacity: 0.5,
-                      },
-                    ]}>
-                    {I18n.t('txid')}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    ellipsizeMode="middle"
-                    style={[
-                      Styles.cardDesc,
-                      Theme.fonts.default.regular,
-                      { marginLeft: 2, flexShrink: 1, marginRight: 10 },
-                    ]}>
-                    {item.txid}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-              {!item.success && (
-                <Image source={ERROR_ICON} style={{ marginRight: 5 }} />
-              )}
-              {item.replaceStatus == null ? (
-                <DisplayTime
-                  textStyle={[
-                    Styles.cardDesc,
-                    { opacity: opacity * 0.7, marginLeft: 0, marginRight: 16 },
-                    Theme.fonts.default.regular,
-                  ]}
-                  format="YYYY-M-D"
-                  unix={item.timestamp}
-                />
-              ) : (
-                <View
-                  style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <Text
-                    style={[
-                      Styles.cardDesc,
-                      {
-                        opacity: opacity * 0.7,
-                        marginLeft: 0,
-                        marginRight: 16,
-                      },
-                      Theme.fonts.default.regular,
-                    ]}>{`#${item.nonce}`}</Text>
-                  <DisplayTime
-                    textStyle={[
-                      Styles.cardDesc,
-                      {
-                        opacity: opacity * 0.7,
-                        marginLeft: 0,
-                        marginRight: 16,
-                      },
-                      Theme.fonts.default.regular,
-                    ]}
-                    format="YYYY-M-D"
-                    unix={item.timestamp}
-                  />
-                </View>
-              )}
-            </View>
-
-            {item.pending && item.success && !item.dropped && (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}>
-                <DotIndicator color={Theme.colors.primary} size={4} count={3} />
-              </View>
-            )}
-          </>
-        </TouchableRipple>
-      </Surface>
+  const _renderItem = obj => {
+    return renderTxItem(
+      obj,
+      onTransactionPress,
+      sendImg,
+      receiveImg,
+      getCurrencySymbol,
+      obj.amount
     );
   };
   const renderFooter = footLoading => {

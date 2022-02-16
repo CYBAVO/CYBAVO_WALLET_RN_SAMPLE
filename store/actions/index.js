@@ -11,3 +11,4 @@ export * from './walletconnect';
 export * from './apihistory';
 export * from './fee';
 export * from './clock';
+export * from './tokenUri';

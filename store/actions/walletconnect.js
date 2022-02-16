@@ -13,7 +13,8 @@ import moment from 'moment';
 import { FileLogger } from 'react-native-file-logger';
 import I18n from '../../i18n/i18n';
 
-export const WALLETCONNECT_UPDATE_REPORTABLE = 'walletConnect/WALLETCONNECT_UPDATE_REPORTABLE';
+export const WALLETCONNECT_UPDATE_REPORTABLE =
+  'walletConnect/WALLETCONNECT_UPDATE_REPORTABLE';
 export const WALLETCONNECT_INIT_REQUEST =
   'walletConnect/WALLETCONNECT_INIT_REQUEST';
 export const WALLETCONNECT_INIT_SUCCESS =
@@ -44,7 +45,13 @@ export const WALLETCONNECT_CALL_REJECTION =
 
 export const WALLETCONNECT_PENDING_URI =
   'walletConnect/WALLETCONNECT_PENDING_URI';
-export function newSession(uri, address, walletId) {
+export function newSession(
+  uri,
+  address,
+  walletId,
+  returnAddress,
+  returnChainId
+) {
   return async (dispatch, getState) => {
     try {
       let clientMeta = {
@@ -56,9 +63,8 @@ export function newSession(uri, address, walletId) {
       };
       dispatch({ type: WALLETCONNECT_UPDATE_REPORTABLE, value: true });
       FileLogger.debug(
-        `>> newSession:${uri},address:${address},walletId${walletId},${
-          getState().auth.config
-        }`
+        `>> newSession:${uri},address:${address},walletId${walletId},returnAddress:${returnAddress ||
+          ''},returnChainId${returnChainId || ''}, ,${getState().auth.config}`
       );
       let connectorWrapper = WalletConnectManager.newSession(
         uri,
@@ -78,9 +84,12 @@ export function newSession(uri, address, walletId) {
           });
           NavigationService.navigate('Connecting', {
             peerId: connectorWrapper.getConnector().peerId,
+            peerName: connectorWrapper.getConnector().peerMeta.name,
             payload,
             address,
             chainId: CHAIN_ID,
+            returnAddress,
+            returnChainId,
           });
         }
       );
@@ -93,12 +102,13 @@ export function newSession(uri, address, walletId) {
 }
 export function approveSession(
   peerId,
+  peerName,
   response: { accounts: string[], chainId: number }
 ) {
   return async (dispatch, getState) => {
-    if (getState().auth.config == 'test') {
-      response.accounts = ['0xaad9ebc005efa45f53e59ff8dadba14e59225155'];
-    }
+    // if (getState().auth.config == 'test') {
+    //   response.accounts = ['0xaad9ebc005efa45f53e59ff8dadba14e59225155'];
+    // }
     FileLogger.debug(
       `>> approveSession_peerId:${peerId}, response:${JSON.stringify(response)}`
     );
@@ -126,8 +136,8 @@ export function approveSession(
           toastError(error);
           return;
         }
-        toast(I18n.t('receive_disconnect_template', {peerId}));
-        FileLogger.debug(`>> Receive disconnect_peerId:${peerId}`);
+        toast(I18n.t('receive_disconnect_template', { peerId: peerName }));
+        FileLogger.debug(`>> Receive disconnect_peerId:${peerId},${peerName}`);
         dispatch({
           type: WALLETCONNECT_SESSION_DISCONNECTED,
           connecting: WalletConnectManager.getConnectingMap(),
@@ -151,6 +161,7 @@ function getHandledPayload(peerId, payload, config) {
   const { peerMeta } = map[peerId].getSessionPayload().params[0];
   switch (payload.method) {
     case 'eth_sendTransaction':
+    case 'eth_signTransaction':
       const tx = payload.params[0];
       if (!tx.value) {
         tx.value = '0x0';
@@ -160,10 +171,7 @@ function getHandledPayload(peerId, payload, config) {
           tx.from == tx.to
             ? '0x346E8A6e240b73dC700574fdd46D26d4C9FF5AAD'
             : tx.to;
-        tx.value =
-          tx.value == '0x0'
-            ? '0xe8d4a51000'
-            : tx.value;
+        tx.value = tx.value == '0x0' ? '0xe8d4a51000' : tx.value;
         payload.params[0] = tx;
       } else if (config == 'test') {
         tx.from = WalletConnectManager.getAddress(peerId);
@@ -179,20 +187,45 @@ function getHandledPayload(peerId, payload, config) {
         payload.params[0] = tx;
       }
       break;
-    case 'eth_signTypedData':
-    case 'eth_signTypedData_v1':
-    case 'eth_signTypedData_v3':
-      if (peerMeta.name == 'WalletConnect Example') {
-        let typedData = JSON.parse(payload.params[1]);
-        typedData.types.EIP712Domain.splice(2, 0, {
-          name: 'chainId',
-          type: 'uint256',
-        });
-        payload.params[1] = JSON.stringify(typedData);
+
+    default:
+      if (payload.method.startsWith('eth_signTypedData')) {
+        let jsonstr = payload.params[1];
+        let o = JSON.parse(jsonstr);
+        let newDomain = getTrimmedTypedData(o.types.EIP712Domain, o.domain);
+        let newRelay = getTrimmedTypedData(o.types.RelayRequest, o.message);
+        o.types.EIP712Domain = newDomain.type;
+        o.domain = newDomain.data;
+        o.types.RelayRequest = newRelay.type;
+        o.message = newRelay.data;
+        payload.params[1] = JSON.stringify(o);
       }
       break;
   }
   return payload;
+}
+
+export function getTrimmedTypedData(type, data) {
+  try {
+    let nType = [],
+      nData = {},
+      keyMap = {};
+    for (let i = 0; i < type.length; i++) {
+      if (data.hasOwnProperty(type[i].name)) {
+        nType.push(type[i]);
+        keyMap[type[i].name] = 1;
+        console.debug(keyMap[type[i].name]);
+      }
+    }
+    for (let key in data) {
+      if (keyMap[key] == 1) {
+        nData[key] = data[key];
+      }
+    }
+    return { type: nType, data: nData };
+  } catch (e) {
+    return { type: type, data: data };
+  }
 }
 function getTimeHex() {
   let time = Math.ceil(moment().valueOf() / 1000 + 86400);

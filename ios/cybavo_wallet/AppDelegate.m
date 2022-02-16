@@ -16,7 +16,7 @@
 #import <React/RCTBridge.h>
 #import <React/RCTBundleURLProvider.h>
 #import <React/RCTRootView.h>
-//#import <React/RCTLinkingManager.h>
+#import <React/RCTLinkingManager.h>
 // ---FB---
 #import <FBSDKLoginKit/FBSDKLoginKit.h>
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
@@ -66,7 +66,9 @@
   return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
 #endif
 }
+
 // ---FB, LINE, Twitter---
+// targeting iOS 8.x or older
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url
   sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
 {
@@ -75,9 +77,22 @@
                                                         sourceApplication:sourceApplication
                                                                annotation:annotation
                     ];
-  return handledFB;
+  if(handledFB){
+    return TRUE;
+  }
+  return [RCTLinkingManager application:application openURL:url
+                        sourceApplication:sourceApplication annotation:annotation];
 }
 
+// Only if your app is using [Universal Links](https://developer.apple.com/library/prerelease/ios/documentation/General/Conceptual/AppSearch/UniversalLinks.html).
+- (BOOL)application:(UIApplication *)application continueUserActivity:(nonnull NSUserActivity *)userActivity
+ restorationHandler:(nonnull void (^)(NSArray<id<UIUserActivityRestoring>> * _Nullable))restorationHandler
+{
+ return [RCTLinkingManager application:application
+                  continueUserActivity:userActivity
+                    restorationHandler:restorationHandler];
+}
+// targeting iOS 9.x or newer
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url
             options:(NSDictionary<NSString*, id> *)options
 {
@@ -94,7 +109,10 @@
     return TRUE;
   }
   BOOL handledTwitter = [[Twitter sharedInstance] application:application openURL:url options:options];
-  return handledTwitter;
+  if(handledTwitter){
+    return handledTwitter;
+  }
+  return [RCTLinkingManager application:application openURL:url options:options];
 }
 // +++FB, LINE+++
 

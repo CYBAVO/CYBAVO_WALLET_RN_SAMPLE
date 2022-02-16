@@ -1,0 +1,8 @@
+/* 
+  InfoPlist.strings
+  cybavo_wallet
+
+  Created by Eva Hsu on 2020/11/23.
+  Copyright © 2020 Facebook. All rights reserved.
+*/
+"CFBundleDisplayName" = "CYBAVO Wallet";

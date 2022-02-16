@@ -32,9 +32,20 @@ function currency(
         error: action.error,
       };
     case CURRENCIES_UPDATE_CURRENCIES:
+      let priCurrencies = [];
+      let pubCurrencies = [];
+      let allC = action.currencies || [];
+      for (let i = 0; i < allC.length; i++) {
+        if (allC[i].isPrivate) {
+          priCurrencies.push(allC[i]);
+        } else {
+          pubCurrencies.push(allC[i]);
+        }
+      }
       return {
         ...state,
-        currencies: action.currencies,
+        currencies: pubCurrencies,
+        priCurrencies: priCurrencies,
         error: null,
       };
     default:

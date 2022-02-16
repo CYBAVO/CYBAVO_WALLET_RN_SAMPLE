@@ -35,6 +35,10 @@ import SelectCountryScreen from './screens/SelectCountryScreen';
 import RegisterSuccessScreen from './screens/RegisterSuccessScreen';
 import SetBioScreen from './screens/SetBioScreen';
 import InputPinSmsScreen from './screens/InputPinSmsScreen';
+import AddContractCurrencyScreen from './screens/AddContractCurrencyScreen';
+import WalletNftDetailScreen from './screens/WalletNftDetailScreen';
+import WarningScreen from "./screens/WarningScreen";
+import NewsScreen from "./screens/NewsScreen";
 
 const MainTab = createBottomTabNavigator(
   {
@@ -139,7 +143,9 @@ const MainStack = createStackNavigator(
   {
     MainScanStack: MainScanStack,
     AddAsset: AddAssetScreen,
+    AddContractCurrency: AddContractCurrencyScreen,
     WalletDetail: WalletDetailScreen,
+    WalletNftDetail: WalletNftDetailScreen,
     TransactionDetail: TransactionDetailScreen,
     Scan2: ScanScreen,
     Withdraw: WithdrawScreen,
@@ -164,11 +170,13 @@ const LoadingStack = createStackNavigator(
   {
     Top: { screen: MainStack },
     Loading: { screen: LoadingScreen },
+    News: { screen: NewsScreen },
     scanModal: { screen: ScanScreen },
     Connecting: { screen: ConnectingScreen },
     Request: { screen: RequestScreen },
     // CurrencyPick: { screen: CurrencyPickScreen },
     InputPinSms: { screen: InputPinSmsScreen },
+    Warning: { screen: WarningScreen },
   },
   {
     mode: 'modal',

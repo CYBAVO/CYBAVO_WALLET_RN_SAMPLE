@@ -93,7 +93,10 @@ const ConnectionList: () => React$Node = ({
         keyExtractor={(data, idx) => `${data.peerId}`}
         renderItem={_renderItem}
         ListEmptyComponent={
-          <ListEmptyView text={I18n.t('add_connection_hint')} img={require('../assets/image/ic_tips_no_connection.png')}/>
+          <ListEmptyView
+            text={I18n.t('add_connection_hint')}
+            img={require('../assets/image/ic_tips_no_connection.png')}
+          />
         }
       />
     </View>
@@ -126,9 +129,7 @@ const styles = StyleSheet.create({
   footer: {
     height: 88,
     paddingTop: 16,
-    // padding: 10,
     justifyContent: 'center',
-    // alignItems: 'center',
     flexDirection: 'row',
   },
   loadMoreBtn: {

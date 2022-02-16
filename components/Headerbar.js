@@ -55,6 +55,9 @@ const Headerbar: () => React$Node = ({
         {onBack ? (
           <IconButton
             borderless
+            // accessibilityLabel={clearAccessibilityLabel}
+            // color={'rgba(255, 255, 255, 0.56)'}
+            // rippleColor={rippleColor}
             onPress={onBack}
             icon={({ size, color }) => (
               <Image source={backIcon} style={{ width: 24, height: 24 }} />
@@ -86,6 +89,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     paddingHorizontal: 16,
     textAlign: 'center',
+    // flex: 1,
   },
   actionsContainer: {},
 });

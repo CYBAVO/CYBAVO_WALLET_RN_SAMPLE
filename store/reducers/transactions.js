@@ -248,7 +248,7 @@ function transactions(state = defaultState, action) {
           out: transactions[i].fromAddress === address, //Android  need this
         };
         let txKey = getTransactionKey(key, transactions[i]);
-        if (transactions[i].nonce === 0) {
+        if (transactions[i].nonce <= 0) {
           //no nonce group
           state.transactions[key].data[txKey] = transactions[i];
           state.transactions[key].latestTx = getLastTxByWallet(

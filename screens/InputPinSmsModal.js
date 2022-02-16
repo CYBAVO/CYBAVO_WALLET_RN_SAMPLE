@@ -78,6 +78,9 @@ let InputPinSmsModal: () => React$Node = ({
   const skipSmsVerify = useSelector(
     state => state.user.userState.skipSmsVerify
   );
+  const accountSkipSmsVerify = useSelector(
+    state => state.user.userState.accountSkipSmsVerify
+  );
   const time = useSelector(state => state.clock.time);
   const countDown = COOL_TIME - (time - lastRequestTime);
   const inCoolTime = countDown > 0;
@@ -215,12 +218,14 @@ let InputPinSmsModal: () => React$Node = ({
           cellStyle={[
             Styles.inputCell,
             {
+              // backgroundColor: theme.colors.primary,
               borderColor: 'rgba(255, 255, 255, 0.56)',
             },
           ]}
           cellStyleFocused={{
             borderColor: theme.colors.text,
           }}
+          // containerStyle={{ marginBottom: 30 }}
           textStyle={Styles.inputCellText}
           keyboardType="number-pad"
           value={verifyCode}
@@ -336,6 +341,7 @@ let InputPinSmsModal: () => React$Node = ({
           buttonTextColorDisabled={theme.colors.pinDisplayInactivate}
           backspaceButtonTextColorDisabled={theme.colors.pinDisplayInactivate}
           backspaceButtonTextSize={9}
+          // backspaceButtonText={'←'}
           backspaceButtonBackgroundColorDisabled={theme.colors.background}
           backspaceButtonBackgroundColorPressed={
             theme.colors.pinPressedBackgroundColor

@@ -46,6 +46,8 @@ const BottomActionMenu: () => React$Node = ({
   scrollEnabled = false,
   title = I18n.t('filter'),
   getMainView,
+  prefix = '',
+  getValue,
 }) => {
   const [iosImeHeight, setiosImeHeight] = useState(0);
 
@@ -130,7 +132,9 @@ const BottomActionMenu: () => React$Node = ({
             borderBottomWidth: 1,
           }}>
           <>
-            <Text style={styles.menuText}>{item}</Text>
+            <Text style={styles.menuText}>{`${prefix}${
+              getValue ? getValue(item) : item
+            }`}</Text>
             {isSelected && (
               <>
                 <View style={styles.flex1} />
@@ -158,10 +162,11 @@ const BottomActionMenu: () => React$Node = ({
         getMainView(data[currentSelect])
       ) : (
         <TouchableOpacity
+          disabled={data.length == 0}
           style={[
             Styles.tag,
             {
-              backgroundColor: theme.colors.pickerBg,
+              backgroundColor: theme.colors.backgroundPressed,
               flex: 1,
             },
             containerStyle,
@@ -170,7 +175,11 @@ const BottomActionMenu: () => React$Node = ({
           <Text
             style={[styles.text, Theme.fonts.default.heavy]}
             numberOfLines={1}>
-            {data[currentSelect]}
+            {data[currentSelect] == null
+              ? ''
+              : getValue
+              ? `${prefix}${getValue(data[currentSelect])}`
+              : `${prefix}${data[currentSelect]}`}
           </Text>
           <Image source={ARROW_ICON} />
         </TouchableOpacity>

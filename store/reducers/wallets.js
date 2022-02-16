@@ -15,8 +15,8 @@ import {
   CURRENCIES_UPDATE_CURRENCIES,
   WALLETS_UPDATE_CURRENCIES,
 } from '../actions';
-import { Coin, isFungibleToken } from '../../Constants';
-import { hasValue } from '../../Helpers';
+import { Coin } from '../../Constants';
+import { getNftColorIndex, getNftIconIndex, hasValue } from '../../Helpers';
 
 const defaultState = {
   loading: null,
@@ -25,6 +25,7 @@ const defaultState = {
 };
 
 function wallets(state = defaultState, action) {
+  let stateWallet = state.wallets || [];
   switch (action.type) {
     case COMMON_RESET:
       return defaultState;
@@ -49,8 +50,12 @@ function wallets(state = defaultState, action) {
     case CURRENCIES_UPDATE_CURRENCIES:
     case WALLETS_UPDATE_CURRENCIES:
       let newWallets = [];
+      let newNftWallets = [];
       let ethWallet;
-      for (let w of state.wallets) {
+      let bnbWallet;
+      let bscWallet;
+      let stateWallet = state.wallets || [];
+      for (let w of stateWallet) {
         const currency = (action.currencies || []).find(
           c => c.currency === w.currency && c.tokenAddress === w.tokenAddress
         );
@@ -58,21 +63,43 @@ function wallets(state = defaultState, action) {
           console.warn('skip wallet:' + w.name);
           continue;
         }
+        let isNft =
+          currency.tokenVersion == 721 || currency.tokenVersion == 1155;
         let newW = {
           ...w,
           ...action.wallet,
           currencyDisplayName: currency.displayName ? currency.displayName : '',
-          isFungible: isFungibleToken(currency),
+          isNft: isNft,
+          tokenVersion: currency.tokenVersion,
         };
+        if (isNft) {
+          let colorIndex = getNftColorIndex(newW.walletId);
+          let iconIndex = getNftIconIndex(newNftWallets.length);
+          newW = {
+            ...newW,
+            colorIndex: colorIndex,
+            iconIndex: iconIndex,
+          };
+          newNftWallets.push(newW);
+        }
         newWallets.push(newW);
-        if (newW.currency == Coin.ETH && !hasValue(newW.tokenAddress)) {
-          ethWallet = newW;
+        if (!hasValue(newW.tokenAddress)) {
+          if (newW.currency == Coin.ETH) {
+            ethWallet = newW;
+          } else if (newW.currency == Coin.BNB) {
+            bnbWallet = newW;
+          } else if (newW.currency == Coin.BSC) {
+            bscWallet = newW;
+          }
         }
       }
       let newState = {
         ...state,
         wallets: newWallets,
+        nftWallets: newNftWallets,
         ethWallet,
+        bnbWallet,
+        bscWallet,
       };
       return newState;
     case WALLETS_UPDATE_WALLET:

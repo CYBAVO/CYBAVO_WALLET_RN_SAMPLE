@@ -14,7 +14,13 @@ import {
 import { Container, Badge, Button } from 'native-base';
 const { width, height } = Dimensions.get('window');
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
-import { startColors, endColors, Theme } from '../styles/MainTheme';
+import {
+  startColors,
+  endColors,
+  Theme,
+  nftStartColors,
+  nftEndColors,
+} from '../styles/MainTheme';
 import {
   ACCELERATE_SVG,
   AUTH_TYPE_BIO,
@@ -29,6 +35,8 @@ import {
   ROUND_BUTTON_LARGE_HEIGHT,
   SMALL_ICON_SIMPLE_SIZE,
   TX_EXPLORER_URIS,
+  Coin,
+  nftIcons,
 } from '../Constants';
 import Styles from '../styles/Styles';
 import I18n from '../i18n/i18n';
@@ -46,17 +54,17 @@ import {
 } from 'react-native-paper';
 import Headerbar from '../components/Headerbar';
 import {
+  checkAuthType,
   explorer,
-  getEthGasFee,
+  getEstimateGasFee,
   getExchangeAmount,
   getTransactionExplorerUri,
   getTransactionKey,
-  getWalletKey,
   getWalletKeyByWallet,
-  hasMemo,
+  getFeeNote,
   hasValue,
-  isErc20,
   sleep,
+  getFeeUnit,
 } from '../Helpers';
 import RoundButton2 from '../components/RoundButton2';
 import { signIn } from '../store/actions/auth';
@@ -87,6 +95,16 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
   const [transparent, setTransparent] = useState(true);
   const [fee, setFee] = useState({});
   const [result, setResult] = useState(null);
+  const enableBiometrics = useSelector(
+    state => state.user.userState.enableBiometrics
+  );
+  const skipSmsVerify = useSelector(
+    state => state.user.userState.skipSmsVerify
+  );
+  const accountSkipSmsVerify = useSelector(
+    state => state.user.userState.accountSkipSmsVerify
+  );
+  const bioSetting = useSelector(state => state.user.userState.bioSetting);
   const [loading, setLoading] = useState(false);
   const [replaceTransaction, setReplaceTransaction] = useState(null);
   const [_, setClipboard] = useClipboard();
@@ -124,8 +142,12 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
     console.warn('No wallet/transaction specified');
     goBack();
   }
-  const feeNote =
-    isErc20(wallet) && transaction.pending ? ` (${I18n.t('estimated')})` : '';
+
+  const feeUnit = useSelector(state => {
+    return getFeeUnit(wallet, state.currency.currencies);
+  });
+
+  const feeNote = getFeeNote(wallet.currency, wallet.tokenAddress);
   const expolreImg = require('../assets/image/open_window.png');
   const exchangeCurrency = useSelector(
     state => state.currencyPrice.exchangeCurrency
@@ -271,10 +293,9 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
       if (error.code != -7) {
         setResult({
           type: TYPE_FAIL,
-          error:
-            error.code && error.code > 0
-              ? I18n.t(`error_msg_${error.code}`)
-              : error.message,
+          error: I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          }),
           title: I18n.t(config[type].i18n),
           useSms:
             bioType == AUTH_TYPE_BIO &&
@@ -300,11 +321,14 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
         hasValue(rawFee.medium.amount) &&
         hasValue(rawFee.low.amount)
       ) {
-        let ethGasFee = getEthGasFee(
+        let ethGasFee = await getEstimateGasFee(
           rawFee,
           wallet.currency,
           wallet.tokenAddress,
-          transaction.transactionFee
+          transaction.transactionFee,
+          type == TYPE_ACCELERATE ? transaction.amount : '0',
+          wallet.walletId,
+          transaction.fromAddress
         );
         setFee(ethGasFee);
         if (ethGasFee.high.lessThenMin) {
@@ -326,7 +350,9 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
       console.log('_fetchWithdrawInfo failed', error);
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('estimate_fee_failed'),
         buttonClick: () => {
           setResult(null);
@@ -350,7 +376,7 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
   let exchangeTransactionFee = getExchangeAmount(
     transaction.transactionFee,
     3,
-    isErc20(wallet) ? { currency: 60, tokenAddress: '' } : wallet,
+    { currency: wallet.currency, tokenAddress: '' },
     exchangeCurrency,
     currencyPrice
   );
@@ -369,6 +395,14 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
 
   const decorationLine =
     transaction.replaceStatus === CANCELLED ? 'line-through' : 'none';
+
+  let tokenId =
+    wallet.tokenVersion == 721
+      ? transaction.amount
+      : wallet.tokenVersion == 1155
+      ? transaction.tokenId
+      : null;
+  let amount = wallet.tokenVersion == 1155 ? transaction.amount : null;
   return (
     <Container style={Styles.bottomContainer}>
       {Platform.OS == 'android' && (
@@ -438,9 +472,19 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
         <BackgroundImage
           containerStyle={Styles.detailBackgroundImage}
           imageStyle={Styles.detailCardPattern}
-          imageSource={CardPatternImg}
-          startColor={startColors[wallet.currencySymbol] || startColors.UNKNOWN}
-          endColor={endColors[wallet.currencySymbol] || endColors.UNKNOWN}>
+          imageSource={wallet.isNft ? null : CardPatternImg}
+          startColor={
+            (wallet.isNft
+              ? nftStartColors[wallet.colorIndex]
+              : startColors[wallet.currencySymbol]) || startColors.UNKNOWN
+          }
+          endColor={
+            (wallet.isNft
+              ? nftEndColors[wallet.colorIndex]
+              : endColors[wallet.currencySymbol]) || endColors.UNKNOWN
+          }
+          start={{ x: 0, y: 0 }}
+          end={wallet.isNft ? { x: 0, y: 1 } : { x: 1, y: 0 }}>
           <Animated.View
             style={{
               opacity: scrollY.interpolate({
@@ -453,11 +497,24 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
               style={{ marginTop: HEADER_COLLAPSED_HEIGHT, width: width }}
             />
             <View style={Styles.numContainer}>
-              <IconSvgXml
-                xmlkey={wallet.currencySymbol}
-                width={SMALL_ICON_SIMPLE_SIZE}
-                height={SMALL_ICON_SIMPLE_SIZE}
-              />
+              {wallet.isNft ? (
+                <Image
+                  resizeMode="stretch"
+                  source={nftIcons[wallet.iconIndex]}
+                  style={{
+                    height: 32,
+                    width: 32,
+                    alignSelf: 'center',
+                  }}
+                />
+              ) : (
+                <IconSvgXml
+                  xmlkey={wallet.currencySymbol}
+                  width={SMALL_ICON_SIMPLE_SIZE}
+                  height={SMALL_ICON_SIMPLE_SIZE}
+                />
+              )}
+
               <CurrencyText
                 currency={wallet.currency}
                 tokenAddress={wallet.tokenAddress}
@@ -544,16 +601,18 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
                       width: width / 2 - 32,
                     },
                   ]}
-                  icon={({ size, color }) => (
-                    <SvgXml
-                      xml={ACCELERATE_SVG}
-                      style={{
-                        tintColor: theme.colors.white35,
-                        width: 24,
-                        height: 24,
-                      }}
-                    />
-                  )}
+                  icon={({ size, color }) => {
+                    return (
+                      <SvgXml
+                        xml={ACCELERATE_SVG}
+                        style={{
+                          tintColor: theme.colors.white35,
+                          width: 24,
+                          height: 24,
+                        }}
+                      />
+                    );
+                  }}
                   labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
                   color={theme.colors.pickerBg}
                   onPress={() => _fetchWithdrawInfo(TYPE_ACCELERATE)}>
@@ -589,18 +648,44 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
             </Text>
             {_getCopyIcon(transaction.toAddress)}
           </TouchableOpacity>
-          <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
-            {wallet.isFungible ? I18n.t('token_id') : I18n.t('transfer_amount')}
-          </Text>
-          {!hasValue(exchangeAmount) || wallet.isFungible ? (
+          {tokenId && (
+            <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
+              {I18n.t('token_id')}
+            </Text>
+          )}
+          {tokenId && (
             <View style={Styles.bottomBoarderContainer}>
               <Text
                 selectable
                 style={[Styles.secContent, Theme.fonts.default.regular]}>
-                {`${transaction.amount}`}
+                {`#${tokenId}`}
               </Text>
             </View>
-          ) : (
+          )}
+          {(amount || !wallet.isNft) && (
+            <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
+              {I18n.t('transfer_amount')}
+            </Text>
+          )}
+          {amount && (
+            <View style={Styles.bottomBoarderContainer}>
+              <Text
+                selectable
+                style={[Styles.secContent, Theme.fonts.default.regular]}>
+                {amount}
+              </Text>
+            </View>
+          )}
+          {!wallet.isNft && !hasValue(exchangeAmount) && (
+            <View style={Styles.bottomBoarderContainer}>
+              <Text
+                selectable
+                style={[Styles.secContent, Theme.fonts.default.regular]}>
+                {transaction.amount}
+              </Text>
+            </View>
+          )}
+          {!wallet.isNft && hasValue(exchangeAmount) && (
             <View
               style={[
                 Styles.bottomBoarderContainer,
@@ -645,9 +730,7 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
               <Text
                 selectable
                 style={[Styles.secContent, Theme.fonts.default.regular]}>
-                {`${transaction.transactionFee} ${
-                  isErc20(wallet) ? `ETH${feeNote}` : wallet.currencySymbol
-                }`}
+                {`${transaction.transactionFee} ${feeUnit}`}
               </Text>
               <Text
                 selectable
@@ -657,7 +740,6 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
                   {
                     marginTop: 5,
                     fontSize: 12,
-                    textDecorationLine: decorationLine,
                   },
                 ]}>
                 {`≈ ${exchangeCurrency} \$${exchangeTransactionFee}`}
@@ -674,7 +756,7 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
                   Styles.tag,
                   Theme.fonts.default.medium,
                   {
-                    backgroundColor: theme.colors.pending,
+                    backgroundColor: theme.colors.melon,
                     marginLeft: 10,
                     fontSize: 12,
                   },
@@ -839,18 +921,38 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
       {replaceTransaction && (
         <ReplaceTransactionModal
           type={replaceTransaction}
-          feeNote={isErc20(wallet) ? ` (${I18n.t('estimated')})` : ''}
+          feeUnit={feeUnit}
+          feeNote={feeNote}
           fee={fee}
           onCancel={() => {
             setReplaceTransaction(null);
           }}
-          onButtonClick={selectedFee => {
+          onButtonClick={async selectedFee => {
             const type = replaceTransaction;
             setReplaceTransaction(null);
 
+            setLoading(true);
+            let { isSms, error } = await checkAuthType(
+              enableBiometrics,
+              skipSmsVerify,
+              bioSetting,
+              accountSkipSmsVerify
+            );
+            setLoading(false);
+            if (error) {
+              setResult({
+                type: TYPE_FAIL,
+                error: I18n.t(`error_msg_${error.code}`, {
+                  defaultValue: error.message,
+                }),
+                title: I18n.t('check_failed'),
+              });
+              return;
+            }
             NavigationService.navigate('InputPinSms', {
               title: I18n.t(titleKeys[type]),
               modal: true,
+              isSms: isSms,
               from: 'TransactionDetail',
               callback: (pinSecret, bioType, actionToken, code) => {
                 _replaceTransaction(

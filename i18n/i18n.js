@@ -33,7 +33,9 @@ export const LanguageIndexMap = {
 export function setLanguage(value) {
   AsyncStorage.setItem('language', value)
     .then(() => {})
-    .catch(error => {});
+    .catch(error => {
+      console.debug('set Language err:' + error);
+    });
   I18n.locale = value;
 }
 

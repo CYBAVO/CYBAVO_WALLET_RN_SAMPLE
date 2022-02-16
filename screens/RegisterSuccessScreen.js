@@ -150,7 +150,7 @@ let RegisterSuccessScreen: () => React$Node = ({ theme }) => {
           labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
           onPress={() => {
             if (setPin) {
-              NavigationService.navigate('Main');
+              NavigationService.navigate('News');
             } else {
               NavigationService.navigate('SetupPin', { fromEnterPhone: true });
             }

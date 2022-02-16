@@ -89,7 +89,7 @@ export default StyleSheet.create({
     paddingBottom: 20,
     // minHeight: 180,
   },
-  detailCardPattern: { left: 30, top: 35, position: 'absolute' },
+  detailCardPattern: { left: 30, top: 35, position: 'absolute', overflow: 'hidden', bottom: 100 },
   topSecLabel: {
     color: 'white',
     fontSize: 16,
@@ -250,6 +250,7 @@ export default StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: '70%',
+    backgroundColor: Theme.colors.background,
   },
   resultModalIcon: { transform: [{ translateY: -6 }] },
   bottomBoarderContainer: {

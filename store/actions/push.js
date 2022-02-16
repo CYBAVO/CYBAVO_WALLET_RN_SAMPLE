@@ -10,16 +10,23 @@ import { Toast } from 'native-base';
 
 export function onReceivePush(remoteMessage, foreground) {
   return async (dispatch, getState) => {
-    const json = remoteMessage && remoteMessage.data;
-    if (!json) {
-      console.warn('No remoteMessage.data:', Object.keys(remoteMessage));
+    if (!remoteMessage) {
+      console.warn('No remoteMessage.data:');
       return;
     }
-    if (json.type === '1') {
-      onReceiveTransactionPush(dispatch, getState(), json, foreground);
+    const dataJson = remoteMessage.data;
+    const notificationJson = remoteMessage.notification;
+    if (dataJson && dataJson.type === '1') {
+      onReceiveTransactionPush(dispatch, getState(), dataJson, foreground);
+    } else if (notificationJson && notificationJson.title) {
+      onReceiveNotificationPush(notificationJson);
     }
   };
 }
+function onReceiveNotificationPush(json) {
+  showLocalPush(json.title, json.body);
+}
+
 function onReceiveTransactionPush(dispatch, state, json, forgound) {
   let data = {
     walletID: Number(json.wallet_id),
@@ -36,7 +43,9 @@ function onReceiveTransactionPush(dispatch, state, json, forgound) {
     currencySymbol: '',
   };
   // let address = data.out ? data.toAddress : data.fromAddress;
-  let wallet = (state.wallets.wallets || []).find(w => w.walletId === data.walletID);
+  let wallet = (state.wallets.wallets || []).find(
+    w => w.walletId === data.walletID
+  );
   if (wallet) {
     data.currencySymbol = wallet.currencySymbol;
     store.dispatch(
@@ -45,7 +54,7 @@ function onReceiveTransactionPush(dispatch, state, json, forgound) {
         wallet.tokenAddress,
         wallet.address,
         wallet.currencySymbol,
-        wallet.isFungible,
+        wallet.isNft,
         true,
         0
       )
@@ -59,13 +68,13 @@ function onReceiveTransactionPush(dispatch, state, json, forgound) {
   if (data.out) {
     title = I18n.t('transaction_sent');
     message =
-      wallet && wallet.isFungible
+      wallet && wallet.isNft
         ? I18n.t('tokenid_sent_content', data)
         : I18n.t('amount_sent_content', data);
   } else {
     title = I18n.t('transaction_received');
     message =
-      wallet && wallet.isFungible
+      wallet && wallet.isNft
         ? I18n.t('tokenid_received_content', data)
         : I18n.t('amount_received_content', data);
   }

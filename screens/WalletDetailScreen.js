@@ -61,6 +61,7 @@ import ResultModal, {
   TYPE_FAIL,
   TYPE_SUCCESS,
 } from '../components/ResultModal';
+import NavigationService from "../NavigationService";
 const MyLoader = props => {
   let line2Top = HEADER_EXPANDED_HEIGHT * 0.35;
   let line2Left = width / 2 - 54;
@@ -134,7 +135,7 @@ const MyListLoader = props => {
       foregroundColor="#292F45"
       {...props}>
       {[0, 1, 2, 3, 4].map(i => (
-        <React.Fragment>
+        <React.Fragment key={i}>
           <Rect
             x={marginLeft}
             y={y1 + marginTop * i}
@@ -197,6 +198,9 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
   const [walletName, setWalletName] = useState(wallet.name);
   const { navigate, goBack } = useNavigation();
   const dispatch = useDispatch();
+  const showNews = useSelector(state => {
+    return state.auth.showNews;
+  });
   const balanceItem = useSelector(state => {
     if (!state.balance.balances) {
       return null;
@@ -240,6 +244,11 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
   });
 
   useEffect(() => {
+    if (showNews) {
+      NavigationService.navigate('News');
+    }
+  }, [showNews]);
+  useEffect(() => {
     if (loading == NOT_LOADING && balanceItem != null && ready == false) {
       setReady(true);
     }
@@ -281,7 +290,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
         wallet.tokenAddress,
         wallet.address,
         wallet.currencySymbol,
-        wallet.isFungible,
+        wallet.isNft,
         true
       )
     );
@@ -371,7 +380,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
           wallet.tokenAddress,
           wallet.address,
           wallet.currencySymbol,
-          wallet.isFungible,
+          wallet.isNft,
           true,
           rawDataObj.start + 10,
           _getFilters()
@@ -393,7 +402,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
         wallet.tokenAddress,
         wallet.address,
         wallet.currencySymbol,
-        wallet.isFungible,
+        wallet.isNft,
         true,
         0,
         _getFilters()
@@ -443,7 +452,9 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
       console.log('_renameWallet failed', error);
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('change_failed'),
         buttonClick: () => {
           setResult(null);
@@ -453,7 +464,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
     setRenameLoading(false);
     setShowModal(false);
   };
-  let currencySymbol = wallet.isFungible ? '' : wallet.currencySymbol;
+  let currencySymbol = wallet.isNft ? '' : wallet.currencySymbol;
   let startColor = startColors[wallet.currencySymbol] || startColors.UNKNOWN;
   let endColor = endColors[wallet.currencySymbol] || endColors.UNKNOWN;
 
@@ -526,7 +537,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
             </Text>
           </View>
 
-          {!wallet.isFungible && (
+          {!wallet.isNft && (
             <CurrencyPriceText
               wallets={[wallet]}
               textStyle={[
@@ -618,7 +629,10 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
               setShowMenu1(false);
             }}
             onChange={_setFilterDirection}
-            containerStyle={{ margin: 8 }}
+            containerStyle={{
+              margin: 8,
+              backgroundColor: theme.colors.filterBgColor,
+            }}
           />
           <BottomActionMenu
             visible={showMenu2}
@@ -631,7 +645,10 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
               setShowMenu2(false);
             }}
             onChange={_setFilterTime}
-            containerStyle={{ margin: 8 }}
+            containerStyle={{
+              margin: 8,
+              backgroundColor: theme.colors.filterBgColor,
+            }}
           />
           <BottomActionMenu
             visible={showMenu3}
@@ -644,7 +661,10 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
               setShowMenu3(false);
             }}
             onChange={_setFilterPending}
-            containerStyle={{ margin: 8 }}
+            containerStyle={{
+              margin: 8,
+              backgroundColor: theme.colors.filterBgColor,
+            }}
           />
           <BottomActionMenu
             visible={showMenu4}
@@ -657,7 +677,10 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
               setShowMenu4(false);
             }}
             onChange={_setFilterSuccess}
-            containerStyle={{ margin: 8 }}
+            containerStyle={{
+              margin: 8,
+              backgroundColor: theme.colors.filterBgColor,
+            }}
           />
         </View>
       </ScrollView>

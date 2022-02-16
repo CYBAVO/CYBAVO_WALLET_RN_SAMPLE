@@ -144,7 +144,9 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
       console.log('_createWallet failed', error);
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('add_failed'),
         buttonClick: () => {
           setResult(null);

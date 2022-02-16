@@ -8,7 +8,7 @@ import {
   Platform,
   Image,
   Animated,
-  RNModal,
+  Dimensions,
   TouchableOpacity,
 } from 'react-native';
 import { useBackHandler } from '@react-native-community/hooks';
@@ -48,6 +48,7 @@ import { titleKeys, TYPE_CANCEL } from '../components/ReplaceTransactionModal';
 import { Wallets, WalletConnectSdk } from '@cybavo/react-native-wallet-service';
 const { WalletConnectManager, WalletConnectHelper } = WalletConnectSdk;
 import {
+  checkAuthType,
   convertAmountFromRawNumber,
   convertHexToString,
   getAvailableBalance,
@@ -65,6 +66,7 @@ import BigNumber from 'bignumber.js';
 import walletconnect from '../store/reducers/walletconnect';
 import InputPinCodeModal from './InputPinCodeModal';
 import DegreeSelecter from '../components/DegreeSelecter';
+const { width, height } = Dimensions.get('window');
 
 const RequestScreen: () => React$Node = ({ theme }) => {
   const [result, setResult] = useState(null);
@@ -78,6 +80,16 @@ const RequestScreen: () => React$Node = ({ theme }) => {
   const [feeKeys, setFeeKeys] = useState([]);
   const [selectedFee, setSelectedFee] = useState('high');
   const [amountNum, setAmountNum] = useState(0);
+  const enableBiometrics = useSelector(
+    state => state.user.userState.enableBiometrics
+  );
+  const skipSmsVerify = useSelector(
+    state => state.user.userState.skipSmsVerify
+  );
+  const accountSkipSmsVerify = useSelector(
+    state => state.user.userState.accountSkipSmsVerify
+  );
+  const bioSetting = useSelector(state => state.user.userState.bioSetting);
   const [loading, setLoading] = useState(false);
   const { navigate, goBack } = useNavigation();
   const connectorWrapper = useSelector(
@@ -88,7 +100,8 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     return balances[getWalletKeyByWallet(state.wallets.ethWallet)];
   });
   const title =
-    payload.method == 'eth_sendTransaction'
+    payload.method == 'eth_sendTransaction' ||
+    payload.method == 'eth_signTransaction'
       ? I18n.t('transaction_request')
       : I18n.t('sign_request');
   const exchangeCurrency = useSelector(
@@ -143,7 +156,9 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           onClick: () => {
             _rejectRequest(
               peerId,
-              error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+              I18n.t(`error_msg_${error.code}`, {
+                defaultValue: error.message,
+              })
             );
             setResult(null);
             goBack();
@@ -171,7 +186,10 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     }
   }, [connectorWrapper]);
   useEffect(() => {
-    if (payload.method == 'eth_sendTransaction') {
+    if (
+      payload.method == 'eth_sendTransaction' ||
+      payload.method == 'eth_signTransaction'
+    ) {
       const tx = payload.params[0];
       const amount = convertAmountFromRawNumber(convertHexToString(tx.value));
       setAmountNum(amount);
@@ -223,7 +241,13 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           );
           break;
       }
-      let response = { result: '0x' + result.signedTx, id: payload.id };
+      if (
+        !result.signedTx.startsWith('0x') &&
+        !result.signedTx.startsWith('0X')
+      ) {
+        result.signedTx = '0x' + result.signedTx;
+      }
+      let response = { result: result.signedTx, id: payload.id };
       await dispatch(approveRequest(peerId, response));
       goBack();
     } catch (error) {
@@ -235,12 +259,12 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     pinSecret,
     type,
     actionToken,
-    code
+    code,
+    message
   ) => {
     let tag = '_walletConnectSignMessage';
     try {
       setLoading(true);
-      let message = payload.params[0];
       let utf8Msg = convertHexToUtf8(message);
 
       FileLogger.debug(
@@ -303,7 +327,9 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           msg = `${msg}|${msg2}`;
         }
       } else {
-        msg = error.code ? I18n.t(`error_msg_${error.code}`) : error.message;
+        msg = I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        });
       }
       setResult({
         type: TYPE_FAIL,
@@ -316,12 +342,16 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       });
       console.debug(error);
       _rejectRequest(
-        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+        I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        })
       );
     } else {
       console.debug(error);
       _rejectRequest(
-        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+        I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        })
       );
       goBack();
     }
@@ -330,9 +360,12 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     pinSecret,
     type,
     actionToken,
-    code
+    code,
+    onlySign
   ) => {
-    let tag = '_walletConnectSignTransaction';
+    let tag = onlySign
+      ? '_walletConnectSignTransaction'
+      : '_walletConnectSignSendTransaction';
     try {
       setLoading(true);
       const tx = payload.params[0];
@@ -341,7 +374,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       let result;
       switch (type) {
         case AUTH_TYPE_SMS:
-          tag = '_walletConnectSignTransactionSms';
+          tag = tag + 'Sms';
           result = await Wallets.walletConnectSignTransactionSms(
             actionToken,
             code,
@@ -357,7 +390,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           );
           break;
         case AUTH_TYPE_BIO:
-          tag = '_walletConnectSignTransactionBio';
+          tag = tag + 'Bio';
           await sleep(1000); // wait InputPinSms dismiss
           result = await Wallets.walletConnectSignTransactionBio(
             I18n.t('bio_msg'),
@@ -374,7 +407,6 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           );
           break;
         case AUTH_TYPE_OLD:
-          tag = '_walletConnectSignTransaction';
           result = await Wallets.walletConnectSignTransaction(
             walletId,
             tx,
@@ -390,23 +422,26 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       }
       console.debug(tag + result.signedTx, payload.id);
       FileLogger.debug(
-        `walletConnectSignTransaction success: ${result.signedTx}, walletId:${walletId}`
+        `${tag} success: ${result.signedTx}, walletId:${walletId}`
       );
+      if (onlySign) {
+        let response = { result: result.signedTx, id: payload.id };
+        await dispatch(approveRequest(peerId, response));
+        goBack();
+        dispatch(fetchApiHistory());
+        setLoading(false);
+        return;
+      }
       let result2 = await Wallets.walletConnectSendSignedTransaction(
         walletId,
         result.signedTx
       );
-      console.debug(
-        '_walletConnectSignTransaction2:' + result2.txid,
-        result2.state
-      );
+      console.debug(tag + '2:' + result2.txid, result2.state);
       FileLogger.debug(
-        `walletConnectSendSignedTransaction success: ${result2.txid}, state:${result2.state}`
+        `${tag}2 success: ${result2.txid}, state:${result2.state}`
       );
       let response = { result: result2.txid, id: payload.id };
-      console.debug(
-        'walletConnectSignTransaction3:' + JSON.stringify(response)
-      );
+      console.debug(tag + '3:' + JSON.stringify(response));
       await dispatch(approveRequest(peerId, response));
       goBack();
     } catch (error) {
@@ -426,17 +461,34 @@ const RequestScreen: () => React$Node = ({ theme }) => {
   };
   const _approveRequest = async (pinSecret, type, actionToken, code) => {
     switch (payload.method) {
+      case 'eth_signTransaction':
+        _walletConnectSignTransaction(pinSecret, type, actionToken, code, true);
+        break;
       case 'eth_sendTransaction':
         _walletConnectSignTransaction(pinSecret, type, actionToken, code);
         break;
       case 'eth_sign':
-      case 'personal_sign':
-        _walletConnectSignMessage(pinSecret, type, actionToken, code);
+        _walletConnectSignMessage(
+          pinSecret,
+          type,
+          actionToken,
+          code,
+          payload.params[1]
+        );
         break;
-      case 'eth_signTypedData':
-      case 'eth_signTypedData_v1':
-      case 'eth_signTypedData_v3':
-        _walletConnectSignTypedData(pinSecret, type, actionToken, code);
+      case 'personal_sign':
+        _walletConnectSignMessage(
+          pinSecret,
+          type,
+          actionToken,
+          code,
+          payload.params[0]
+        );
+        break;
+      default:
+        if (payload.method.startsWith('eth_signTypedData')) {
+          _walletConnectSignTypedData(pinSecret, type, actionToken, code);
+        }
         break;
     }
   };
@@ -445,12 +497,13 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       case 'eth_sendTransaction':
         return _getTransactionView();
       case 'eth_sign':
+        return _getSignView(payload.params[0], payload.params[1]);
       case 'personal_sign':
-        return _getSignView();
-      case 'eth_signTypedData':
-      case 'eth_signTypedData_v1':
-      case 'eth_signTypedData_v3':
-        return _getSignTypedDataView();
+        return _getSignView(payload.params[1], payload.params[0]);
+      default:
+        if (payload.method.startsWith('eth_signTypedData')) {
+          return _getSignTypedDataView(payload.params[1]);
+        }
     }
   };
   const _getBasicInfoView = () => {
@@ -501,9 +554,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       </React.Fragment>
     );
   };
-  const _getSignView = () => {
-    const message = payload.params[0];
-    const address = payload.params[1];
+  const _getSignView = (address, message) => {
     return (
       <View
         style={{
@@ -538,7 +589,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       </View>
     );
   };
-  const _getSignTypedDataView = () => {
+  const _getSignTypedDataView = typedData => {
     return (
       <View
         style={{
@@ -547,6 +598,16 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           backgroundColor: theme.colors.background,
         }}>
         {_getBasicInfoView()}
+
+        <Text
+          style={{
+            fontSize: 12,
+            color: Theme.colors.resultTitle,
+            textAlign: 'center',
+            marginVertical: 4,
+          }}>
+          {typedData}
+        </Text>
       </View>
     );
   };
@@ -748,10 +809,29 @@ const RequestScreen: () => React$Node = ({ theme }) => {
             style={[Styles.bottomButton]}
             disabled={amountError.key != null}
             labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
-            onPress={() => {
+            onPress={async () => {
+              setLoading(true);
+              let { isSms, error } = await checkAuthType(
+                enableBiometrics,
+                skipSmsVerify,
+                bioSetting,
+                accountSkipSmsVerify
+              );
+              setLoading(false);
+              if (error) {
+                setResult({
+                  type: TYPE_FAIL,
+                  error: I18n.t(`error_msg_${error.code}`, {
+                    defaultValue: error.message,
+                  }),
+                  title: I18n.t('check_failed'),
+                });
+                return;
+              }
               NavigationService.navigate('InputPinSms', {
                 modal: true,
                 from: 'Request',
+                isSms: isSms,
                 callback: (pinSecret, type, actionToken, code) => {
                   // NavigationService.navigate('Withdraw', {});
                   _approveRequest(pinSecret, type, actionToken, code);
@@ -759,9 +839,9 @@ const RequestScreen: () => React$Node = ({ theme }) => {
                 onError: error => {
                   FileLogger.debug(`${payload.method} fail: ${error.message}`);
                   _rejectRequest(
-                    error.code
-                      ? I18n.t(`error_msg_${error.code}`)
-                      : error.message
+                    I18n.t(`error_msg_${error.code}`, {
+                      defaultValue: error.message,
+                    })
                   );
                   goBack();
                 },
@@ -772,6 +852,17 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         </View>
       )}
 
+      {loading && (
+        <ActivityIndicator
+          color={theme.colors.primary}
+          size="large"
+          style={{
+            position: 'absolute',
+            alignSelf: 'center',
+            top: height / 2,
+          }}
+        />
+      )}
       {result && (
         <ResultModal
           visible={!!result}

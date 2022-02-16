@@ -179,8 +179,8 @@ const ConnectionListScreen: () => React$Node = ({ theme }) => {
     }
     let key = ethWallet.walletId;
     if (
-        state.apihistory.apihistory[key] == null ||
-        state.apihistory.apihistory[key].data == null
+      state.apihistory.apihistory[key] == null ||
+      state.apihistory.apihistory[key].data == null
     ) {
       return { start: 0, total: 0, data: [] };
     }
@@ -209,144 +209,150 @@ const ConnectionListScreen: () => React$Node = ({ theme }) => {
   //   _refresh();
   // }, [setFilterApiName, setListMode]);
   return (
-      <Container style={Styles.bottomContainer}>
-        <Headerbar
-            // backIcon={require('../assets/image/ic_cancel.png')}
-            transparent
-            title={I18n.t('walletconnect')}
-            onBack={_onBack}
-        />
-        <ScrollableTabView
-            renderTabBar={() => {
-              return renderTabBar(theme, _scrollX);
-            }}
-            onScroll={x => _scrollX.setValue(x)}>
-          {rawDataObj.data.length > 0 && (
-              <View
-                  style={{ paddingTop: 8, flex: 1, marginHorizontal: 16 }}
-                  tabLabel={{ label: I18n.t('api_history') }}>
-                <View
-                    style={{
-                      flexDirection: 'row',
-                      paddingVertical: 0,
-                    }}>
-                  <BottomActionMenu
-                      visible={showMenu1}
-                      currentSelect={filterApiNameIndex}
-                      scrollEnabled={true}
-                      data={[
-                        I18n.t('all_group_by_nonce'),
-                        I18n.t('all_ungroup'),
-                        Api.sendRawTx,
-                        Api.cancelTx,
-                        Api.signTx,
-                        Api.sign,
-                        Api.signTyped,
-                      ]}
-                      onClick={() => {
-                        setShowMenu1(true);
-                      }}
-                      onCancel={() => {
-                        setShowMenu1(false);
-                      }}
-                      onChange={_setFilterApiNameIndex}
-                      containerStyle={{ flex: 0, marginVertical: 10 }}
-                  />
-                  <BottomActionMenu
-                      visible={showMenu2}
-                      currentSelect={filterCancelableIndex}
-                      scrollEnabled={true}
-                      data={[
-                        I18n.t('all_progress'),
-                        I18n.t('cancelable'),
-                        I18n.t('uncancelable'),
-                      ]}
-                      onClick={() => {
-                        setShowMenu2(true);
-                      }}
-                      onCancel={() => {
-                        setShowMenu2(false);
-                      }}
-                      onChange={_setFilterCancelableIndex}
-                      containerStyle={{ flex: 0, marginVertical: 10, marginLeft: 8 }}
-                  />
-                </View>
-                <ApiHistoryList
-                    data={_getFilteredData(rawDataObj.data)}
-                    refreshing={loading == GET_NEW}
-                    onRefresh={_refresh}
-                    onEndReached={_fetchMoreHistory}
-                    footLoading={_hasMore() ? loading : NO_MORE}
-                    onPress={item => {
-                      navigate('ApiHistoryDetail', { apiHistory: item });
-                    }}
-                />
-              </View>
-          )}
+    <Container style={Styles.bottomContainer}>
+      <Headerbar
+        // backIcon={require('../assets/image/ic_cancel.png')}
+        transparent
+        title={I18n.t('walletconnect')}
+        onBack={_onBack}
+      />
+      <ScrollableTabView
+        renderTabBar={() => {
+          return renderTabBar(theme, _scrollX);
+        }}
+        onScroll={x => _scrollX.setValue(x)}>
+        {rawDataObj.data.length > 0 && (
           <View
-              style={{ paddingTop: 8, flex: 1, marginHorizontal: 16 }}
-              tabLabel={{ label: I18n.t('connections') }}>
-            <ConnectionList
-                data={connectingList}
-                onPress={_killSession}
+            style={{ paddingTop: 8, flex: 1, marginHorizontal: 16 }}
+            tabLabel={{ label: I18n.t('api_history') }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                paddingVertical: 0,
+              }}>
+              <BottomActionMenu
+                visible={showMenu1}
+                currentSelect={filterApiNameIndex}
+                scrollEnabled={true}
+                data={[
+                  I18n.t('all_group_by_nonce'),
+                  I18n.t('all_ungroup'),
+                  Api.sendRawTx,
+                  Api.cancelTx,
+                  Api.signTx,
+                  Api.sign,
+                  Api.signTyped,
+                ]}
+                onClick={() => {
+                  setShowMenu1(true);
+                }}
+                onCancel={() => {
+                  setShowMenu1(false);
+                }}
+                onChange={_setFilterApiNameIndex}
+                containerStyle={{
+                  flex: 0,
+                  marginVertical: 10,
+                  backgroundColor: theme.colors.filterBgColor,
+                }}
+              />
+              <BottomActionMenu
+                visible={showMenu2}
+                currentSelect={filterCancelableIndex}
+                scrollEnabled={true}
+                data={[
+                  I18n.t('all_progress'),
+                  I18n.t('cancelable'),
+                  I18n.t('uncancelable'),
+                ]}
+                onClick={() => {
+                  setShowMenu2(true);
+                }}
+                onCancel={() => {
+                  setShowMenu2(false);
+                }}
+                onChange={_setFilterCancelableIndex}
+                containerStyle={{
+                  flex: 0,
+                  marginVertical: 10,
+                  marginLeft: 8,
+                  backgroundColor: theme.colors.filterBgColor,
+                }}
+              />
+            </View>
+            <ApiHistoryList
+              data={_getFilteredData(rawDataObj.data)}
+              refreshing={loading == GET_NEW}
+              onRefresh={_refresh}
+              onEndReached={_fetchMoreHistory}
+              footLoading={_hasMore() ? loading : NO_MORE}
+              onPress={item => {
+                navigate('ApiHistoryDetail', { apiHistory: item });
+              }}
             />
-            {connectingList.length > 0 ? (
-                <FAB.Group
-                    theme={theme}
-                    color={theme.colors.primary}
-                    fabStyle={{ backgroundColor: theme.colors.pickerBg }}
-                    open={open}
-                    onStateChange={v => setOpen(!open)}
-                    icon={open ? 'close' : require('../assets/image/ic_setting.png')}
-                    actions={[
-                      {
-                        icon: 'link-off',
-                        color: theme.colors.primary,
-                        style: { backgroundColor: theme.colors.pickerBg },
-                        onPress: _killAllSession,
-                      },
-                      {
-                        icon: SCAN_ICON,
-                        color: theme.colors.primary,
-                        style: { backgroundColor: theme.colors.pickerBg },
-                        onPress: async () => {
-                          if (await checkCameraPermission()) {
-                            NavigationService.navigate('scanModal', {
-                              modal: true,
-                            });
-                          }
-                        },
-                      },
-                    ]}
-                />
-            ) : (
-                <FAB
-                    style={[Styles.fab, { marginRight: 0}]}
-                    icon={SCAN_ICON}
-                    color={theme.colors.primary}
-                    onPress={async () => {
-                      if (await checkCameraPermission()) {
-                        NavigationService.navigate('scanModal', { modal: true });
-                      }
-                    }}
-                />
-            )}
           </View>
-        </ScrollableTabView>
-
-        {result && (
-            <ResultModal
-                visible={!!result}
-                title={result.title}
-                message={result.message}
-                errorMsg={result.error}
-                type={result.type}
-                onButtonClick={result.buttonClick}
-                successButtonText={result.successButtonText}
-                secondaryConfig={result.secondaryConfig}
-            />
         )}
-      </Container>
+        <View
+          style={{ paddingTop: 8, flex: 1, marginHorizontal: 16 }}
+          tabLabel={{ label: I18n.t('connections') }}>
+          <ConnectionList data={connectingList} onPress={_killSession} />
+          {connectingList.length > 0 ? (
+            <FAB.Group
+              theme={theme}
+              color={theme.colors.primary}
+              fabStyle={{ backgroundColor: theme.colors.pickerBg }}
+              open={open}
+              onStateChange={v => setOpen(!open)}
+              icon={open ? 'close' : require('../assets/image/ic_setting.png')}
+              actions={[
+                {
+                  icon: 'link-off',
+                  color: theme.colors.primary,
+                  style: { backgroundColor: theme.colors.pickerBg },
+                  onPress: _killAllSession,
+                },
+                {
+                  icon: SCAN_ICON,
+                  color: theme.colors.primary,
+                  style: { backgroundColor: theme.colors.pickerBg },
+                  onPress: async () => {
+                    if (await checkCameraPermission()) {
+                      NavigationService.navigate('scanModal', {
+                        modal: true,
+                      });
+                    }
+                  },
+                },
+              ]}
+            />
+          ) : (
+            <FAB
+              style={[Styles.fab, { marginRight: 0 }]}
+              icon={SCAN_ICON}
+              color={theme.colors.primary}
+              onPress={async () => {
+                if (await checkCameraPermission()) {
+                  NavigationService.navigate('scanModal', { modal: true });
+                }
+              }}
+            />
+          )}
+        </View>
+      </ScrollableTabView>
+
+      {result && (
+        <ResultModal
+          visible={!!result}
+          title={result.title}
+          message={result.message}
+          errorMsg={result.error}
+          type={result.type}
+          onButtonClick={result.buttonClick}
+          successButtonText={result.successButtonText}
+          secondaryConfig={result.secondaryConfig}
+        />
+      )}
+    </Container>
   );
 };
 

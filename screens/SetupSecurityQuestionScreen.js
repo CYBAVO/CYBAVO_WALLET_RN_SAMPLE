@@ -154,7 +154,9 @@ const SetupSecurityQuestionScreen: () => React$Node = ({ theme }) => {
       setInputPinCode(false);
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('setup_failed'),
         buttonClick: () => {
           setResult(null);

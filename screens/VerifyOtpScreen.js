@@ -71,7 +71,6 @@ import SmoothPinCodeInput from '../components/SmoothPinCodeInput';
 import { useShakeAnimation } from '../utils/Hooks';
 import AnimatedProgressButton from '../components/AnimatedProgressButton';
 
-
 const CODE_LENGTH = 6;
 let VerifyOtpScreen: () => React$Node = ({ theme }) => {
   const dispatch = useDispatch();
@@ -152,7 +151,9 @@ let VerifyOtpScreen: () => React$Node = ({ theme }) => {
       setError(I18n.t('get_sms_fail_resend_hint'));
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('check_failed'),
         buttonClick: () => {
           setResult(null);
@@ -182,7 +183,9 @@ let VerifyOtpScreen: () => React$Node = ({ theme }) => {
       setError(I18n.t('get_sms_fail_resend_hint'));
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('get_sms_failed'),
         buttonClick: () => {
           setResult(null);
@@ -220,7 +223,10 @@ let VerifyOtpScreen: () => React$Node = ({ theme }) => {
         } else {
           setError(
             error.code
-              ? `(${error.code}) ` + I18n.t(`error_msg_${error.code}`)
+              ? `(${error.code}) ` +
+                  I18n.t(`error_msg_${error.code}`, {
+                    defaultValue: error.message,
+                  })
               : error.message
           );
         }

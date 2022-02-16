@@ -25,17 +25,19 @@ import Headerbar from './Headerbar';
 import {
   CHECK_ICON,
   LIST_ICON_SIMPLE_SIZE,
+  nftIcons,
   SMALL_ICON_SIMPLE_SIZE,
 } from '../Constants';
 import { getWalletKeyByWallet } from '../Helpers';
 import { fetchCurrenciesIfNeed } from '../store/actions';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import ListEmptyView from './ListEmptyView';
 const { width } = Dimensions.get('window');
 const clearIcon = require('../assets/image/ic_input_clear.png');
 const AssetPicker: () => React$Node = ({
   theme,
   rawData = [],
+  isNftTop = false,
   recentSet = new Set(),
   clickItem,
   initSelected = rawData.length > 0 ? rawData[0] : {},
@@ -44,7 +46,8 @@ const AssetPicker: () => React$Node = ({
     const s = `${item.currency}#${item.tokenAddress}`;
     return s;
   },
-  getMainText = item => item.currencySymbol,
+  getMainText = item =>
+    item.isNft ? item.currencyDisplayName : item.currencySymbol,
   getSubText = item => {
     if (item.currencyDisplayName) {
       return item.currencyDisplayName;
@@ -64,6 +67,9 @@ const AssetPicker: () => React$Node = ({
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState(initSelected);
   const [keyword, setKeyword] = useState('');
+  const nftWallets = useSelector(state => {
+    return state.wallets.nftWallets || [];
+  });
   const isSelected = item => {
     if (!selected == null || item == null) {
       return false;
@@ -115,14 +121,41 @@ const AssetPicker: () => React$Node = ({
     return false;
   };
   const getData = () => {
-    const allData = rawData.filter(item => _filter(item, keyword));
-    if (rawData.length <= 5) {
-      return [
-        {
-          title: I18n.t('all'),
-          data: allData,
-        },
-      ];
+    let subData = [];
+    let mainData = [];
+    let subDataTitle = '';
+    let mainDataTitle = '';
+    if (nftWallets.length == 0) {
+      mainData = rawData;
+      mainDataTitle = I18n.t('select_asset');
+      subDataTitle = I18n.t('select_asset_nft');
+    } else {
+      if (isNftTop) {
+        mainData = nftWallets;
+        subData = rawData.filter(item => !item.isNft);
+        mainDataTitle = I18n.t('asset_nft');
+        subDataTitle = I18n.t('asset');
+      } else {
+        mainData = rawData.filter(item => !item.isNft);
+        subData = nftWallets;
+        mainDataTitle = I18n.t('asset');
+        subDataTitle = I18n.t('asset_nft');
+      }
+    }
+    const allData = mainData.filter(item => _filter(item, keyword));
+    if (mainData.length <= 5) {
+      const d = [];
+      d.push({
+        title: mainDataTitle,
+        data: allData,
+      });
+      if (subData.length > 0) {
+        d.push({
+          title: subDataTitle,
+          data: subData,
+        });
+      }
+      return d;
     } else {
       let recentData = [];
       let otherData = [];
@@ -143,8 +176,14 @@ const AssetPicker: () => React$Node = ({
       }
       if (otherData.length > 0) {
         d.push({
-          title: I18n.t('all'),
+          title: mainDataTitle,
           data: otherData,
+        });
+      }
+      if (subData.length > 0) {
+        d.push({
+          title: subDataTitle,
+          data: subData,
         });
       }
       return d;
@@ -193,28 +232,54 @@ const AssetPicker: () => React$Node = ({
               flexDirection: 'row',
               alignItems: 'center',
               paddingLeft: 16,
+              flex: 4,
             }}>
-            <IconSvgXml xmlkey={getXmlKey(item)} fillType={'1'} />
-            <Text style={[styles.listItemText, Theme.fonts.default.heavy]}>
+            {item.isNft ? (
+              <Image
+                resizeMode="stretch"
+                source={nftIcons[item.iconIndex]}
+                style={{
+                  height: 32,
+                  width: 32,
+                  alignSelf: 'center',
+                }}
+              />
+            ) : (
+              <IconSvgXml xmlkey={getXmlKey(item)} fillType={'1'} />
+            )}
+            <Text
+              style={[styles.listItemText, Theme.fonts.default.heavy]}
+              numberOfLines={1}>
               {getMainText(item)}
             </Text>
-            <Text style={[styles.listItemSubText, Theme.fonts.default.regular]}>
-              {getSubText(item) || getMainText(item)}
+            <Text
+              style={[
+                styles.listItemSubText,
+                { maxWidth: '40%' },
+                Theme.fonts.default.regular,
+              ]}
+              numberOfLines={1}>
+              {item.isNft
+                ? '' //I18n.t(chainI18n[item.currency], { defaultValue: '' })
+                : getSubText(item) || getMainText(item)}
             </Text>
           </View>
-          <View />
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'flex-end',
-              marginRignt: 16,
+              justifyContent: 'flex-end',
+              marginRight: 16,
+              flex: 3,
             }}>
             <Text
               style={[
                 Theme.fonts.default.regular,
                 styles.listItemSubText,
-                { marginRight: 3, paddingBottom: 3 },
-              ]}>
+                { marginRight: 3, paddingBottom: 3, maxWidth: '80%' },
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
               {getBalanceText(item)}
             </Text>
             {isSelected(item) ? (
@@ -251,26 +316,37 @@ const AssetPicker: () => React$Node = ({
             justifyContent: 'center',
             alignItems: 'center',
           }}>
-          <IconSvgXml
-            xmlkey={getXmlKey(selected)}
-            width={SMALL_ICON_SIMPLE_SIZE}
-            height={SMALL_ICON_SIMPLE_SIZE}
-          />
-          <View>
-            <Text
-              style={[
-                Styles.currencyTextMain,
-                Theme.fonts.default.heavy,
-                {
-                  maxWidth: '100%',
-                  textAlign: 'center',
-                  paddingBottom: 3,
-                  fontSize: 20,
-                },
-              ]}>
-              {getSubText(selected)}
-            </Text>
-          </View>
+          {selected.isNft ? (
+            <Image
+              resizeMode="stretch"
+              source={nftIcons[selected.iconIndex]}
+              style={{
+                height: 20,
+                width: 20,
+                alignSelf: 'center',
+              }}
+            />
+          ) : (
+            <IconSvgXml
+              xmlkey={getXmlKey(selected)}
+              width={SMALL_ICON_SIMPLE_SIZE}
+              height={SMALL_ICON_SIMPLE_SIZE}
+            />
+          )}
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="middle"
+            style={[
+              Styles.currencyTextMain,
+              Theme.fonts.default.heavy,
+              {
+                maxWidth: '90%',
+                textAlign: 'center',
+                fontSize: 20,
+              },
+            ]}>
+            {getSubText(selected)}
+          </Text>
         </View>
         <Image source={require('../assets/image/ic_arrow_right.png')} />
       </TouchableOpacity>
@@ -310,7 +386,12 @@ const AssetPicker: () => React$Node = ({
             renderSectionHeader={_renderSectionHeader}
             keyExtractor={getKey}
             contentContainerStyle={styles.listContainer}
-            ListEmptyComponent={<ListEmptyView />}
+            ListEmptyComponent={
+              <ListEmptyView
+                text={I18n.t('no_search_result')}
+                img={require('../assets/image/ic_no_search_result.png')}
+              />
+            }
           />
         </Container>
       </Modal>
@@ -332,11 +413,13 @@ const styles = StyleSheet.create({
   listItemText: {
     fontSize: 16,
     marginLeft: 15,
+    // maxWidth: '75%',
     fontWeight: 'bold',
   },
   listItemSubText: {
     fontSize: 14,
     marginLeft: 15,
+    flexShrink: 1,
     color: Theme.colors.placeholder,
   },
   searchBar: {

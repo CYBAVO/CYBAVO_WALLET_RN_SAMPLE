@@ -9,7 +9,7 @@ import {
   AUTH_LOADING,
   AUTH_ERROR,
   AUTH_UPDATE_SIGN_IN_STATE,
-  AUTH_UPDATE_IDENTITY, AUTH_UPDATE_DEV, AUTH_UPDATE_UI_FLAG,
+  AUTH_UPDATE_IDENTITY, AUTH_UPDATE_DEV, AUTH_UPDATE_UI_FLAG, AUTH_UPDATE_FOR_NEWS,
 } from '../actions/auth';
 import { COMMON_RESET } from '../actions/common';
 const { SignInState } = Auth;
@@ -46,6 +46,11 @@ function auth(state = defaultState, action) {
       return {
         ...state,
         config: action.config,
+      };
+    case AUTH_UPDATE_FOR_NEWS:
+      return {
+        ...state,
+        showNews: action.showNews,
       };
     case AUTH_LOADING:
       return {

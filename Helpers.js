@@ -8,12 +8,25 @@ import { Toast } from 'native-base';
 import {
   Animated,
   Easing,
+  Image,
   Linking,
   PermissionsAndroid,
   Platform,
+  TouchableOpacity,
   View,
 } from 'react-native';
-import { Coin, SERVICE_EMAIL, TX_EXPLORER_URIS } from './Constants';
+import {
+  CBO_SEPARATOR,
+  chainI18n,
+  Coin,
+  NFT_EXPLORER_URIS,
+  nftIcons,
+  replaceConfig,
+  ROUND_BUTTON_HEIGHT,
+  ROUND_BUTTON_ICON_SIZE,
+  SERVICE_EMAIL,
+  TX_EXPLORER_URIS,
+} from './Constants';
 import BigNumber from 'bignumber.js';
 import supportedChains from './utils/chains';
 import TabBar from './components/TabBar';
@@ -24,6 +37,18 @@ import I18n from './i18n/i18n';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import * as DeviceInfo from 'react-native-device-info';
 import { uniqueIds } from './BuildConfig';
+import { BIO_SETTING_USE_SMS, startClock } from './store/actions';
+import { Wallets } from '@cybavo/react-native-wallet-service';
+import { TYPE_FAIL } from './components/ResultModal';
+import { nftStartColors, Theme } from './styles/MainTheme';
+import LinearGradient from 'react-native-linear-gradient';
+import { Surface, Text, TouchableRipple } from 'react-native-paper';
+import { CANCELLED } from './store/reducers/transactions';
+import Styles from './styles/Styles';
+import DisplayTime from './components/DisplayTime';
+import { DotIndicator } from 'react-native-indicators';
+import { SvgUri } from 'react-native-svg';
+import IconSvgXmlGeneral from './components/IconSvgXmlGeneral';
 
 export function toastError(error) {
   Toast.show({
@@ -65,10 +90,11 @@ export function getTrendDirectionAndStr(str) {
 }
 export function inDevList() {
   let uniqueId = DeviceInfo.getUniqueId();
-  let inList = uniqueIds.includes(uniqueId);
+  let inList = uniqueIds.includes(uniqueId) || uniqueIds.includes('all');
   console.debug('uniqueId:' + uniqueId);
   console.debug('uniqueIds:' + uniqueIds);
   return inList;
+  // return true;
 }
 export function getFormattedTrend(str) {
   if (str.indexOf('-') != 0) {
@@ -79,14 +105,21 @@ export function getFormattedTrend(str) {
 }
 export async function checkCameraPermission() {
   try {
+    let value = false;
     if (Platform.OS == 'ios') {
       let cameraStatus = await request(PERMISSIONS.IOS.CAMERA);
-      return cameraStatus === RESULTS.GRANTED;
+      value = cameraStatus === RESULTS.GRANTED;
     } else {
       let granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.CAMERA
       );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
+      value = granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    if (value != true) {
+      toast(I18n.t('grant_camera_permission_hint'));
+      return false;
+    } else {
+      return true;
     }
   } catch (error) {
     toastError(error);
@@ -103,12 +136,18 @@ export async function checkStoragePermission() {
       PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
     );
     if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+      toast(I18n.t('grant_storage_permission_hint'));
       return false;
     }
     granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
     );
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
+    if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+      toast(I18n.t('grant_storage_permission_hint'));
+      return false;
+    } else {
+      return true;
+    }
   } catch (error) {
     console.log('checkStoragePermission failed', error);
     toastError(error);
@@ -118,23 +157,40 @@ export async function checkStoragePermission() {
 export function isErc20(wallet) {
   return wallet.currency == Coin.ETH && hasValue(wallet.tokenAddress);
 }
+export function isBsc20(wallet) {
+  return wallet.currency == Coin.BSC && hasValue(wallet.tokenAddress);
+}
+export function isBsc(wallet) {
+  return wallet.currency == Coin.BSC;
+}
 export function getAvailableBalance(balanceItem) {
   if (balanceItem) {
-    return (
-      balanceItem.availableBalance ||
-      balanceItem.tokenBalance ||
-      balanceItem.balance
-    );
+    if (balanceItem.availableBalance) {
+      return balanceItem.availableBalance;
+    } else {
+      if (balanceItem.tokenAddress) {
+        return balanceItem.tokenBalance || '0';
+      } else {
+        return balanceItem.balance || '0';
+      }
+    }
   }
   return '0';
 }
 export function effectiveBalance(balanceItem, defaultText = '…') {
   if (balanceItem) {
-    return balanceItem.tokenBalance || balanceItem.balance || defaultText;
+    if (balanceItem.tokenAddress) {
+      return balanceItem.tokenBalance || '0';
+    } else {
+      return balanceItem.balance || '0';
+    }
   }
   return defaultText;
 }
 export function getWalletKeyByWallet(wallet) {
+  if (wallet == null) {
+    return '';
+  }
   let key = `${wallet.currency}#${wallet.tokenAddress}#${wallet.address}`;
   return key;
 }
@@ -143,13 +199,394 @@ export function getWalletKey(currency, tokenAddress, address) {
   return key;
 }
 
+export function getEstimateResultKey(
+  currency,
+  tokenAddress,
+  amount,
+  fee,
+  walletId,
+  toAddress
+) {
+  return `${currency}#${tokenAddress}#${amount}#${fee}#${walletId}#${toAddress}`;
+}
 export function getTransactionKey(walletKey, transactions) {
   let txKey = transactions.txid
     ? `${walletKey}_${transactions.txid}`
     : `${walletKey}_${transactions.timestamp}`;
   return txKey;
 }
+export function renderTxItem(
+  { item },
+  onTransactionPress,
+  sendImg,
+  receiveImg,
+  getCurrencySymbol,
+  tokenId,
+  amount
+) {
+  const opacity = item.pending ? 0.35 : 1;
+  const decorationLine =
+    item.replaceStatus === CANCELLED ? 'line-through' : 'none';
+  return (
+    <Surface
+      style={[
+        Styles.listItem,
+        {
+          backgroundColor: Theme.colors.background,
+        },
+      ]}>
+      <TouchableRipple
+        onPress={() => onTransactionPress(item)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderColor: Theme.colors.backgroundPressed,
+          borderBottomWidth: 1,
+          borderTopWidth: 0,
+          borderLeftWidth: 0,
+          borderRightWidth: 0,
+        }}>
+        <>
+          <Image
+            source={item.out ? sendImg : receiveImg}
+            resizeMode="stretch"
+            style={{
+              width: 24,
+              height: 24,
+              opacity: opacity,
+              marginLeft: 16,
+            }}
+          />
+          <View style={[Styles.itemBody, { flex: 2 }]}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginLeft: 8,
+              }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  marginBottom: 4,
+                }}>
+                {item.replaceStatus != null && (
+                  <Text
+                    style={[
+                      Styles.cardDesc,
+                      {
+                        opacity: opacity * 0.7,
+                        marginLeft: 0,
+                        marginRight: 8,
+                      },
+                      Theme.fonts.default.regular,
+                    ]}>{`#${item.nonce}`}</Text>
+                )}
+                <DisplayTime
+                  textStyle={[
+                    Styles.cardDesc,
+                    {
+                      opacity: opacity * 0.7,
+                      marginLeft: 0,
+                      marginRight: 16,
+                    },
+                    Theme.fonts.default.regular,
+                  ]}
+                  format="YYYY-M-D"
+                  unix={item.timestamp}
+                />
+                {!item.success && (
+                  <Text style={{ color: Theme.colors.error, fontSize: 12 }}>
+                    {I18n.t('failed')}
+                  </Text>
+                )}
+                {item.pending && item.success && !item.dropped && (
+                  <View style={{ flexDirection: 'row' }}>
+                    <Text style={{ color: Theme.colors.melon, fontSize: 12 }}>
+                      {I18n.t('pending')}
+                    </Text>
+                    <View style={{ marginLeft: 8 }}>
+                      <DotIndicator
+                        color={Theme.colors.primary}
+                        size={4}
+                        count={3}
+                      />
+                    </View>
+                  </View>
+                )}
+              </View>
 
+              {replaceConfig[item.replaceStatus] && (
+                <Text
+                  style={[
+                    // Styles.tag,
+                    {
+                      color: Theme.colors.text,
+                      backgroundColor: replaceConfig[item.replaceStatus].color,
+                      fontSize: 8,
+                      paddingVertical: 2,
+                      borderRadius: 7,
+                      paddingHorizontal: 5,
+                      opacity: opacity,
+                      marginLeft: 8,
+                      overflow: 'hidden',
+                    },
+                  ]}>
+                  {I18n.t(replaceConfig[item.replaceStatus].i18n)}
+                </Text>
+              )}
+            </View>
+            {item.txid != null && item.txid.length > 0 && (
+              <View style={{ flexDirection: 'row', flex: 1, marginTop: 3 }}>
+                <Text
+                  style={[
+                    Styles.tag,
+                    {
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      fontSize: 8,
+                      opacity: 0.5,
+                    },
+                  ]}>
+                  {I18n.t('txid')}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="middle"
+                  style={[
+                    Styles.cardDesc,
+                    Theme.fonts.default.regular,
+                    { marginLeft: 2, flexShrink: 1, marginRight: 4 },
+                  ]}>
+                  {item.txid}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View
+            style={[
+              Styles.itemBody,
+              { alignItems: 'flex-end', paddingRight: 16 },
+            ]}>
+            {hasValue(tokenId) ? (
+              <View style={{ flexDirection: 'column' }}>
+                <Text
+                  style={[
+                    Styles.cardTitle,
+                    Theme.fonts.default.heavy,
+                    {
+                      opacity: opacity,
+                      textDecorationLine: decorationLine,
+                      fontSize: 14,
+                      flexShrink: 1,
+                    },
+                    Theme.fonts.default.heavyMax,
+                  ]}>
+                  {`#${tokenId}`}
+                </Text>
+                <Text
+                  style={[
+                    Styles.cardDescHorizontal,
+                    Theme.fonts.default.heavy,
+                    { opacity: opacity, marginTop: 3 },
+                  ]}>
+                  {amount}
+                </Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row' }}>
+                <Text
+                  style={[
+                    Styles.cardTitle,
+                    Theme.fonts.default.heavy,
+                    {
+                      opacity: opacity,
+                      textDecorationLine: decorationLine,
+                      fontSize: 14,
+                      flexShrink: 1,
+                    },
+                    Theme.fonts.default.heavyMax,
+                  ]}>
+                  {item.amount}
+                </Text>
+                <Text
+                  style={[
+                    Styles.cardDescHorizontal,
+                    Theme.fonts.default.heavy,
+                    { opacity: opacity },
+                  ]}>
+                  {getCurrencySymbol(item)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </>
+      </TouchableRipple>
+    </Surface>
+  );
+}
+
+export function renderNftItem(
+  item,
+  onClickAction,
+  config,
+  expolreImg,
+  padding = 0,
+  tokenUriMap = {}
+) {
+  const { columns } = item;
+  let MARGIN_4 = { ios: 4, android: 0 };
+  return (
+    <View
+      key="$container"
+      style={[
+        {
+          flex: 1,
+          flexDirection: 'row',
+          backgroundColor: Theme.colors.background,
+          paddingHorizontal: padding,
+        },
+      ]}>
+      {columns.map((column, columnIndex) => {
+        return (
+          <View key={`$column-${columnIndex}`} style={{ flex: 1 }}>
+            {columns[columnIndex].map((ii, iiIndex) => {
+              const {
+                startColor,
+                endColor,
+                currencyDisplayName,
+                tokenId,
+                amount,
+                currency,
+                tokenAddress,
+                icon,
+              } = ii;
+              let mapKey = `${currency}#${tokenAddress}#${tokenId}`;
+              return (
+                <LinearGradient
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  colors={[startColor, endColor]}
+                  style={{
+                    padding: 2,
+                    marginRight: columnIndex % 2 == 0 ? 8 : 0,
+                    marginLeft: columnIndex % 2 == 1 ? 8 : 0,
+                    marginBottom: 16,
+                    borderRadius: 12,
+                  }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      onClickAction(ii, tokenId);
+                    }}
+                    style={{
+                      flex: 1,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingTop: 24,
+                      paddingBottom: 28,
+                      paddingHorizontal: 16,
+                    }}>
+                    <IconSvgXmlGeneral
+                      url={
+                        tokenUriMap[mapKey] ? tokenUriMap[mapKey].image : null
+                      }
+                      placeholder={icon}
+                      style={{
+                        height: 56,
+                        width: 56,
+                        alignSelf: 'center',
+                        marginBottom: 8,
+                      }}
+                    />
+                    <Text
+                      numberOfLines={3}
+                      ellipsizeMode="tail"
+                      style={[
+                        {
+                          fontSize: 14,
+                          marginTop: MARGIN_4[Platform.OS],
+                          textAlign: 'center',
+                        },
+                        Theme.fonts.default.heavyBold,
+                      ]}>
+                      {currencyDisplayName}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        opacity: 0.7,
+                        marginTop: MARGIN_4[Platform.OS],
+                      }}>
+                      {I18n.t(chainI18n[currency], { defaultValue: '' })}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      ellipsizeMode="middle"
+                      style={[
+                        {
+                          fontSize: 12,
+                          marginTop: MARGIN_4[Platform.OS],
+                          textAlign: 'center',
+                        },
+                        Theme.fonts.default.heavyBold,
+                      ]}>
+                      {`#${tokenId}`}
+                    </Text>
+                    {amount && (
+                      <Text
+                        numberOfLines={1}
+                        ellipsizeMode="middle"
+                        style={[
+                          {
+                            fontSize: 12,
+                            marginTop: MARGIN_4[Platform.OS],
+                            textAlign: 'center',
+                          },
+                        ]}>
+                        {amount}
+                      </Text>
+                    )}
+                    <TouchableOpacity
+                      height={ROUND_BUTTON_HEIGHT}
+                      style={[
+                        {
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          marginTop: 20,
+                        },
+                      ]}
+                      color={'transparent'}
+                      onPress={() =>
+                        explorerNft(currency, tokenAddress, tokenId, config)
+                      }>
+                      <Image
+                        source={expolreImg}
+                        style={{
+                          width: ROUND_BUTTON_ICON_SIZE,
+                          height: ROUND_BUTTON_ICON_SIZE,
+                        }}
+                      />
+                      <Text
+                        style={[
+                          {
+                            marginLeft: 4,
+                            color: Theme.colors.text,
+                            fontSize: 12,
+                          },
+                          Theme.fonts.default.heavyBold,
+                        ]}>
+                        {I18n.t('view_on_explore')}
+                      </Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                </LinearGradient>
+              );
+            })}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 export function getExchangeAmountFromWallets(
   wallets,
   exchangeCurrency,
@@ -162,7 +599,13 @@ export function getExchangeAmountFromWallets(
   for (let i = 0; i < wallets.length; i++) {
     let key = `${wallets[i].currency}#${wallets[i].tokenAddress}#${exchangeCurrency}`;
     let balanceItem = balances[getWalletKeyByWallet(wallets[i])] || {};
-    let balance = balanceItem.tokenBalance || balanceItem.balance || null;
+    let balance;
+
+    if (balanceItem.tokenAddress) {
+      balance = balanceItem.tokenBalance;
+    } else {
+      balance = balanceItem.balance;
+    }
     let price = currencyPrice[key];
     if (price && balance) {
       amount += Number(price * balance);
@@ -194,11 +637,30 @@ export function getExchangeAmount(
   let n = new BigNumber(amount);
   return n.toFixed(n.decimalPlaces());
 }
-export function getEthGasFeeSub(num, multiplier, n) {
+export function getEstimateGasFeeSub(feeStr, num, min, replaceValue) {
   if (isNaN(num)) {
     return 0;
   }
-  let bignum = BigNumber(num).multipliedBy(multiplier);
+  let bigFee = BigNumber(feeStr);
+  let bigEst = BigNumber(num);
+  return {
+    amountUi: bigEst.toFixed(bigEst.decimalPlaces()),
+    lessThenMin: bigEst.isLessThanOrEqualTo(min),
+  };
+}
+export function getEthGasFeeSub(feeNum, multiplier, n, replaceValue) {
+  if (isNaN(feeNum)) {
+    return 0;
+  }
+  let bignum = BigNumber(feeNum).multipliedBy(multiplier);
+  if (replaceValue && bignum.isLessThanOrEqualTo(n)) {
+    let rValue = n.div(multiplier);
+    return {
+      amountUi: n.toFixed(n.decimalPlaces()),
+      lessThenMin: false,
+      rValue: rValue.toFixed(rValue.decimalPlaces()),
+    };
+  }
   return {
     amountUi: bignum.toFixed(bignum.decimalPlaces()),
     lessThenMin: bignum.isLessThanOrEqualTo(n),
@@ -220,15 +682,52 @@ export const getTransactionExplorerUri = (
   return template.replace('%s', txid);
 };
 
+export const getNftExplorerUri = (currency, tokenAddress, tokenId, config) => {
+  const template = NFT_EXPLORER_URIS[config]
+    ? NFT_EXPLORER_URIS[config][`${currency}`]
+    : NFT_EXPLORER_URIS.main[`${currency}`];
+  if (!template) {
+    return null;
+  }
+  return template.replace('%s1', tokenAddress).replace('%s2', tokenId);
+};
+
+export const explorerNft = (currency, tokenAddress, tokenId, config) => {
+  const uri = getNftExplorerUri(currency, tokenAddress, tokenId, config);
+  if (uri) {
+    Linking.openURL(uri).catch(console.error);
+  }
+};
+export const getNftColorIndex = index => {
+  return index % nftStartColors.length;
+};
+
+export const getNftIconIndex = index => {
+  return index % nftIcons.length;
+};
+
 export const explorer = (currency, tokenAddress, txid, config) => {
   const uri = getTransactionExplorerUri(currency, tokenAddress, txid, config);
   if (uri) {
     Linking.openURL(uri).catch(console.error);
   }
 };
-
+export function strToBigNumber(str) {
+  try {
+    if (!hasValue(str)) {
+      return BigNumber(0);
+    }
+    let n = Number(str);
+    if (isNaN(n)) {
+      return BigNumber(0);
+    }
+    return BigNumber(n);
+  } catch (error) {
+    return BigNumber(0);
+  }
+}
 export function getTotalFeeFromLimit(gasPriceStr, gasLimitStr) {
-  if (!hasValue(gasPriceN) || !hasValue(gasLimitN)) {
+  if (!hasValue(gasPriceStr) || !hasValue(gasLimitStr)) {
     return null;
   }
   let gasPriceN = Number(gasPriceStr);
@@ -240,6 +739,50 @@ export function getTotalFeeFromLimit(gasPriceStr, gasLimitStr) {
   let gasLimit = BigNumber(gasLimitN);
   let total = gasPrice.multipliedBy(gasLimit);
   return { gasPrice, gasLimit, total };
+}
+export async function checkAuthType(
+  enableBiometrics,
+  skipSmsVerify,
+  bioSetting,
+  accountSkipSmsVerify
+) {
+  console.log('_checkAuthType' + enableBiometrics + ',' + skipSmsVerify);
+  if (!enableBiometrics || skipSmsVerify) {
+    return { isSms: false };
+  }
+  try {
+    if (bioSetting == BIO_SETTING_USE_SMS) {
+      await Wallets.updateDeviceInfoWithType(Wallets.BiometricsType.NONE);
+      return { isSms: true };
+    }
+    let { exist } = await Wallets.isBioKeyExist();
+    let { biometricsType } = await Wallets.getBiometricsType();
+    console.debug(`exist:${exist}, biometricsType:${biometricsType}`);
+    if (biometricsType == Wallets.BiometricsType.NONE) {
+      if (accountSkipSmsVerify) {
+        return {
+          isSms: false,
+          error: {
+            code: -1,
+            message: I18n.t('error_not_support_bio_but_account_skip_sms'),
+          },
+        };
+      }
+      if (exist) {
+        await Wallets.updateDeviceInfo();
+      }
+      return { isSms: true };
+    } else {
+      if (!exist) {
+        await Wallets.updateDeviceInfo();
+        await Wallets.registerPubkey();
+      }
+      return { isSms: false };
+    }
+  } catch (error) {
+    console.debug('_checkAuthType pack fail', error);
+    return { isSms: false, error: error };
+  }
 }
 export function getEthGasFeeWithPreLimit(feeObj, usedFee) {
   if (!usedFee) {
@@ -279,9 +822,89 @@ export function getEthGasFeeWithPreLimit(feeObj, usedFee) {
     },
   };
 }
+export async function getEstimateGasFee(
+  feeObj,
+  currency,
+  tokenAddress,
+  minumn,
+  amountStr,
+  walletId,
+  toAddress
+) {
+  try {
+    let r1 = await Wallets.estimateTransaction(
+      currency,
+      tokenAddress,
+      amountStr,
+      feeObj.high.amount,
+      walletId,
+      toAddress
+    );
+    let r2 = await Wallets.estimateTransaction(
+      currency,
+      tokenAddress,
+      amountStr,
+      feeObj.medium.amount,
+      walletId,
+      toAddress
+    );
+    let r3 = await Wallets.estimateTransaction(
+      currency,
+      tokenAddress,
+      amountStr,
+      feeObj.low.amount,
+      walletId,
+      toAddress
+    );
+    let minumNum = Number(minumn);
+    minumNum = isNaN(minumNum)
+      ? BigNumber(0)
+      : BigNumber(minumNum).multipliedBy(1.1);
+
+    let lowObj = getEstimateGasFeeSub(
+      feeObj.low.amount,
+      Number(r3.blockchainFee),
+      minumNum
+    );
+    let mediumObj = getEstimateGasFeeSub(
+      feeObj.medium.amount,
+      Number(r2.blockchainFee),
+      minumNum
+    );
+    let highObj = getEstimateGasFeeSub(
+      feeObj.high.amount,
+      Number(r1.blockchainFee),
+      minumNum
+    );
+    let v = {
+      min: minumNum.toFixed(minumNum.decimalPlaces()),
+      low: {
+        ...feeObj.low,
+        amountUi: lowObj.amountUi,
+        lessThenMin: lowObj.lessThenMin,
+      },
+      medium: {
+        ...feeObj.medium,
+        amountUi: mediumObj.amountUi,
+        lessThenMin: mediumObj.lessThenMin,
+      },
+      high: {
+        ...feeObj.high,
+        amountUi: highObj.amountUi,
+        lessThenMin: highObj.lessThenMin,
+      },
+    };
+    return v;
+  } catch (error) {
+    return getEthGasFee(feeObj, currency, tokenAddress, minumn);
+  }
+}
 export function getEthGasFee(feeObj, currency, tokenAddress, minumn) {
-  let multiplier =
-    currency === Coin.ETH ? (hasValue(tokenAddress) ? 90000 : 21000) : 1;
+  let multiplier = isETHForkChain(currency)
+    ? hasValue(tokenAddress)
+      ? 90000
+      : 21000
+    : 1;
   let minumNum = Number(minumn);
   minumNum = isNaN(minumNum)
     ? BigNumber(0)
@@ -292,32 +915,47 @@ export function getEthGasFee(feeObj, currency, tokenAddress, minumn) {
     multiplier,
     minumNum
   );
-  let highObj = getEthGasFeeSub(
-    Number(feeObj.high.amount),
-    multiplier,
-    minumNum
-  );
-  return {
+  let highNum = Number(feeObj.high.amount);
+  let highObj = getEthGasFeeSub(highNum, multiplier, minumNum, true);
+  if (highObj.rValue) {
+    feeObj.high.amount = highObj.rValue;
+    highObj.rValue = null;
+  }
+  let v = {
     min: minumNum.toFixed(minumNum.decimalPlaces()),
     low: {
       ...feeObj.low,
-      ...lowObj,
+      amountUi: lowObj.amountUi,
+      lessThenMin: lowObj.lessThenMin,
     },
     medium: {
       ...feeObj.medium,
-      ...mediumObj,
+      amountUi: mediumObj.amountUi,
+      lessThenMin: mediumObj.lessThenMin,
     },
     high: {
       ...feeObj.high,
-      ...highObj,
+      amountUi: highObj.amountUi,
+      lessThenMin: highObj.lessThenMin,
     },
   };
+  return v;
+}
+export function isFeeDifferent(currency, tokenAddress) {
+  if (currency == Coin.ETH && hasValue(tokenAddress)) {
+    return true;
+  }
+  if (currency == Coin.BSC) {
+    return true;
+  }
+  return false;
 }
 export function getEstimateFee(currency, tokenAddress, fee) {
   switch (currency) {
     case Coin.BTC:
       return BigNumber(0.001);
     case Coin.ETH:
+    case Coin.BSC:
       let feeNum = Number(fee);
       if (isNaN(feeNum)) {
         feeNum = 0;
@@ -350,9 +988,6 @@ export function getFeeDescI18n(rawText) {
   } catch (e) {
     return rawText;
   }
-  if (!rawText) {
-    return '';
-  }
 }
 export function hasValue(str) {
   return str != null && str.length > 0;
@@ -382,6 +1017,18 @@ export function animateSwitchPin(animPinInput, forward, v1 = 1, v2 = 0) {
     duration: ANIM_SWITCH_DURATION,
     useNativeDriver: true,
   }).start();
+}
+export function animateSwitchPinWithCallback(
+  animPinInput,
+  forward,
+  callback = () => {}
+) {
+  Animated.timing(animPinInput, {
+    toValue: forward ? 1 : 0,
+    easing: Easing.out(Easing.linear),
+    duration: 400,
+    useNativeDriver: true,
+  }).start(callback);
 }
 export function getRestCurrencies(currencies, wallets) {
   if (!currencies || !currencies.length) {
@@ -413,6 +1060,61 @@ export function getFullName(givenName, familyName) {
 export function hasMemo(wallet) {
   return [Coin.EOS, Coin.XRP].includes(wallet.currency);
 }
+export function getFeeUnit(wallet, currencies) {
+  if (hasValue(wallet.tokenAddress)) {
+    let parentCurrency = getParentCurrency(wallet, currencies);
+    if (parentCurrency == null) {
+      return wallet.currencySymbol;
+    }
+    return parentCurrency.symbol;
+  }
+  return wallet.currencySymbol;
+}
+export function getParentCurrency(wallet, currencies) {
+  if (!wallet || !currencies) {
+    return null;
+  }
+  const r = currencies.filter(
+    c => wallet.currency === c.currency && !c.tokenAddress
+  );
+  if (r.length > 0) {
+    return r[0];
+  }
+  return null;
+}
+export function getFeeNote(currency, tokenAddress) {
+  return hasValue(tokenAddress) && isETHForkChain(currency)
+    ? ` (${I18n.t('estimated')})`
+    : '';
+}
+export function isETHForkChain(currency) {
+  return (
+    Coin.ETH ||
+    Coin.BSC ||
+    Coin.CPSC ||
+    Coin.MATIC ||
+    Coin.HECO ||
+    Coin.OKT ||
+    Coin.OPTIMISM ||
+    Coin.XDAI ||
+    Coin.ARBITRUM ||
+    Coin.FTM ||
+    Coin.CELO ||
+    Coin.PALM ||
+    Coin.ONE ||
+    Coin.AVAXC ||
+    Coin.TT ||
+    Coin.KUB ||
+    Coin.KOVAN
+  );
+}
+export function animateFadeIn(animOpacity, toValue, duration, callback) {
+  Animated.timing(animOpacity, {
+    toValue: toValue,
+    duration: duration,
+    useNativeDriver: true,
+  }).start(callback);
+}
 export function animateFadeInOut(animOpacity, duration, callback) {
   Animated.sequence([
     Animated.timing(animOpacity, {
@@ -442,42 +1144,54 @@ export function sendLogFilesByEmail(to, subject, body) {
 }
 
 export function checkWalletConnectUri(str) {
+  let r = {
+    valid: false,
+    address: null,
+    chainId: null,
+    message: null,
+    uri: str,
+  };
+  try {
+    let arr = str.split(CBO_SEPARATOR);
+    if (arr.length == 3) {
+      r.address = arr[0];
+      r.chainId = parseInt(arr[1]);
+      r.uri = arr[2];
+      str = arr[2];
+    }
+  } catch (e) {
+    console.error(error);
+  }
   const pathStart = str.indexOf(':');
   const pathEnd = str.indexOf('?') !== -1 ? str.indexOf('?') : undefined;
   const protocol = str.substring(0, pathStart);
   const path = str.substring(pathStart + 1, pathEnd);
   if (protocol != 'wc') {
-    return { valid: false, message: 'URI format is invalid' };
+    r.message = 'URI format is invalid';
+    return r;
   }
   let values = path.split('@');
   let handshakeTopic = values[0];
   if (!handshakeTopic) {
-    return {
-      valid: false,
-      message: 'Invalid or missing handshakeTopic parameter value',
-    };
+    r.message = 'Invalid or missing handshakeTopic parameter value';
+    return r;
   }
   const queryString = typeof pathEnd !== 'undefined' ? str.substr(pathEnd) : '';
   if (queryString == '') {
-    return {
-      valid: false,
-      message: 'Missing queryString',
-    };
+    r.message = 'Missing queryString';
+    return r;
   }
   let result = parseQueryString(queryString);
   if (!result.bridge) {
-    return {
-      valid: false,
-      message: 'Invalid or missing bridge url parameter value',
-    };
+    r.message = 'Invalid or missing bridge url parameter value';
+    return r;
   }
   if (!result.key) {
-    return {
-      valid: false,
-      message: 'Invalid or missing key parameter value',
-    };
+    r.message = 'Invalid or missing key parameter value';
+    return r;
   }
-  return { valid: true };
+  r.valid = true;
+  return r;
 }
 
 export function parseQueryString(queryString: string): any {
@@ -574,6 +1288,21 @@ export function getWalletConnectSvg2() {
     </g>
 </svg>`;
 }
+export function getInfoSvg(color) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <g fill="none" fill-rule="evenodd">
+        <g fill="${color}" fill-rule="nonzero">
+            <g>
+                <g>
+                    <g>
+                        <path d="M8 1c3.866 0 7 3.134 7 7s-3.134 7-7 7-7-3.134-7-7 3.134-7 7-7zm0 9c-.552 0-1 .448-1 1s.448 1 1 1 1-.448 1-1-.448-1-1-1zm0-5.5c-.552 0-1 .448-1 1v2l.007.117c.057.497.48.883.993.883.552 0 1-.448 1-1v-2l-.007-.117C8.936 4.886 8.513 4.5 8 4.5z" transform="translate(-24 -629) translate(16 619) translate(8 8) translate(0 2)"/>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>`;
+}
 
 export function getConnectionList(map) {
   if (!map) {
@@ -596,7 +1325,7 @@ export function getConnectionList(map) {
   });
   return data;
 }
-export function renderTabBar(theme, _scrollX) {
+export function renderTabBar(theme, _scrollX, onPress) {
   // 6 is a quantity of tabs
   const interpolators = Array.from({ length: 2 }, (_, i) => i).map(idx => ({
     scale: _scrollX.interpolate({
@@ -632,7 +1361,62 @@ export function renderTabBar(theme, _scrollX) {
           tab={tab}
           page={page}
           isTabActive={isTabActive}
-          onPressHandler={onPressHandler}
+          onPressHandler={pageObj => {
+            onPressHandler(pageObj);
+            if (onPress) {
+              onPress(page);
+            }
+          }}
+          onTabLayout={onTabLayout}
+          styles={interpolators[page]}
+        />
+      )}
+    />
+  );
+}
+
+export function renderTabBar2(theme, _scrollX, onPress, isTabActiveFunc) {
+  // 6 is a quantity of tabs
+  const interpolators = Array.from({ length: 2 }, (_, i) => i).map(idx => ({
+    scale: _scrollX.interpolate({
+      inputRange: [idx - 1, idx, idx + 1],
+      outputRange: [1, 1.2, 1],
+      extrapolate: 'clamp',
+    }),
+    opacity: _scrollX.interpolate({
+      inputRange: [idx - 1, idx, idx + 1],
+      outputRange: [0.2, 1, 0.2],
+      extrapolate: 'clamp',
+    }),
+    textColor: _scrollX.interpolate({
+      inputRange: [idx - 1, idx, idx + 1],
+      outputRange: ['#fff', '#fff', '#fff'],
+    }),
+    backgroundColor: _scrollX.interpolate({
+      inputRange: [idx - 1, idx, idx + 1],
+      outputRange: ['transparent', 'transparent', 'transparent'],
+      extrapolate: 'clamp',
+    }),
+  }));
+  return (
+    <TabBar
+      underlineColor={theme.colors.primary}
+      tabBarStyle={{
+        backgroundColor: 'transparent',
+        borderTopWidth: 0,
+      }}
+      renderTab={(tab, page, isTabActive, onPressHandler, onTabLayout) => (
+        <Tab
+          key={page}
+          tab={tab}
+          page={page}
+          isTabActive={isTabActiveFunc(page)}
+          onPressHandler={pageObj => {
+            onPressHandler(pageObj);
+            if (onPress) {
+              onPress(page);
+            }
+          }}
           onTabLayout={onTabLayout}
           styles={interpolators[page]}
         />

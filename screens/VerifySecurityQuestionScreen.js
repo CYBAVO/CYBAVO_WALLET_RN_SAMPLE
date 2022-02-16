@@ -11,7 +11,7 @@ import { Container, Content } from 'native-base';
 const { width, height } = Dimensions.get('window');
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
-import { ROUND_BUTTON_HEIGHT } from '../Constants';
+import {ROUND_BUTTON_HEIGHT, SET_MODE} from '../Constants';
 import { Auth } from '@cybavo/react-native-wallet-service';
 import Styles from '../styles/Styles';
 import { Theme } from '../styles/MainTheme';
@@ -84,7 +84,7 @@ const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
     );
     return result;
   };
-  const _restorePinCode = async pinSecret => {
+  const _restorePinCode = async (old, pinSecret) => {
     setLoading(true);
     try {
       await Auth.restorePinCode(
@@ -117,7 +117,9 @@ const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
       // setPinErrorMsg(error.message);
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('restored_failed'),
         buttonClick: () => {
           setResult(null);
@@ -156,7 +158,9 @@ const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
     } catch (error) {
       console.log('_fetchSecurityQuestions failed', error);
       setErrorMsg(
-        error.code ? I18n.t(`error_msg_${error.code}`) : error.message
+        I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        })
       );
     }
     setLoading(false);
@@ -259,6 +263,7 @@ const VerifySecurityQuestionScreen: () => React$Node = ({ theme }) => {
         onCancel={() => setInputPinCode(false)}
         loading={loading}
         onInputPinCode={_restorePinCode}
+        mode={SET_MODE}
         title={I18n.t('set_pin_code')}
         message1={I18n.t('enter_a_new_pin_code')}
         errorMsg={pinErrorMsg}

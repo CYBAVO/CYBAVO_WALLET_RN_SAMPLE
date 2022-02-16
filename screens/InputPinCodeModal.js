@@ -21,6 +21,7 @@ import {
   PIN_CODE_LENGTH,
   RECOVER_CODE_MODE,
   RECOVERY_CODE_LENGTH,
+  SET_MODE,
 } from '../Constants';
 import PinCodeDisplay from '../components/PinCodeDisplay';
 import Styles from '../styles/Styles';
@@ -83,6 +84,8 @@ let InputPinCodeModal: () => React$Node = ({
   const _inputPinCode = length => {
     if (mode == CHANGE_MODE) {
       _changeMode(length);
+    } else if (mode == SET_MODE) {
+      _setMode(length);
     } else if (mode == RECOVER_CODE_MODE) {
       _recoverCodeMode(length);
     } else {
@@ -103,7 +106,58 @@ let InputPinCodeModal: () => React$Node = ({
     return true;
   };
 
+  const _setModeSub = async (length, noOldPinSecret) => {
+    if (pinSecret == null) {
+      if (length == 0 && pinCodeLength == 0) {
+        if (noOldPinSecret) {
+          onCancel();
+        } else {
+          animateSwitchPin(animPinInput, false);
+          setOldPinSecret(null);
+        }
+        return;
+      }
+      let newLevel = await myRef.current.getStrengthLevel(3);
+      if (length != 0 && pinCodeLength != PIN_CODE_LENGTH - 1) {
+        setLevel(newLevel);
+      }
+      if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
+        if (newLevel < MIN_LEVEL) {
+          setToastMsg(I18n.t('setup_pin_screen_alert_message_too_weak'));
+          pinDisplay.current.shake(() => {});
+          // setPinCodeLength(0);
+          await myRef.current.submitForMultiple(); //clear buffer, cannot call clear(), it will clear key
+        } else {
+          animateSwitchPin(animPinInput, true, 2, 1);
+          const ps = await myRef.current.submitForMultiple();
+          setPinSecret(ps);
+        }
+      }
+    } else {
+      if (length == 0 && pinCodeLength == 0) {
+        animateSwitchPin(animPinInput, false, 2, 1);
+        setPinSecret(null);
+        return;
+      }
+      if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
+        const ps2 = await myRef.current.submitForMultiple();
+        let isSame = await myRef.current.isSamePin(pinSecret, ps2);
+        if (!isSame) {
+          setToastMsg(I18n.t('setup_pin_screen_alert_message_not_match'));
+          pinDisplay.current.shake(() => {
+            setPinSecret(null);
+            animateSwitchPin(animPinInput, false, 2, 1);
+          });
+        } else {
+          if (onInputPinCode) {
+            onInputPinCode(oldPinSecret, pinSecret);
+          }
+        }
+      }
+    }
+  };
   const _recoverCodeMode = async length => {
+    setPinCodeLength(length);
     if (oldPinSecret == null) {
       if (length == 0 && pinCodeLength == 0) {
         onCancel();
@@ -113,7 +167,6 @@ let InputPinCodeModal: () => React$Node = ({
         length == RECOVERY_CODE_LENGTH &&
         pinCodeLength == RECOVERY_CODE_LENGTH - 1
       ) {
-        setPinCodeLength(length);
         try {
           const text = await myRef.current.submitPlain();
           const pass = await verifyRecoverCode(text);
@@ -128,27 +181,8 @@ let InputPinCodeModal: () => React$Node = ({
         }
         return;
       }
-      setPinCodeLength(length);
     } else {
-      if (length == 0 && pinCodeLength == 0) {
-        animateSwitchPin(animPinInput, false);
-        setOldPinSecret(null);
-        setPinCodeLength(0);
-        return;
-      }
-      if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
-        setPinCodeLength(length);
-        try {
-          const pinSecret = await myRef.current.submit();
-          if (onInputPinCode) {
-            onInputPinCode(oldPinSecret, pinSecret);
-          }
-        } catch (error) {
-          console.warn(error);
-        }
-        return;
-      }
-      setPinCodeLength(length);
+      _setModeSub(length);
     }
   };
   const _inputMode = length => {
@@ -162,6 +196,10 @@ let InputPinCodeModal: () => React$Node = ({
       return;
     }
     setPinCodeLength(length);
+  };
+  const _setMode = async length => {
+    setPinCodeLength(length);
+    _setModeSub(length, true);
   };
   const _changeMode = async length => {
     setPinCodeLength(length);
@@ -181,50 +219,7 @@ let InputPinCodeModal: () => React$Node = ({
         return;
       }
     } else {
-      if (pinSecret == null) {
-        if (length == 0 && pinCodeLength == 0) {
-          animateSwitchPin(animPinInput, false);
-          setOldPinSecret(null);
-          return;
-        }
-        let newLevel = await myRef.current.getStrengthLevel(3);
-        if (length != 0 && pinCodeLength != PIN_CODE_LENGTH - 1) {
-          setLevel(newLevel);
-        }
-        if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
-          if (newLevel < MIN_LEVEL) {
-            setToastMsg(I18n.t('setup_pin_screen_alert_message_too_weak'));
-            pinDisplay.current.shake(() => {});
-            // setPinCodeLength(0);
-            await myRef.current.submitForMultiple(); //clear buffer, cannot call clear(), it will clear key
-          } else {
-            animateSwitchPin(animPinInput, true, 2, 1);
-            const ps = await myRef.current.submitForMultiple();
-            setPinSecret(ps);
-          }
-        }
-      } else {
-        if (length == 0 && pinCodeLength == 0) {
-          animateSwitchPin(animPinInput, false, 2, 1);
-          setPinSecret(null);
-          return;
-        }
-        if (length == PIN_CODE_LENGTH && pinCodeLength == PIN_CODE_LENGTH - 1) {
-          const ps2 = await myRef.current.submitForMultiple();
-          let isSame = await myRef.current.isSamePin(pinSecret, ps2);
-          if (!isSame) {
-            setToastMsg(I18n.t('setup_pin_screen_alert_message_not_match'));
-            pinDisplay.current.shake(() => {
-              setPinSecret(null);
-              animateSwitchPin(animPinInput, false, 2, 1);
-            });
-          } else {
-            if (onInputPinCode) {
-              onInputPinCode(oldPinSecret, pinSecret);
-            }
-          }
-        }
-      }
+      _setModeSub(length);
     }
   };
   const _submit = async () => {
@@ -238,7 +233,12 @@ let InputPinCodeModal: () => React$Node = ({
       console.warn(error);
     }
   };
-  let showStrength = mode == CHANGE_MODE && oldPinSecret && pinSecret == null;
+  let showStrength =
+    mode == SET_MODE
+      ? pinSecret == null
+      : (mode == CHANGE_MODE || mode == RECOVER_CODE_MODE) &&
+        oldPinSecret &&
+        pinSecret == null;
   return (
     <Modal
       visible={isVisible}

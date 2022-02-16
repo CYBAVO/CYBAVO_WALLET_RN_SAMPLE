@@ -7,6 +7,7 @@ import {
   Image,
   Dimensions,
   SectionList,
+  RefreshControl,
 } from 'react-native';
 const { width, height } = Dimensions.get('window');
 import { Container, Content, Toast } from 'native-base';
@@ -20,7 +21,7 @@ import {
   SERVICE_EMAIL_CYBAVO,
 } from '../Constants';
 import { WalletSdk, Auth, Wallets } from '@cybavo/react-native-wallet-service';
-import { BIO_SETTING_USE_SMS, signOut } from '../store/actions';
+import { BIO_SETTING_USE_SMS, fetchUserState, signOut } from '../store/actions';
 import Styles from '../styles/Styles';
 import { Theme } from '../styles/MainTheme';
 import { Button } from 'native-base';
@@ -57,6 +58,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   const [result, setResult] = useState(null);
   const [inputPinCode, setInputPinCode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState(I18n.t('pin_secret_not_found'));
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
@@ -86,6 +88,9 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
     state => state.user.userState.skipSmsVerify
   );
 
+  const accountSkipSmsVerify = useSelector(
+    state => state.user.userState.accountSkipSmsVerify
+  );
   const [bioSettingSub, setBioSettingSub] = useState('pin');
   const [bioSettingEditable, setBioSettingEditable] = useState(false);
 
@@ -124,7 +129,9 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
       console.log('_changePinCode failed', error);
       setResult({
         type: TYPE_FAIL,
-        error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
         title: I18n.t('change_failed'),
         buttonClick: () => {
           setResult(null);
@@ -152,9 +159,11 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
 
   useEffect(() => {
     _checkBioInfo();
-  }, [bioSetting]);
+  }, [bioSetting, skipSmsVerify, enableBiometrics, accountSkipSmsVerify]);
   const _checkBioInfo = async () => {
     if (!enableBiometrics || skipSmsVerify) {
+      setBioSettingSub('pin');
+      setBioSettingEditable(false);
       return;
     }
     // let { exist } = await Wallets.isBioKeyExist();
@@ -170,6 +179,11 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
         setBioSettingSub('pin_bio');
       }
     } else {
+      if (accountSkipSmsVerify) {
+        setBioSettingSub('error_not_support_bio_but_account_skip_sms');
+        setBioSettingEditable(false);
+        return;
+      }
       setBioSettingEditable(false);
       setBioSettingSub('pin_sms');
     }
@@ -202,7 +216,9 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
       } else {
         setResult({
           type: TYPE_FAIL,
-          error: error.code ? I18n.t(`error_msg_${error.code}`) : error.message,
+          error: I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          }),
           title: I18n.t('change_failed'),
           buttonClick: () => {
             setResult(null);
@@ -216,7 +232,18 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   return (
     <Container style={Styles.container}>
       <Headerbar transparent title={I18n.t('settings')} />
-      <ScrollView contentContainerStyle={Styles.form} bounces={false}>
+      <ScrollView
+        contentContainerStyle={Styles.form}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              dispatch(fetchUserState());
+              setRefreshing(false);
+            }}
+          />
+        }>
         <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
           {I18n.t('account')}
         </Text>
@@ -271,60 +298,61 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
           </Text>
         </View>
 
-        <View style={[styles.listItem, { justifyContent: 'space-between' }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image
-              source={require('../assets/image/ic_setting_walletconnnect.png')}
-              style={styles.image}
-            />
-            <View
+        {enableWalletconnect && (
+          <View style={[styles.listItem, { justifyContent: 'space-between' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Image
+                source={require('../assets/image/ic_setting_walletconnnect.png')}
+                style={styles.image}
+              />
+              <View
+                style={{
+                  flexDirection: 'column',
+                  marginLeft: 15,
+                  justifyContent: 'center',
+                }}>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="middle"
+                  style={[
+                    Styles.input,
+                    { flex: 0 },
+                    Theme.fonts.default.regular,
+                  ]}>
+                  {I18n.t('walletconnect')}
+                </Text>
+              </View>
+            </View>
+            <Button
+              iconRight
+              rounded
+              small
+              onPress={async () => {
+                if (await checkCameraPermission()) {
+                  NavigationService.navigate('scanModal', {
+                    modal: true,
+                  });
+                }
+              }}
               style={{
-                flexDirection: 'column',
-                marginLeft: 15,
-                justifyContent: 'center',
+                backgroundColor: theme.colors.pickerBg,
+                // flex: 1,
+                padding: 11,
               }}>
               <Text
-                numberOfLines={1}
-                ellipsizeMode="middle"
                 style={[
-                  Styles.input,
-                  { flex: 0 },
-                  Theme.fonts.default.regular,
+                  Theme.fonts.default.medium,
+                  {
+                    color: Theme.colors.primary,
+                    fontSize: 14,
+                    alignSelf: 'center',
+                  },
                 ]}>
-                {I18n.t('walletconnect')}
+                {I18n.t('connect')}
               </Text>
-            </View>
+            </Button>
           </View>
-          <Button
-            iconRight
-            rounded
-            small
-            onPress={async () => {
-              if (await checkCameraPermission()) {
-                NavigationService.navigate('scanModal', {
-                  modal: true,
-                });
-              }
-            }}
-            style={{
-              backgroundColor: theme.colors.pickerBg,
-              // flex: 1,
-              padding: 11,
-            }}>
-            <Text
-              style={[
-                Theme.fonts.default.medium,
-                {
-                  color: Theme.colors.primary,
-                  fontSize: 14,
-                  alignSelf: 'center',
-                },
-              ]}>
-              {I18n.t('connect')}
-            </Text>
-          </Button>
-        </View>
-
+        )}
         <Text
           style={[
             Styles.secLabel,

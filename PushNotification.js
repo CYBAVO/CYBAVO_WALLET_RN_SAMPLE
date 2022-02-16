@@ -45,7 +45,7 @@ export function showLocalPush(title, body, devices) {
   RNPushNotification.localNotification({
     title,
     message: body,
-    smallIcon: 'ic_notification', 
-    largeIcon: 'ic_launcher', 
+    smallIcon: 'ic_notification', // R.mipmap.ic_notification
+    largeIcon: 'ic_launcher', // R.mipmap.ic_launcher
   });
 }

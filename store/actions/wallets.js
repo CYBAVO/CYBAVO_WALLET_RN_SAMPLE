@@ -6,6 +6,7 @@
  */
 import { Wallets } from '@cybavo/react-native-wallet-service';
 import { fetchBalance } from './balance';
+import {fetchTokenUriIfNeed} from './tokenUri';
 // import { fetchCurrencyPricesIfNeed } from './currencyPrice';
 
 export const WALLETS_LOADING = 'WALLETS_LOADING';

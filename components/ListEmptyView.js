@@ -8,11 +8,15 @@ const ListEmptyView: () => React$Node = ({
   text = I18n.t('no_item_text'),
   style = {},
   img,
+  imgStyle = {},
 }) => {
   return (
     <View style={[Styles.emptyContent, style]}>
-      <Image source={img || require('../assets/image/ic_empty_data.png')} />
-      <Paragraph style={{ color: theme.colors.placeholder, fontSize: 14 }}>
+      <Image
+        source={img || require('../assets/image/ic_empty_data.png')}
+        style={imgStyle}
+      />
+      <Paragraph style={{ color: theme.colors.placeholder, fontSize: 14, marginTop: 8 }}>
         {text}
       </Paragraph>
     </View>

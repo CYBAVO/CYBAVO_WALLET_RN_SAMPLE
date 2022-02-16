@@ -51,7 +51,7 @@ export function fetchTransaction(
   tokenAddress,
   address,
   currencySymbol,
-  isFungible,
+  isNft,
   refresh,
   start = 0,
   filters = {
@@ -102,7 +102,7 @@ export function fetchTransaction(
           currency,
           tokenAddress,
           address,
-          currencySymbol: isFungible ? '' : currencySymbol,
+          currencySymbol: isNft ? '' : currencySymbol,
           txids,
         });
       } catch (error) {

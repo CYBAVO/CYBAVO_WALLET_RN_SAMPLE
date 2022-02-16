@@ -46,11 +46,13 @@ const { ErrorCodes } = WalletSdk;
 export const AUTH_LOADING = 'AUTH_LOADING';
 export const AUTH_ERROR = 'AUTH_ERROR';
 export const AUTH_UPDATE_DEV = 'AUTH_UPDATE_DEV';
+export const AUTH_UPDATE_FOR_NEWS = 'AUTH_UPDATE_FOR_NEWS';
 export const AUTH_UPDATE_ANIMATE = 'AUTH_UPDATE_ANIMATE';
 export const AUTH_UPDATE_SIGN_IN_STATE = 'AUTH_UPDATE_SIGN_IN_STATE';
 export const AUTH_UPDATE_IDENTITY = 'AUTH_UPDATE_IDENTITY';
 export const AUTH_UPDATE_UI_FLAG = 'AUTH_UPDATE_UI_FLAG';
 export const SHOWED_GUIDE = 'showed_guide';
+export const SKIP_NEWS = 'skip_news';
 
 async function signInWithToken(idToken, identityProvider, extras) {
   console.log('signInWithToken... ', extras.user_id);
@@ -96,16 +98,19 @@ export function registerPubkey() {
   };
 }
 
-export function setShowedGuide(value) {
-  AsyncStorage.setItem(SHOWED_GUIDE, value)
+export function setSkipNews(value) {
+  AsyncStorage.setItem(SKIP_NEWS, value)
     .then(() => {
-      console.debug('set SHOWED_GUIDE:' + value);
+      console.debug('set SKIP_NEWS:' + value);
     })
     .catch(error => {
-      console.debug('set SHOWED_GUIDE err:' + error);
+      console.debug('set SKIP_NEWS err:' + error);
     });
 }
 
+export function getSkipNews() {
+  return AsyncStorage.getItem(SKIP_NEWS);
+}
 function updateSignInState(signInState) {
   console.log('updateSignInState:', signInState);
   return async (dispatch, getState) => {
@@ -115,6 +120,9 @@ function updateSignInState(signInState) {
     } else if (signInState === Auth.SignInState.SIGNED_IN) {
       let routeName =
         getState().user.userState.setPin === false ? 'SetupPin' : 'Main';
+      if (false) {
+        routeName = 'SetupPin';
+      }
       try {
         let { currencies } = await Wallets.getCurrencies();
         currencies = currencies || [];
@@ -122,6 +130,7 @@ function updateSignInState(signInState) {
           a.symbol.localeCompare(b.symbol)
         );
         dispatch({ type: CURRENCIES_UPDATE_CURRENCIES, currencies });
+        // NavigationService.navigate('EnterPhone', { step: 0 }); //SMS_SETUP_PHONE_OTP
         NavigationService.navigate(routeName);
         dispatch(setPushDeviceToken());
         dispatch(registerPubkey());
@@ -223,6 +232,8 @@ export function signIn(identityProvider) {
       identity.secret = secret;
       console.log('auth.signIn...', idToken);
       userToken = idToken;
+      // dispatch({ type: AUTH_UPDATE_JUST_SIGNUP, justSignup: true});
+      // NavigationService.navigate('SetupPin');
       console.log('signInWithToken...');
       await signInWithToken(
         userToken,
@@ -240,6 +251,8 @@ export function signIn(identityProvider) {
       if (ErrorCodes.ErrRegistrationRequired === error.code) {
         // signUp needed
         try {
+          // dispatch({ type: AUTH_UPDATE_UI_FLAG, justSignup: true});
+          // NavigationService.navigate('SetupPin');
           console.log('signUpWithToken...');
           await signUpWithToken(userToken, identityProvider, {
             id_token_secret: identity.secret,
@@ -331,15 +344,23 @@ function handleWaclletConnectUri(state, dispatch, uri, type) {
       let ethWallet = state.wallets.ethWallet;
       if (ethWallet) {
         NavigationService.navigate('Connecting', {});
-        dispatch(newSession(uri, ethWallet.address, ethWallet.walletId));
+        dispatch(
+          newSession(
+            uri,
+            ethWallet.address,
+            ethWallet.walletId,
+            result.address,
+            result.chainId
+          )
+        );
       } else {
         toast(I18n.t('no_eth_wallet_prompt'));
       }
     } else {
-      dispatch({ type: WALLETCONNECT_PENDING_URI, uri: uri });
+      dispatch({ type: WALLETCONNECT_PENDING_URI, uri: result.uri });
     }
   } else {
-    dispatch({ type: WALLETCONNECT_PENDING_URI, uri: uri });
+    dispatch({ type: WALLETCONNECT_PENDING_URI, uri: result.uri });
     toast(I18n.t('signin_prompt'));
   }
 }
@@ -415,20 +436,26 @@ export function initListener() {
 export function initAuth() {
   return async (dispatch, getState) => {
     dispatch({ type: AUTH_LOADING, loading: true });
-    console.log(
-      '1updateSignInState:',
-      signInState + ',' + getState().auth.justSignup
-    );
-    const signInState = await Auth.getSignInState();
-    dispatch(updateSignInState(signInState));
-    dispatch({ type: AUTH_LOADING, loading: false });
-    // register event listener
-    Auth.addListener(Auth.Events.onSignInStateChanged, signInState => {
-      console.log(
-        'updateSignInState:',
-        signInState + ',' + getState().auth.justSignup
-      );
+    // console.log(
+    //   '1updateSignInState:',
+    //   signInState + ',' + getState().auth.justSignup
+    // );
+    try {
+      const signInState = await Auth.getSignInState();
       dispatch(updateSignInState(signInState));
-    });
+      dispatch({ type: AUTH_LOADING, loading: false });
+      // register event listener
+      Auth.addListener(Auth.Events.onSignInStateChanged, signInState => {
+        console.log(
+          'updateSignInState:',
+          signInState + ',' + getState().auth.justSignup
+        );
+        dispatch(updateSignInState(signInState));
+        // if (signInState === Auth.SignInState.SIGNED_IN) {
+        // }
+      });
+    } catch (error) {
+      console.debug('eee_' + error);
+    }
   };
 }

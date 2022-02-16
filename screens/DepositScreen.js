@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { StyleSheet, View, Dimensions, Image } from 'react-native';
+import { StyleSheet, View, Dimensions, Image, ScrollView } from 'react-native';
 import CameraRoll from '@react-native-community/cameraroll';
 import { Container } from 'native-base';
 import { Text, withTheme } from 'react-native-paper';
 const { width, height } = Dimensions.get('window');
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import { useClipboard } from '@react-native-community/hooks';
-import { startColors, endColors, Theme } from '../styles/MainTheme';
+import {
+  startColors,
+  endColors,
+  Theme,
+  nftStartColors,
+  nftEndColors,
+} from '../styles/MainTheme';
 import { ROUND_BUTTON_HEIGHT } from '../Constants';
 import Styles from '../styles/Styles';
 import I18n from '../i18n/i18n';
@@ -85,13 +91,23 @@ const DepositScreen: () => React$Node = ({ theme }) => {
     }
   };
   return (
-    <Container style={Styles.bottomContainer}>
+    <ScrollView style={Styles.bottomContainer}>
       <BackgroundImage
         containerStyle={Styles.detailBackgroundImage}
         imageStyle={Styles.detailCardPattern}
-        imageSource={CardPatternImg}
-        startColor={startColors[wallet.currencySymbol] || startColors.UNKNOWN}
-        endColor={endColors[wallet.currencySymbol] || endColors.UNKNOWN}>
+        imageSource={wallet.isNft ? null : CardPatternImg}
+        startColor={
+          (wallet.isNft
+            ? nftStartColors[wallet.colorIndex]
+            : startColors[wallet.currencySymbol]) || startColors.UNKNOWN
+        }
+        endColor={
+          (wallet.isNft
+            ? nftEndColors[wallet.colorIndex]
+            : endColors[wallet.currencySymbol]) || endColors.UNKNOWN
+        }
+        start={{ x: 0, y: 0 }}
+        end={wallet.isNft ? { x: 0, y: 1 } : { x: 1, y: 0 }}>
         <View>
           <Headerbar
             transparent
@@ -101,6 +117,7 @@ const DepositScreen: () => React$Node = ({ theme }) => {
           <View style={[Styles.numContainer]}>
             <AssetPicker
               rawData={wallets}
+              isNftTop={wallet.isNft}
               recentSet={recentSet}
               initSelected={wallet}
               clickItem={item => {
@@ -199,7 +216,7 @@ const DepositScreen: () => React$Node = ({ theme }) => {
           setHint(null);
         }}
       />
-    </Container>
+    </ScrollView>
   );
 };
 

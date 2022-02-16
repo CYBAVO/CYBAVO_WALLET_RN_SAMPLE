@@ -43,7 +43,7 @@ export function fetchCurrenciesIfNeed() {
   };
 }
 
-function fetchCurrencies() {
+export function fetchCurrencies() {
   return async dispatch => {
     dispatch({ type: CURRENCIES_LOADING, loading: true });
     try {
