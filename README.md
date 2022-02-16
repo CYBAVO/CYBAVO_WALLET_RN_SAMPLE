@@ -78,14 +78,23 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    cybavo.maven.username=$MAVEN_REPO_USRENAME
    cybavo.maven.password=$MAVEN_REPO_PASSWORD
    ```
-4. Place your `google-services.json` file downloaded from Firebase to `android/app` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
-5. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID
-6. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont
-7. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `package name` and `Signature keystore SHA1 fingerprint`, follow the instruction to retrieve an `API Code`.
-8. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_ANDROID` to fill in your `API Code`
-10. Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_FACEBOOK_APP_ID` to fill in your `Facebook app id`
-10. Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_LINE_CHANNEL_ID` to fill in your `LINE channel scheme`
-
+6. Place your `google-services.json` file downloaded from Firebase to `android/app` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
+7. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID
+8. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont
+9. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `package name` and `Signature keystore SHA1 fingerprint`, follow the instruction to retrieve an `API Code`.
+10. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_ANDROID` to fill in your `API Code`
+11. Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_FACEBOOK_APP_ID` to fill in your `Facebook app id`
+12. Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_LINE_CHANNEL_ID` to fill in your `LINE channel scheme`
+13. Perform below command to fix build issues:
+   ```
+   cp patch/FABGroup.txt node_modules/react-native-paper/src/components/FAB/FABGroup.tsx
+   sed -i "" '/minSdkVersion/d' node_modules/react-native-i18n/android/src/main/AndroidManifest.xml
+   ./appcenter-pre-build.sh
+   sed -i "" 's/compileSdkVersion .*/compileSdkVersion 29/g' node_modules/react-native-twitter-signin/android/build.gradle
+   sed -i "" 's/buildToolsVersion .*/buildToolsVersion "28.0.3"/g' node_modules/react-native-twitter-signin/android/build.gradle
+   sed -i "" 's/minSdkVersion .*/minSdkVersion 19/g' node_modules/react-native-twitter-signin/android/build.gradle
+   sed -i "" 's/targetSdkVersion .*/targetSdkVersion 29/g' node_modules/react-native-twitter-signin/android/build.gradle
+   ```
 ## iOS
 1. Clone the source code from GitHub
 2. Install the dependencies
@@ -103,18 +112,26 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    rm -rf node_modules/react-native-twitter-signin/ios/dependencies
    sed -i "" 's/s.dependency "TwitterKit", "~> 3.3"/s.dependency "TwitterKit5"/g' 
    ```
+6. Perform below command to fix build issues:
+   ```
+   cp patch/RCTUIImageViewAnimated.m node_modules/react-native/Libraries/Image/RCTUIImageViewAnimated.m
+   cp patch/FABGroup.txt node_modules/react-native-paper/src/components/FAB/FABGroup.tsx
+   cp patch/scan_index.txt node_modules/react-native-qrcode-scanner/index.js
+   cp patch/RCTCxxBridge.mm node_modules/react-native/React/CxxBridge/RCTCxxBridge.mm
+   cp patch/RCTTurboModuleManager.mm node_modules/react-native/ReactCommon/turbomodule/core/platform/ios/RCTTurboModuleManager.mm
+   cp patch/default-encoding.js node_modules/parse-asn1/node_modules/pbkdf2/lib/default-encoding.js
+   ```
 3. Place ssh key requested from CYBAVO to ~/.ssh/ (rename it if nessersary)
-4. If your Xcode version is older then 12, please edit `Podfile`, Replace `source 'https://bitbucket.org/cybavo/Specs_512.git'` with `source https://bitbucket.org/cybavo/Specs_510.git`
 5. Run `pod install` in `ios/`
 6. Place your `GoogleService-Info.plist` file downloaded from Firebase to `ios/` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
 7. Open your project configuration: double-click the project name in the left tree view. Select your app from the TARGETS section, then select the Info tab, and expand the URL Types section. Replace `Identifier` and `URL Schemes` with `CLIENT_ID" and `REVERSED_CLIENT_ID` in your `GoogleService-Info.plist`. [(LearnMore)](https://developers.google.com/identity/sign-in/ios/start-integrating)
 8. Replace `MY_FACEBOOK_SIGN_IN_APP_ID` with your `Facebook app id`
 9. Replace `MY_LINE_CHANNEL_SCHEME` with your `LINE channel scheme`
-10. Replace `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` with your `Google sign-in client ID`
-11. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID
-12. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont
-13. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `bundle id`, follow the instruction to retrieve an `API Code`.
-14. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code`
+9. Replace `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` with your `Google sign-in client ID`
+10. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID
+11. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont
+12. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `bundle id`, follow the instruction to retrieve an `API Code`.
+13. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code`
 # Push notification
 To receive silent push notification of deposit/withdrawal. Please refer to [this](https://rnfirebase.io/messaging/usage) to setup.
 
