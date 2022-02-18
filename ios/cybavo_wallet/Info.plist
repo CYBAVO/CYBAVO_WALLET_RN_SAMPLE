@@ -27,21 +27,13 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.15875226638-eh813g9pdti2g0qm59ehsvb36lf7aqqi</string>
+				<string>REVERSED_CLIENT_ID</string>
 			</array>
 		</dict>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>fb1038360986579838</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>line3rdp.com.cybavo.btc.wallet</string>
+				<string>fbMY_FACEBOOK_APP_ID</string>
 			</array>
 		</dict>
 		<dict>
@@ -49,7 +41,15 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>twitterkit-BtWWQ8T6IYYJwC6CMBPjFXTf3</string>
+				<string>MY_LINE_CHANNEL_ID</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>twitterkit-MY_TWITTER_CONSUMER_KEY</string>
 			</array>
 		</dict>
 		<dict>
@@ -66,7 +66,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>FacebookAppID</key>
-	<string>1038360986579838</string>
+	<string>MY_FACEBOOK_APP_ID</string>
 	<key>FacebookDisplayName</key>
 	<string>CYBAVO Wallet</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
