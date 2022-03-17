@@ -192,7 +192,7 @@ When receive `SignInState.NEED_VERIFY_OTP`
 
 ```javascript
    const COOL_TIME = 60;
-   const res = await Wallets.getSmsCode(Wallets.OtpType.SMS_SETUP_PHONE_OTP, COOL_TIME);
+   const res = await Wallets.getSmsCode(Wallets.OtpType.SMS_LOGIN_OTP, COOL_TIME);
    //or await Wallets.getLoginSmsCode(COOL_TIME)
    await Auth.verifyOtp(res.actionToken, smsCode);
 ```
