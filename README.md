@@ -79,12 +79,19 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    cybavo.maven.password=$MAVEN_REPO_PASSWORD
    ```
 6. Place your `google-services.json` file downloaded from Firebase to `android/app` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
-7. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID
-8. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont
-9. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `package name` and `Signature keystore SHA1 fingerprint`, follow the instruction to retrieve an `API Code`.
+7. Edit `BuildConfig.json` ➜ `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID.  
+Please refer to "Google Login - Setup with Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
+8. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont.  
+For example, Set `MAIN_ENDPOINT` = https://mvault.cybavo.com/v1/mw/ for test environemnt
+9. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `package name` and `Signature keystore SHA1 fingerprint`, follow the instruction to retrieve an `API Code`.  
+Please refer to "How to Create an Application" section in CYBAVO Wallet SDK Admin Panel User Manual.
 10. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_ANDROID` to fill in your `API Code`
-11. Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_FACEBOOK_APP_ID` to fill in your `Facebook app id`
-12. Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_LINE_CHANNEL_ID` to fill in your `LINE channel scheme`
+11. Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_FACEBOOK_APP_ID` to fill in your `Facebook app id`.  
+Please refer to "Facebook Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.
+12. Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_LINE_CHANNEL_ID` to fill in your `LINE channel scheme`.  
+Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.  
+    
+    You can get more Single Sign-on (SSO) settings in CYBAVO Wallet SDK Admin Panel User Manual. 
 13. Perform below command to fix build issues:
    ```
    cp patch/FABGroup.txt node_modules/react-native-paper/src/components/FAB/FABGroup.tsx
@@ -124,14 +131,22 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
 3. Place ssh key requested from CYBAVO to ~/.ssh/ (rename it if nessersary)
 5. Run `pod install` in `ios/`
 6. Place your `GoogleService-Info.plist` file downloaded from Firebase to `ios/` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
-7. Open your project configuration: double-click the project name in the left tree view. Select your app from the TARGETS section, then select the Info tab, and expand the URL Types section. Replace `Identifier` and `URL Schemes` with `CLIENT_ID" and `REVERSED_CLIENT_ID` in your `GoogleService-Info.plist`. [(LearnMore)](https://developers.google.com/identity/sign-in/ios/start-integrating)
-8. Replace `MY_FACEBOOK_SIGN_IN_APP_ID` with your `Facebook app id`
-9. Replace `MY_LINE_CHANNEL_SCHEME` with your `LINE channel scheme`
-9. Replace `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` with your `Google sign-in client ID`
-10. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID
-11. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont
+7. Open your project configuration: double-click the project name in the left tree view. Select your app from the TARGETS section, then select the Info tab, and expand the URL Types section. Replace `Identifier` and `URL Schemes` with `CLIENT_ID` and `REVERSED_CLIENT_ID` in your `GoogleService-Info.plist`. [(LearnMore)](https://developers.google.com/identity/sign-in/ios/start-integrating)  
+Please refer to "Google Login - Setup with Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
+8. Replace `MY_FACEBOOK_APP_ID` with your `Facebook app id`.  
+Please refer to "Facebook Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.
+9. Replace `MY_LINE_CHANNEL_ID` with your `LINE channel scheme`.  
+Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.  
+9. Replace `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` with your `Google sign-in client ID`.  
+Please refer to "Google Login - Setup with Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
+10. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your Google sign-in client ID.  
+Please refer to "Google Login - Setup with Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
+11. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont.  
+For example, Set `MAIN_ENDPOINT` = https://mvault.cybavo.com/v1/mw/ for test environemnt
 12. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `bundle id`, follow the instruction to retrieve an `API Code`.
-13. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code`
+13. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code`  
+    
+    You can get more Single Sign-on (SSO) settings in CYBAVO Wallet SDK Admin Panel User Manual.
 # Push notification
 To receive silent push notification of deposit/withdrawal. Please refer to [this](https://rnfirebase.io/messaging/usage) to setup.
 
