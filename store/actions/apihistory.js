@@ -8,6 +8,8 @@ import { Wallets } from '@cybavo/react-native-wallet-service';
 import { GET_MORE, GET_NEW, NOT_LOADING } from './transactions';
 import { toastError } from '../../Helpers';
 import { FileLogger } from 'react-native-file-logger';
+import { WALLETCONNECT_UPDATE_API_VERSION } from './walletconnect';
+import { ALL_WALLET_ID } from '../../Constants';
 export const API_HISTORY_UPDATE = 'API_HISTORY_UPDATE';
 export const API_HISTORY_ERROR = 'API_HISTORY_ERROR';
 export const API_HISTORY_ENQUEUE = 'API_HISTORY_ENQUEUE';
@@ -41,7 +43,11 @@ export function walletconnectSync() {
     }
   };
 }
-export function fetchApiHistory(refresh = true, start = 0, filters) {
+export function fetchApiHistory(
+  refresh = true,
+  start = 0,
+  ethWalletId = false
+) {
   return async (dispatch, getState) => {
     if (refresh) {
       dispatch(walletconnectSync());
@@ -50,25 +56,28 @@ export function fetchApiHistory(refresh = true, start = 0, filters) {
     if (!getState().wallets.ethWallet) {
       return;
     }
-    let walletId = getState().wallets.ethWallet.walletId;
-    if (!refresh && !shouldFetchApiHistory(walletId, getState())) {
+    let walletId =
+      getState().walletconnect.apiVersion.ethWalletId || ethWalletId
+        ? getState().wallets.ethWallet.walletId
+        : ALL_WALLET_ID;
+    if (!refresh && !shouldFetchApiHistory(ALL_WALLET_ID, getState())) {
       return;
     }
     dispatch({
       type: API_HISTORY_ENQUEUE,
-      walletId,
+      walletId: ALL_WALLET_ID,
       loading: start == 0 ? GET_NEW : GET_MORE,
     });
     try {
       const count = 10;
       FileLogger.debug(
-        `>> getWalletConnectApiHistory,walletId:${walletId}, start:${start}, count:${count}, filters:${filters}`
+        `>> getWalletConnectApiHistory,walletId:${walletId}, start:${start}, count:${count}`
       );
       const result = await Wallets.getWalletConnectApiHistory(
         walletId,
         start,
         count,
-        filters
+        {}
       );
 
       FileLogger.debug(
@@ -79,9 +88,17 @@ export function fetchApiHistory(refresh = true, start = 0, filters) {
         data: result.apiHistoryItems,
         total: result.total,
         start,
-        walletId,
+        walletId: ALL_WALLET_ID,
       });
     } catch (error) {
+      if (error.code == '304') {
+        //Invalid Wallet ID
+        dispatch(fetchApiHistory(refresh, start, true));
+        dispatch({
+          type: WALLETCONNECT_UPDATE_API_VERSION,
+          apiVersion: { ethWalletId: true, signOptions: false },
+        });
+      }
       console.log('Wallets.fetchApiHistory failed', error);
       FileLogger.debug(`fetchApiHistory fail:${error.message}`);
       dispatch({ type: API_HISTORY_ERROR, error });

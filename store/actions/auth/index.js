@@ -46,13 +46,14 @@ const { ErrorCodes } = WalletSdk;
 export const AUTH_LOADING = 'AUTH_LOADING';
 export const AUTH_ERROR = 'AUTH_ERROR';
 export const AUTH_UPDATE_DEV = 'AUTH_UPDATE_DEV';
-export const AUTH_UPDATE_FOR_NEWS = 'AUTH_UPDATE_FOR_NEWS';
+export const AUTH_UPDATE_GLOBAL_MODAL = 'AUTH_UPDATE_GLOBAL_MODAL';
 export const AUTH_UPDATE_ANIMATE = 'AUTH_UPDATE_ANIMATE';
 export const AUTH_UPDATE_SIGN_IN_STATE = 'AUTH_UPDATE_SIGN_IN_STATE';
 export const AUTH_UPDATE_IDENTITY = 'AUTH_UPDATE_IDENTITY';
 export const AUTH_UPDATE_UI_FLAG = 'AUTH_UPDATE_UI_FLAG';
 export const SHOWED_GUIDE = 'showed_guide';
 export const SKIP_NEWS = 'skip_news';
+export const DONT_SHOW_WC_DISCLAIMER = 'dont_show_wc_disclaimer';
 
 async function signInWithToken(idToken, identityProvider, extras) {
   console.log('signInWithToken... ', extras.user_id);
@@ -344,15 +345,7 @@ function handleWaclletConnectUri(state, dispatch, uri, type) {
       let ethWallet = state.wallets.ethWallet;
       if (ethWallet) {
         NavigationService.navigate('Connecting', {});
-        dispatch(
-          newSession(
-            uri,
-            ethWallet.address,
-            ethWallet.walletId,
-            result.address,
-            result.chainId
-          )
-        );
+        dispatch(newSession(uri, result.address, result.chainId, ethWallet));
       } else {
         toast(I18n.t('no_eth_wallet_prompt'));
       }

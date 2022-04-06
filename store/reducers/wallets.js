@@ -9,6 +9,7 @@ import {
   WALLETS_ERROR,
   WALLETS_UPDATE_WALLET_LIST,
   WALLETS_UPDATE_WALLET,
+  WALLET_LIMIT_UPDATE,
 } from '../actions/wallets';
 import { COMMON_RESET } from '../actions/common';
 import {
@@ -22,6 +23,7 @@ const defaultState = {
   loading: null,
   error: null,
   wallets: null,
+  walletLimit: 1,
 };
 
 function wallets(state = defaultState, action) {
@@ -47,6 +49,15 @@ function wallets(state = defaultState, action) {
         wallets: action.wallets,
         error: null,
       };
+    case WALLET_LIMIT_UPDATE:
+      let walletLimit = action.walletLimit;
+      if (!walletLimit) {
+        walletLimit = 1;
+      }
+      return {
+        ...state,
+        walletLimit: walletLimit,
+      };
     case CURRENCIES_UPDATE_CURRENCIES:
     case WALLETS_UPDATE_CURRENCIES:
       let newWallets = [];
@@ -60,7 +71,7 @@ function wallets(state = defaultState, action) {
           c => c.currency === w.currency && c.tokenAddress === w.tokenAddress
         );
         if (!currency) {
-          console.warn('skip wallet:' + w.name);
+          // console.warn('skip wallet:' + w.name);
           continue;
         }
         let isNft =

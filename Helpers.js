@@ -9,6 +9,7 @@ import {
   Animated,
   Easing,
   Image,
+  ImageBackground,
   Linking,
   PermissionsAndroid,
   Platform,
@@ -49,7 +50,194 @@ import DisplayTime from './components/DisplayTime';
 import { DotIndicator } from 'react-native-indicators';
 import { SvgUri } from 'react-native-svg';
 import IconSvgXmlGeneral from './components/IconSvgXmlGeneral';
+//walletconnet typedData
+export function extractAddress(s) {
+  let addressKey = findKey(s.types, 'address', []);
+  console.debug('getAddressTags_key>', addressKey.join(','));
+  let arr = findValue(s, addressKey, []);
+  return arr;
+}
+export function findValue(s, matchArr, arr) {
+  for (let key in s) {
+    try {
+      if (s == 'types') {
+        continue;
+      }
+      if (typeof s[key] === 'string') {
+        if (
+          arr.indexOf(s[key]) == -1 &&
+          (matchArr.indexOf(key) != -1 || /^(0x)?[0-9a-fA-F]{40}$/.test(s[key]))
+        ) {
+          // if (matchArr.indexOf(key) != -1 ) {
+          arr.push(s[key]);
+        }
+        console.debug(s[key], s[key].length);
+      } else if (typeof s[key] === 'object') {
+        arr.concat(findValue(s[key], matchArr, arr));
+      } else if (typeof s[key] === 'array') {
+        for (let o of s[key]) {
+          arr.concat(findValue(o, matchArr, arr));
+        }
+      }
+    } catch (err) {
+      console.log('getAddressTag err', err);
+    }
+  }
+  return arr;
+}
+export function findKey(s, match, arr) {
+  for (let key in s) {
+    console.debug(key, typeof s[key]);
+    for (let obj of s[key]) {
+      console.debug(obj, obj.name);
+      if (obj.type == 'address') {
+        arr.push(obj.name);
+      }
+    }
+  }
+  return arr;
+}
 
+export function getWarningView(title, desc, style = {}) {
+  let bgOvalSize = 48 * 1.6;
+  return (
+    <View
+      style={[Styles.warningBackground, { marginTop: 0, padding: 16 }, style]}>
+      <ImageBackground
+        source={require('./assets/image/bg_oval.png')}
+        style={{
+          width: bgOvalSize,
+          height: bgOvalSize,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+        <Image
+          source={require('./assets/image/ic_notify_failed.png')}
+          style={Styles.resultModalIcon}
+        />
+      </ImageBackground>
+      <Text
+        style={[
+          {
+            fontSize: 20,
+            marginTop: 0,
+            color: Theme.colors.error,
+            textAlign: 'center',
+          },
+          Theme.fonts.default.heavyMax,
+        ]}>
+        {title}
+      </Text>
+      <Text
+        style={[
+          {
+            textAlign: 'center',
+            color: Theme.colors.error,
+            marginTop: 8,
+            fontSize: 14,
+          },
+          Platform.OS == 'android' ? { lineHeight: 20 } : {},
+        ]}>
+        {desc}
+      </Text>
+    </View>
+  );
+}
+export function getAddressTagObjFromResult(addressTagMap, needTags) {
+  let tagObjArr = [];
+  let tagArr = [];
+  let keys = Object.keys(addressTagMap); //address
+  let scoreStr = I18n.t('score');
+  for (let key of keys) {
+    let v = addressTagMap[key];
+    if (!v.blackList) {
+      continue;
+    }
+    if (v.tags == null) {
+      continue;
+    }
+    if (v.score < 80) {
+      continue;
+    }
+    let bold = '';
+    let normal = v.tags.length > 0 ? v.tags.join(', ') : '';
+    if (v.score != null) {
+      bold =
+        v.tags.length > 0
+          ? `${scoreStr} ${v.score} : `
+          : `${scoreStr} ${v.score}`;
+    }
+    tagObjArr.push({
+      address: key,
+      items: [
+        {
+          bold: bold,
+          normal: normal,
+        },
+      ],
+    });
+    if (needTags) {
+      for (let t of v.tags) {
+        if (tagArr.indexOf(t) == -1) {
+          tagArr.push(t);
+        }
+      }
+    }
+  }
+  return { tagObjArr: tagObjArr, tagArr: tagArr };
+}
+//TODO: remove
+export function getAddressTagsFromResult(addressTagMap) {
+  let tagObjArr = [];
+  let tagArr = [];
+  let keys = Object.keys(addressTagMap);
+  for (let key of keys) {
+    let v = addressTagMap[key];
+    if (!v.blackList) {
+      continue;
+    }
+    if (v.tags == null) {
+      continue;
+    }
+    v.tags = v.tags || [];
+    tagObjArr.push({
+      score: v.score,
+      tags: v.tags.length > 0 ? v.tags.join(', ') : '',
+      model: formatKey(v.provider),
+    });
+    for (let t of v.tags) {
+      if (tagArr.indexOf(t) == -1) {
+        tagArr.push(t);
+      }
+    }
+  }
+  return { tagObjArr: tagObjArr, tagArr: tagArr };
+}
+export function formatKey(str) {
+  //ex. abc_def_ggg -> AbcDefGgg
+  if (!str) {
+    return '';
+  }
+  let arr = str.split('_');
+  let all = '';
+  for (let i = 0; i < arr.length; i++) {
+    all += arr[i][0].toUpperCase() + arr[i].slice(1);
+  }
+  return all;
+}
+export function getScoreColor(score) {
+  if (score <= 20) {
+    return '#4aca70';
+  } else if (score <= 40) {
+    return '#80da9b';
+  } else if (score <= 60) {
+    return '#ffc31a';
+  } else if (score <= 80) {
+    return '#ef637e';
+  } else {
+    return '#e82047';
+  }
+}
 export function toastError(error) {
   Toast.show({
     text: error ? error.message : 'no error',
@@ -431,7 +619,8 @@ export function renderNftItem(
   config,
   expolreImg,
   padding = 0,
-  tokenUriMap = {}
+  tokenUriMap = {},
+  currencyMap = {} //for chain name
 ) {
   const { columns } = item;
   let MARGIN_4 = { ios: 4, android: 0 };
@@ -516,7 +705,9 @@ export function renderNftItem(
                         opacity: 0.7,
                         marginTop: MARGIN_4[Platform.OS],
                       }}>
-                      {I18n.t(chainI18n[currency], { defaultValue: '' })}
+                      {I18n.t(chainI18n[currency], {
+                        defaultValue: currencyMap[currency] || '',
+                      })}
                     </Text>
                     <Text
                       numberOfLines={1}
@@ -654,9 +845,10 @@ export function getEthGasFeeSub(feeNum, multiplier, n, replaceValue) {
   }
   let bignum = BigNumber(feeNum).multipliedBy(multiplier);
   if (replaceValue && bignum.isLessThanOrEqualTo(n)) {
-    let rValue = n.div(multiplier);
+    let nn = n.multipliedBy(1.3);
+    let rValue = nn.div(multiplier);
     return {
-      amountUi: n.toFixed(n.decimalPlaces()),
+      amountUi: nn.toFixed(nn.decimalPlaces()),
       lessThenMin: false,
       rValue: rValue.toFixed(rValue.decimalPlaces()),
     };
@@ -802,7 +994,8 @@ export function getEthGasFeeWithPreLimit(feeObj, usedFee) {
   let highObj = getEthGasFeeSub(
     Number(feeObj.high.amount),
     usedFee.gasLimit,
-    minumNum
+    minumNum,
+    true
   );
   // highObj.lessThenMin = false;
   return {
@@ -874,7 +1067,8 @@ export async function getEstimateGasFee(
     let highObj = getEstimateGasFeeSub(
       feeObj.high.amount,
       Number(r1.blockchainFee),
-      minumNum
+      minumNum,
+      true
     );
     let v = {
       min: minumNum.toFixed(minumNum.decimalPlaces()),
@@ -1030,19 +1224,25 @@ export function animateSwitchPinWithCallback(
     useNativeDriver: true,
   }).start(callback);
 }
-export function getRestCurrencies(currencies, wallets) {
+export function getRestCurrencies(currencies, wallets, walletLimit = 1) {
   if (!currencies || !currencies.length) {
     return [];
   }
-  return currencies.filter(
-    currency =>
-      Coin.EOS !== currency.currency && //TODO: hide EOS temporarily
-      !(wallets || []).find(
-        wallet =>
-          wallet.currency === currency.currency &&
-          wallet.tokenAddress === currency.tokenAddress
-      )
-  );
+  let countMap = {};
+  wallets = wallets || [];
+  for (let i = 0; i < wallets.length; i++) {
+    let key = `${wallets[i].currency}#${wallets[i].tokenAddress}`;
+    let count = countMap[key] || 0;
+    count++;
+    countMap[key] = count;
+  }
+  return currencies.filter(currency => {
+    let key = `${currency.currency}#${currency.tokenAddress}`;
+    let count = countMap[key] || 0;
+    return (
+      Coin.EOS !== currency.currency && count < walletLimit //TODO: hide EOS temporarily
+    );
+  });
 }
 export function getFullName(givenName, familyName) {
   if (!hasValue(givenName) && !hasValue(familyName)) {
@@ -1058,7 +1258,7 @@ export function getFullName(givenName, familyName) {
   }
 }
 export function hasMemo(wallet) {
-  return [Coin.EOS, Coin.XRP].includes(wallet.currency);
+  return [Coin.EOS, Coin.XRP, Coin.XLM, Coin.BNB].includes(wallet.currency);
 }
 export function getFeeUnit(wallet, currencies) {
   if (hasValue(wallet.tokenAddress)) {
@@ -1089,23 +1289,23 @@ export function getFeeNote(currency, tokenAddress) {
 }
 export function isETHForkChain(currency) {
   return (
-    Coin.ETH ||
-    Coin.BSC ||
-    Coin.CPSC ||
-    Coin.MATIC ||
-    Coin.HECO ||
-    Coin.OKT ||
-    Coin.OPTIMISM ||
-    Coin.XDAI ||
-    Coin.ARBITRUM ||
-    Coin.FTM ||
-    Coin.CELO ||
-    Coin.PALM ||
-    Coin.ONE ||
-    Coin.AVAXC ||
-    Coin.TT ||
-    Coin.KUB ||
-    Coin.KOVAN
+    currency == Coin.ETH ||
+    currency == Coin.BSC ||
+    currency == Coin.CPSC ||
+    currency == Coin.MATIC ||
+    currency == Coin.HECO ||
+    currency == Coin.OKT ||
+    currency == Coin.OPTIMISM ||
+    currency == Coin.XDAI ||
+    currency == Coin.ARBITRUM ||
+    currency == Coin.FTM ||
+    currency == Coin.CELO ||
+    currency == Coin.PALM ||
+    currency == Coin.ONE ||
+    currency == Coin.AVAXC ||
+    currency == Coin.TT ||
+    currency == Coin.KUB ||
+    currency == Coin.KOVAN
   );
 }
 export function animateFadeIn(animOpacity, toValue, duration, callback) {
@@ -1160,7 +1360,7 @@ export function checkWalletConnectUri(str) {
       str = arr[2];
     }
   } catch (e) {
-    console.error(error);
+    console.error(e);
   }
   const pathStart = str.indexOf(':');
   const pathEnd = str.indexOf('?') !== -1 ? str.indexOf('?') : undefined;

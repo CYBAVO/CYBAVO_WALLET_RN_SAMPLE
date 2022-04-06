@@ -41,24 +41,15 @@ const AssetPicker: () => React$Node = ({
   recentSet = new Set(),
   clickItem,
   initSelected = rawData.length > 0 ? rawData[0] : {},
-  searchables = ['currencySymbol', 'currencyDisplayName'],
+  searchables = ['currencySymbol', 'name'],
   getKey = item => {
-    const s = `${item.currency}#${item.tokenAddress}`;
+    const s = `${item.currency}#${item.tokenAddress}#${item.address}`;
     return s;
   },
   getMainText = item =>
     item.isNft ? item.currencyDisplayName : item.currencySymbol,
   getSubText = item => {
-    if (item.currencyDisplayName) {
-      return item.currencyDisplayName;
-    } else if (rawData.length > 0 && rawData[0].currencyDisplayName) {
-      let key = getWalletKeyByWallet(item);
-      let foundItem = rawData.find(
-        wallet => getWalletKeyByWallet(wallet) == key
-      );
-      return foundItem.currencyDisplayName;
-    }
-    return null;
+    return item.name || item.currencyDisplayName;
   },
   getXmlKey = item => item.currencySymbol,
   getBalanceText = item => '',
@@ -345,7 +336,9 @@ const AssetPicker: () => React$Node = ({
                 fontSize: 20,
               },
             ]}>
-            {getSubText(selected)}
+            {selected.isNft
+              ? getMainText(selected) //I18n.t(chainI18n[item.currency], { defaultValue: '' })
+              : getSubText(selected)}
           </Text>
         </View>
         <Image source={require('../assets/image/ic_arrow_right.png')} />

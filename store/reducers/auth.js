@@ -9,7 +9,10 @@ import {
   AUTH_LOADING,
   AUTH_ERROR,
   AUTH_UPDATE_SIGN_IN_STATE,
-  AUTH_UPDATE_IDENTITY, AUTH_UPDATE_DEV, AUTH_UPDATE_UI_FLAG, AUTH_UPDATE_FOR_NEWS,
+  AUTH_UPDATE_IDENTITY,
+  AUTH_UPDATE_DEV,
+  AUTH_UPDATE_UI_FLAG,
+  AUTH_UPDATE_GLOBAL_MODAL,
 } from '../actions/auth';
 import { COMMON_RESET } from '../actions/common';
 const { SignInState } = Auth;
@@ -35,10 +38,10 @@ function auth(state = defaultState, action) {
     }
     case AUTH_UPDATE_UI_FLAG:
       let nextState = state;
-      if(action.justSignup != null){
+      if (action.justSignup != null) {
         nextState.justSignup = action.justSignup;
       }
-      if(action.showSigninModal != null){
+      if (action.showSigninModal != null) {
         nextState.showSigninModal = action.showSigninModal;
       }
       return nextState;
@@ -47,10 +50,10 @@ function auth(state = defaultState, action) {
         ...state,
         config: action.config,
       };
-    case AUTH_UPDATE_FOR_NEWS:
+    case AUTH_UPDATE_GLOBAL_MODAL:
       return {
         ...state,
-        showNews: action.showNews,
+        globalModal: action.globalModal, // isShow, isNews
       };
     case AUTH_LOADING:
       return {
@@ -64,7 +67,7 @@ function auth(state = defaultState, action) {
         error: action.error,
       };
     case AUTH_UPDATE_SIGN_IN_STATE:
-      const { signInState = SignInState.UNKNOW } = action;
+      const { signInState = SignInState.UNKNOWN } = action;
       let o = {
         ...state,
         signInState: signInState,

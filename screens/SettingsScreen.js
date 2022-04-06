@@ -14,6 +14,7 @@ import { Container, Content, Toast } from 'native-base';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from 'react-navigation-hooks';
 import {
+  ALL_WALLET_ID,
   Api,
   BADGE_FONT_SIZE,
   LOCALES,
@@ -97,8 +98,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   const hasApiHistory = useSelector(state => {
     let hasApiHistory = false;
     try {
-      let apihistoryMap =
-        state.apihistory.apihistory[state.wallets.ethWallet.walletId].data;
+      let apihistoryMap = state.apihistory.apihistory[ALL_WALLET_ID].data;
       let arr = Object.values(apihistoryMap);
       if (arr.length > 0) {
         hasApiHistory = true;

@@ -1,5 +1,5 @@
-const supportedChains = [
-  {
+const supportedChains = {
+  1: {
     name: 'Ethereum Mainnet',
     short_name: 'eth',
     chain: 'ETH',
@@ -8,7 +8,7 @@ const supportedChains = [
     network_id: 1,
     rpc_url: 'https://mainnet.infura.io/',
   },
-  {
+  3: {
     name: 'Ethereum Ropsten',
     short_name: 'rop',
     chain: 'ETH',
@@ -17,7 +17,7 @@ const supportedChains = [
     network_id: 3,
     rpc_url: 'https://ropsten.infura.io/',
   },
-  {
+  4: {
     name: 'Ethereum Rinkeby',
     short_name: 'rin',
     chain: 'ETH',
@@ -26,7 +26,7 @@ const supportedChains = [
     network_id: 4,
     rpc_url: 'https://rinkeby.infura.io/',
   },
-  {
+  5: {
     name: 'Ethereum Görli',
     short_name: 'gor',
     chain: 'ETH',
@@ -35,7 +35,23 @@ const supportedChains = [
     network_id: 5,
     rpc_url: 'https://rpc.goerli.mudit.blog/',
   },
-  {
+  30: {
+    name: 'RSK Mainnet',
+    short_name: 'rsk',
+    chain: 'RSK',
+    network: 'mainnet',
+    chain_id: 30,
+    network_id: 30,
+    rpc_url: 'https://public-node.rsk.co',
+    native_currency: {
+      symbol: 'RSK',
+      name: 'RSK',
+      decimals: '18',
+      contractAddress: '',
+      balance: '',
+    },
+  },
+  42: {
     name: 'Ethereum Kovan',
     short_name: 'kov',
     chain: 'ETH',
@@ -44,7 +60,16 @@ const supportedChains = [
     network_id: 42,
     rpc_url: 'https://kovan.infura.io/',
   },
-  {
+  56: {
+    name: 'Binance Smart Chain',
+    short_name: 'BSC',
+    chain: 'BNB',
+    network: 'BNB',
+    chain_id: 56,
+    network_id: 56,
+    rpc_url: 'https://bsc-dataseed.binance.org/',
+  },
+  61: {
     name: 'Ethereum Classic Mainnet',
     short_name: 'etc',
     chain: 'ETC',
@@ -53,7 +78,7 @@ const supportedChains = [
     network_id: 1,
     rpc_url: 'https://ethereumclassic.network',
   },
-  {
+  77: {
     name: 'POA Network Sokol',
     short_name: 'poa',
     chain: 'POA',
@@ -62,7 +87,16 @@ const supportedChains = [
     network_id: 1,
     rpc_url: 'https://sokol.poa.network',
   },
-  {
+  97: {
+    name: 'Binance Smart Chain - Testnet',
+    short_name: 'BSC - testnet',
+    chain: 'BNB',
+    network: 'BNBtest',
+    chain_id: 97,
+    network_id: 97,
+    rpc_url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
+  },
+  99: {
     name: 'POA Network Core',
     short_name: 'skl',
     chain: 'POA',
@@ -71,7 +105,7 @@ const supportedChains = [
     network_id: 2,
     rpc_url: 'https://core.poa.network',
   },
-  {
+  100: {
     name: 'xDAI Chain',
     short_name: 'dai',
     chain: 'DAI',
@@ -80,6 +114,22 @@ const supportedChains = [
     network_id: 1,
     rpc_url: 'https://dai.poa.network',
   },
-];
+  820: {
+    name: 'Callisto Mainnet',
+    short_name: 'clo',
+    chain: 'callisto',
+    network: 'mainnet',
+    chain_id: 820,
+    network_id: 1,
+    rpc_url: 'https://clo-geth.0xinfra.com/',
+    native_currency: {
+      symbol: 'CLO',
+      name: 'CLO',
+      decimals: '18',
+      contractAddress: '',
+      balance: '',
+    },
+  },
+};
 
 export default supportedChains;

@@ -552,7 +552,7 @@ const EosResourceScreen: () => React$Node = ({ theme }) => {
             onChangeText={_onReceiverChanged}
             onBlur={() => _checkReceiver(receiver)}
             errorMsg={receiverError}
-            goScan={_goScan}
+            onRightIconClick={_goScan}
           />
         )}
         <RoundButton2

@@ -115,6 +115,14 @@ export function fetchTransaction(
           loading: false,
         });
       }
+    } else {
+      dispatch({
+        type: TRANSACTIONS_ENQUEUE,
+        currency,
+        tokenAddress,
+        address,
+        loading: false,
+      });
     }
   };
 }

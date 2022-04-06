@@ -154,7 +154,7 @@ const BottomActionMenu: () => React$Node = ({
     );
   };
   const _keyExtractor = item => {
-    return item;
+    return getValue ? getValue(item) : item;
   };
   return (
     <>

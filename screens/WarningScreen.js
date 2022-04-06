@@ -57,7 +57,7 @@ import ResultModal, {
 } from '../components/ResultModal';
 import AnimatedProgressButton from '../components/AnimatedProgressButton';
 
-let InputPinSmsScreen: () => React$Node = ({ theme }) => {
+let WarningScreen: () => React$Node = ({ theme }) => {
   const from = useNavigationParam('from') || 'Assets';
   const callback = useNavigationParam('callback');
   const onError = useNavigationParam('onError');
@@ -403,4 +403,4 @@ let InputPinSmsScreen: () => React$Node = ({ theme }) => {
     </Container>
   );
 };
-export default withTheme(InputPinSmsScreen);
+export default withTheme(WarningScreen);

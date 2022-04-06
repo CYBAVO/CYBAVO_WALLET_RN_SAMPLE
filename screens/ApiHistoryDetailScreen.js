@@ -40,6 +40,7 @@ import {
 import RoundButton2 from '../components/RoundButton2';
 import ReplaceTransactionModal, {
   titleKeys,
+  TYPE_ACCELERATE,
   TYPE_CANCEL,
 } from '../components/ReplaceTransactionModal';
 import { Wallets, WalletConnectSdk } from '@cybavo/react-native-wallet-service';
@@ -47,8 +48,12 @@ const { WalletConnectManager, WalletConnectHelper } = WalletConnectSdk;
 import {
   checkAuthType,
   explorer,
+  getEstimateGasFee,
   getEthGasFeeWithPreLimit,
+  getFeeNote,
+  getFeeUnit,
   getTotalFeeFromLimit,
+  getTransactionExplorerUri,
   getWalletKey,
   hasValue,
 } from '../Helpers';
@@ -76,12 +81,22 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
   const [selectedFeeInfo, setSelectedFeeInfo] = useState(null);
   const apihistory = useNavigationParam('apiHistory');
   const [usedFee, setUsedFee] = useState(null);
+  const [fee, setFee] = useState(null);
   const [replaceTransaction, setReplaceTransaction] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const { navigate, goBack } = useNavigation();
   const title = I18n.t('api_history_detail');
-
+  const wallet = apihistory.wallet;
+  const feeUnit = useSelector(state => {
+    if (!wallet) {
+      return '';
+    }
+    return getFeeUnit(wallet, state.currency.currencies);
+  });
+  const feeNote = wallet
+    ? getFeeNote(wallet.currency, wallet.tokenAddress)
+    : '';
   const enableBiometrics = useSelector(
     state => state.user.userState.enableBiometrics
   );
@@ -94,26 +109,42 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
   const bioSetting = useSelector(state => state.user.userState.bioSetting);
   const appState = useAppState();
   useEffect(() => {
-    if (appState == 'active' && replaceTransaction != null) {
-      dispatch(startFetchFee(Coin.ETH));
+    if (appState == 'active' && wallet) {
+      dispatch(startFetchFee(wallet.currency));
     } else if (appState === 'background') {
       dispatch(stopFetchFee());
     }
   }, [appState]);
 
-  const fee = useSelector(state => {
-    try {
-      if (
-        !state.fee.fee[Coin.ETH] ||
-        !state.fee.fee[Coin.ETH].data ||
-        !state.fee.fee[Coin.ETH].data.high
-      ) {
-        return null;
-      }
-      let ethGasFee = getEthGasFeeWithPreLimit(
-        state.fee.fee[Coin.ETH].data,
-        usedFee
-      );
+  const rawFee = useSelector(state => {
+    if (!wallet) {
+      return null;
+    }
+    if (!state.fee.fee[wallet.currency]) {
+      return null;
+    }
+    if (
+      !state.fee.fee[wallet.currency] ||
+      !state.fee.fee[wallet.currency].data ||
+      !state.fee.fee[wallet.currency].data.high
+    ) {
+      return null;
+    }
+    return state.fee.fee[wallet.currency].data;
+  });
+  useEffect(() => {
+    if (rawFee == null || usedFee == null) {
+      return;
+    }
+    getEstimateGasFee(
+      rawFee,
+      wallet.currency,
+      wallet.tokenAddress,
+      usedFee.total.toFixed(usedFee.total.decimalPlaces()),
+      '0',
+      wallet.walletId,
+      wallet.address
+    ).then(ethGasFee => {
       let immediateSelectedFeeInfo = selectedFeeInfo;
       if (immediateSelectedFeeInfo == null) {
         immediateSelectedFeeInfo = {
@@ -134,15 +165,12 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
           amount: ethGasFee[immediateSelectedFeeInfo.level].amount,
         });
       }
-      return ethGasFee;
-    } catch (error) {
-      console.debug('Update fee_error' + error);
-      return null;
-    }
-  });
+      setFee(ethGasFee);
+    });
+  }, [rawFee, usedFee]);
   useEffect(() => {
     if (apihistory.cancelable) {
-      dispatch(startFetchFee(Coin.ETH));
+      dispatch(startFetchFee(wallet.currency));
     }
     setUsedFee(getTotalFeeFromLimit(apihistory.gasPrice, apihistory.gasLimit));
   }, []);
@@ -234,7 +262,7 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
           padding: 16,
           backgroundColor: theme.colors.background,
         }}>
-        {apihistory.cancelable && (
+        {apihistory.cancelable && fee && (
           <RoundButton2
             height={ROUND_BUTTON_LARGE_HEIGHT}
             style={[
@@ -325,9 +353,11 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
             <Text
               selectable
               style={[Styles.secContent, Theme.fonts.default.regular]}>
-              {`${usedFee.total.toFixed(usedFee.total.decimalPlaces())} ETH (${
-                apihistory.gasPrice
-              } wei * ${apihistory.gasLimit})`}
+              {`${usedFee.total.toFixed(
+                usedFee.total.decimalPlaces()
+              )} ${feeUnit} (${apihistory.gasPrice} wei * ${
+                apihistory.gasLimit
+              })`}
             </Text>
           </View>
         )}
@@ -379,34 +409,48 @@ const ApiHistoryDetailScreen: () => React$Node = ({ theme }) => {
       />
 
       <ScrollView>{_getSubView()}</ScrollView>
-      {hasValue(apihistory.txid) && (
-        <RoundButton2
-          height={ROUND_BUTTON_HEIGHT}
-          style={Styles.bottomButton}
-          icon={({ size, color }) => (
-            <Image
-              source={expolreImg}
-              style={{
-                width: ROUND_BUTTON_ICON_SIZE,
-                height: ROUND_BUTTON_ICON_SIZE,
-              }}
-            />
-          )}
-          labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
-          color={theme.colors.primaryColor}
-          onPress={() => explorer(Coin.ETH, '', apihistory.txid, config)}>
-          {I18n.t('explore')}
-        </RoundButton2>
-      )}
+      {hasValue(apihistory.txid) &&
+        getTransactionExplorerUri(
+          wallet.currency,
+          wallet.tokenAddress,
+          apihistory.txid,
+          config
+        ) && (
+          <RoundButton2
+            height={ROUND_BUTTON_HEIGHT}
+            style={Styles.bottomButton}
+            icon={({ size, color }) => (
+              <Image
+                source={expolreImg}
+                style={{
+                  width: ROUND_BUTTON_ICON_SIZE,
+                  height: ROUND_BUTTON_ICON_SIZE,
+                }}
+              />
+            )}
+            labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+            color={theme.colors.primaryColor}
+            onPress={() =>
+              explorer(
+                wallet.currency,
+                wallet.tokenAddress,
+                apihistory.txid,
+                config
+              )
+            }>
+            {I18n.t('explore')}
+          </RoundButton2>
+        )}
       {replaceTransaction && fee && (
         <ReplaceTransactionModal
           type={replaceTransaction}
           fee={fee}
+          feeNote={feeNote}
+          feeUnit={feeUnit}
           onCancel={() => {
             setReplaceTransaction(null);
             dispatch(stopFetchFee());
           }}
-          feeNote={` (${I18n.t('estimated')})`}
           onButtonClick={async selectedFee => {
             setReplaceTransaction(null);
             dispatch(stopFetchFee());

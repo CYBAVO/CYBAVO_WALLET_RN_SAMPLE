@@ -31,27 +31,14 @@ const CurrencyPickerLite: () => React$Node = ({
   getXmlKey = item => `${item.symbol}`,
   onCancel = () => {},
 }) => {
-  const [selected, setSelected] = useState(initSelected);
-  const isSelected = item => {
-    if (!selected == null || item == null) {
-      return false;
-    }
-    return getKey(selected) === getKey(item);
-  };
   const _onBackHandle = () => {
     onCancel();
     return true;
   };
-
-  useEffect(() => {
-    setSelected(initSelected);
-    // clickItem(initSelected);
-  }, [initSelected]);
   const data = rawData;
   const _renderItem = ({ item }) => (
     <TouchableOpacity
       onPress={() => {
-        setSelected(item);
         clickItem(item);
       }}
       style={styles.listItem}>
@@ -60,16 +47,6 @@ const CurrencyPickerLite: () => React$Node = ({
         <Text style={styles.listItemText}>{getMainText(item)}</Text>
         <Text style={styles.listItemSubText}>{getSubText(item)}</Text>
       </View>
-      {isSelected(item) && (
-        <Image
-          source={CHECK_ICON}
-          style={{
-            color: theme.colors.primary,
-            height: LIST_ICON_SIMPLE_SIZE,
-            width: LIST_ICON_SIMPLE_SIZE,
-          }}
-        />
-      )}
     </TouchableOpacity>
   );
   return (

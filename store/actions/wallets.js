@@ -6,14 +6,30 @@
  */
 import { Wallets } from '@cybavo/react-native-wallet-service';
 import { fetchBalance } from './balance';
-import {fetchTokenUriIfNeed} from './tokenUri';
 // import { fetchCurrencyPricesIfNeed } from './currencyPrice';
-
+export const WALLET_LIMIT_LOADING = 'WALLET_LIMIT_LOADING';
+export const WALLET_LIMIT_ERROR = 'WALLET_LIMIT_ERROR';
+export const WALLET_LIMIT_UPDATE = 'WALLET_LIMIT_UPDATE';
 export const WALLETS_LOADING = 'WALLETS_LOADING';
 export const WALLETS_UPDATE_WALLET_LIST = 'WALLETS_UPDATE_WALLET_LIST';
 export const WALLETS_UPDATE_WALLET = 'WALLETS_UPDATE_WALLET';
 export const WALLETS_ERROR = 'WALLETS_ERROR';
 export const WALLETS_UPDATE_CURRENCIES = 'WALLETS_UPDATE_CURRENCIES';
+
+export function fetchSameCurrencyWalletLimit() {
+  return async dispatch => {
+    dispatch({ type: WALLET_LIMIT_LOADING, loading: true });
+    try {
+      const { walletLimit } = await Wallets.getSameCurrencyWalletLimit();
+      dispatch({ type: WALLET_LIMIT_UPDATE, walletLimit });
+      console.log('Wallets.getSameCurrencyWalletLimit s');
+    } catch (error) {
+      console.log('Wallets.getSameCurrencyWalletLimit failed', error);
+      dispatch({ type: WALLET_LIMIT_ERROR, error });
+    }
+    dispatch({ type: WALLET_LIMIT_LOADING, loading: false });
+  };
+}
 
 export function fetchWallets(fetchBalanceCurrency) {
   return async dispatch => {

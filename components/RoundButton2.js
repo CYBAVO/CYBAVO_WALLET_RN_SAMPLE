@@ -26,7 +26,7 @@ const RoundButton2: () => React$Node = ({
       mode={outlined ? 'outlined' : 'contained'}
       icon={icon}
       style={[
-        { borderRadius: height / 2, opacity: disabled ? 0.45 : 1 },
+        { borderRadius: height / 2, opacity: disabled ? 0.5 : 1 },
         Theme.fonts.default.medium,
         outlined ? { ...styles.outlined, borderColor: color } : null,
         style,

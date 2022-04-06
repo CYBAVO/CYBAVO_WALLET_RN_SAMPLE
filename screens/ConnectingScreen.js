@@ -24,7 +24,12 @@ import { DotIndicator } from 'react-native-indicators';
 import { HEADER_BAR_PADDING, ROUND_BUTTON_HEIGHT } from '../Constants';
 import RoundButton2 from '../components/RoundButton2';
 import { useDimensions, useLayout } from '@react-native-community/hooks';
-const { height } = Dimensions.get('window');
+import AssetPicker from '../components/AssetPicker';
+import { effectiveBalance, getWalletKeyByWallet } from '../Helpers';
+import WalletConnectAssetPicker from '../components/WalletConnectAssetPicker';
+import NavigationService from '../NavigationService';
+import { TYPE_FAIL } from '../components/ResultModal';
+const { width, height } = Dimensions.get('window');
 const DOT_SIZE = 6;
 const CIRCEL_SIZE = 32;
 
@@ -35,26 +40,43 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
   const peerName = useNavigationParam('peerName');
   const { onLayout, ...layout } = useLayout();
   const payload = useNavigationParam('payload');
-  const address = useNavigationParam('address');
+  const wallets = useNavigationParam('wallets');
   const chainId = useNavigationParam('chainId');
   const returnAddress = useNavigationParam('returnAddress');
   const returnChainId = useNavigationParam('returnChainId');
+  const leave = useNavigationParam('leave');
+  const [wallet, setWallet] = useState(null);
+
+  useEffect(() => {
+    if (leave) {
+      goBack();
+      NavigationService.navigate('GlobalModal', {
+        config: {
+          title: I18n.t('walletconnect'),
+          errorMsg: leave,
+          type: TYPE_FAIL,
+        },
+      });
+    }
+  }, [leave]);
+
   const _rejectSession = async () => {
     dispatch(rejectSession(peerId));
     goBack();
   };
   const _approveSession = async () => {
-    let addr = returnAddress || address;
-    let cId = returnChainId || chainId;
-    const response = { accounts: [addr], chainId };
+    let addr = returnAddress || wallet.address;
+    let cId = returnChainId || wallet.chainId;
+    const response = { accounts: [addr], chainId: cId };
     goBack();
-    await dispatch(approveSession(peerId, peerName, response));
+    await dispatch(approveSession(peerId, peerName, response, wallet));
   };
   const _getSessionRequestView = () => {
     const { peerMeta, chainId } = payload.params[0];
     const newSession =
       payload.method === 'wc_sessionRequest' ||
       payload.method === 'session_request';
+    let maxWidth = width * 0.83 - 68;
     return (
       <View
         style={[
@@ -68,9 +90,9 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
             alignSelf: 'center',
             alignItems: 'center',
             width: '83%',
-            paddingTop: 48,
-            paddingHorizontal: 24,
-            paddingBottom: 32,
+            paddingTop: 40,
+            paddingHorizontal: 34,
+            paddingBottom: 40,
             borderRadius: 12,
             justifyContent: 'flex-start',
             backgroundColor: theme.colors.surface,
@@ -81,37 +103,73 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
               alignItems: 'center',
             }}
             style={{
-              height: height * 0.5,
+              height: height * 0.6,
             }}>
-            <Text
-              style={[styles.request_message, Theme.fonts.default.heavyBold]}>
-              {I18n.t('session_request_message', peerMeta)}
-            </Text>
             <Image
               source={{ uri: peerMeta.icons[0] }}
               style={{ width: 60, height: 60 }}
             />
             <Text
+              style={[styles.request_message, Theme.fonts.default.heavyBold]}>
+              {I18n.t('session_request_message', peerMeta)}
+            </Text>
+            <Text
               style={{
                 fontSize: 12,
-                color: Theme.colors.resultTitle,
+                color: Theme.colors.gray600,
                 textAlign: 'center',
-                marginVertical: 16,
+                marginTop: 0,
+                marginBottom: 0,
               }}>
               {peerMeta.url}
             </Text>
-            <View style={styles.barBlock}>
-              <View style={styles.dot} />
-              <Text style={styles.permission_message}>
+            <View
+              style={{
+                width: maxWidth,
+                height: 1,
+                marginTop: 24,
+                backgroundColor: Theme.colors.line,
+              }}
+            />
+            <View style={[styles.barBlock, { marginTop: 24 }]}>
+              <Image
+                source={require('../assets/image/ic_check2.png')}
+                resizeMode="stretch"
+                style={{
+                  width: 20,
+                  height: 20,
+                }}
+              />
+              <Text
+                style={[styles.permission_message, Theme.fonts.default.heavy]}>
                 {I18n.t('allow_wallet_address')}
               </Text>
             </View>
-            <View style={styles.barBlock}>
-              <View style={styles.dot} />
-              <Text style={styles.permission_message}>
+            <View style={[styles.barBlock, { marginTop: 18 }]}>
+              <Image
+                source={require('../assets/image/ic_check2.png')}
+                resizeMode="stretch"
+                style={{
+                  width: 20,
+                  height: 20,
+                }}
+              />
+              <Text
+                style={[styles.permission_message, Theme.fonts.default.heavy]}>
                 {I18n.t('allow_signature_request')}
               </Text>
             </View>
+            <WalletConnectAssetPicker
+              itemStyle={{ marginTop: 16, width: maxWidth }}
+              dappName={peerName}
+              rawData={wallets}
+              initSelected={
+                wallet == null ? (chainId == -1 ? null : wallets[0]) : wallet
+              }
+              clickItem={item => {
+                setWallet(item);
+              }}
+            />
           </ScrollView>
           <TouchableOpacity
             style={{
@@ -135,16 +193,25 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
                         fontWeight: '700',
                       },
                     ]
-                  : { color: theme.colors.primary, fontSize: 14 }
+                  : { color: theme.colors.primary, fontSize: 16 }
               }>
               {I18n.t('reject')}
             </Text>
           </TouchableOpacity>
           <RoundButton2
+            outlined
             height={ROUND_BUTTON_HEIGHT}
-            style={styles.button}
+            style={{
+              borderWidth: 0,
+              backgroundColor:
+                wallet == null
+                  ? Theme.colors.primaryDisabled
+                  : Theme.colors.primary,
+              opacity: 1,
+            }}
+            disabled={wallet == null}
             labelStyle={[
-              { color: theme.colors.text, fontSize: 14, width: '100%' },
+              { color: theme.colors.text, fontSize: 16, width: '100%' },
             ]}
             onPress={_approveSession}>
             {I18n.t('approve')}
@@ -159,25 +226,24 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
         onLayout={onLayout}
         style={[
           {
-            marginTop: 100,
+            marginTop: (height - layout.height) / 2,
             alignItems: 'center',
-            justifyContent: 'flex-start',
-            flex: 1,
-            paddingBottom: 32,
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
+            alignSelf: 'center',
+            paddingBottom: 40,
+            borderRadius: 12,
             backgroundColor: theme.colors.surface,
+            minHeight: 205,
           },
         ]}>
         <View
           style={{
             height: 56,
-            borderBottomWidth: 1,
+            borderBottomWidth: 0,
             borderColor: 'rgba(9,16,42,0.1)',
             justifyContent: 'flex-end',
             alignItems: 'center',
             flexDirection: 'row',
-            width: '100%',
+            width: width - 64,
           }}>
           <View
             style={{
@@ -188,6 +254,7 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
               width: '100%',
               position: 'absolute',
               left: 0,
+              top: 22,
             }}>
             <Text
               style={[
@@ -211,8 +278,8 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
             }}
             icon={({ size, color }) => (
               <Image
-                source={require('../assets/image/ic_cancel_gray.png')}
-                style={{ width: 24, height: 24 }}
+                source={require('../assets/image/ic_cancel_gray2.png')}
+                style={{ width: 16, height: 16 }}
               />
             )}
             accessibilityTraits="button"
@@ -246,19 +313,6 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
             />
           </View>
         </View>
-        <Text
-          style={[
-            Theme.fonts.default.regular,
-            {
-              color: theme.colors.battleshipGrey,
-              marginTop: 24,
-              fontSize: 16,
-              textAlign: 'center',
-              alignSelf: 'center',
-            },
-          ]}>
-          {I18n.t('walletconnecting_message')}
-        </Text>
       </View>
     );
   };
@@ -277,6 +331,7 @@ const ConnectingScreen: () => React$Node = ({ theme, visible = true }) => {
           backgroundColor: 'rgba(0,0,0,0.5)',
         }}>
         {peerId == null ? _getConnectingView() : _getSessionRequestView()}
+        {/*{peerId == null ? _getConnectingView() : _getConnectingView()}*/}
       </View>
     </Modal>
   );
@@ -289,27 +344,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   request_message: {
-    fontSize: 16,
+    fontSize: 18,
     marginBottom: 16,
     color: Theme.colors.resultContent,
     textAlign: 'center',
   },
   permission_message: {
-    fontSize: 16,
-    color: Theme.colors.pinDisplayInactivate,
+    fontSize: 12,
+    color: Theme.colors.resultContent,
     width: '90%',
+    marginLeft: 6,
   },
   barBlock: {
-    backgroundColor: Theme.colors.pickerBgTransparent,
-    marginTop: 10,
-    paddingVertical: HEADER_BAR_PADDING,
-    paddingRight: 6,
     width: '100%',
-    paddingLeft: 2,
     alignSelf: 'center',
     flexDirection: 'row',
     justifyContent: 'space-around',
-    borderRadius: 6,
   },
   dot: {
     width: DOT_SIZE,

@@ -41,6 +41,7 @@ export const SMS_SETUP_PHONE_OTP = 0;
 export const SMS_VERIFY_OTP = 1;
 export const SMS_LOGIN_OTP = 2;
 export const EMAIL_VERIFY_OTP = 3;
+export const ALL_WALLET_ID = 0;
 
 export const CBO_SEPARATOR = '#CBO#'; //address#CBO#chainId#CBO#walletconnectUri, address/chainId: return to DAPP
 
@@ -180,6 +181,7 @@ export const sliderInnerWidth = {
 export const CHECK_ICON = require('./assets/image/ic_check.png');
 export const CLEAR_ICON = require('./assets/image/ic_input_clear.png');
 export const SCAN_ICON = require('./assets/image/ic_scan.png');
+export const EDIT_ICON = require('./assets/image/ic_edit2.png');
 export const COOL_TIME = 60;
 
 export const Api = {

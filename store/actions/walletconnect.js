@@ -4,14 +4,15 @@
  *
  * All rights reserved.
  */
-import { WalletConnectSdk } from '@cybavo/react-native-wallet-service';
-import { toast, toastError } from '../../Helpers';
+import { WalletConnectSdk, Wallets } from '@cybavo/react-native-wallet-service';
+import { hasValue, toast, toastError } from '../../Helpers';
 const { WalletConnectManager, WalletConnectHelper } = WalletConnectSdk;
 import NavigationService from '../../NavigationService';
 import { CHAIN_ID } from '../../BuildConfig';
 import moment from 'moment';
 import { FileLogger } from 'react-native-file-logger';
 import I18n from '../../i18n/i18n';
+import { TYPE_FAIL } from '../../components/ResultModal';
 
 export const WALLETCONNECT_UPDATE_REPORTABLE =
   'walletConnect/WALLETCONNECT_UPDATE_REPORTABLE';
@@ -45,13 +46,49 @@ export const WALLETCONNECT_CALL_REJECTION =
 
 export const WALLETCONNECT_PENDING_URI =
   'walletConnect/WALLETCONNECT_PENDING_URI';
-export function newSession(
-  uri,
-  address,
-  walletId,
+
+export const WALLETCONNECT_UPDATE_API_VERSION =
+  'walletConnect/WALLETCONNECT_UPDATE_API_VERSION';
+
+function defaultSelectWallet(
+  dispatch,
+  getState,
+  connectorWrapper,
+  payload,
+  returnChainId,
   returnAddress,
-  returnChainId
+  ethWallet,
+  errorInfo = ''
 ) {
+  if (!ethWallet) {
+    console.debug(`error getWalletsByChainIds:${errorInfo}`);
+    rejectSession(connectorWrapper.getConnector().peerId);
+    NavigationService.navigate('Connecting', {
+      leave: I18n.t('no_available_wallet_msg2', {
+        info: errorInfo,
+      }),
+    });
+    return;
+  }
+
+  // FileLogger.debug(`sessionRequest:${JSON.stringify(payload)}`);
+  dispatch({
+    type: WALLETCONNECT_SESSION_REQUEST,
+    pending: WalletConnectManager.getPendingMap(),
+  });
+  let w = { ...ethWallet, chainId: getState().auth.config == 'test' ? 3 : 1 };
+  NavigationService.navigate('Connecting', {
+    peerId: connectorWrapper.getConnector().peerId,
+    peerName: connectorWrapper.getConnector().peerMeta.name,
+    payload,
+    wallets: [w],
+    chainId: -1,
+    returnAddress,
+    returnChainId,
+  });
+}
+
+export function newSession(uri, returnAddress, returnChainId, ethWallet) {
   return async (dispatch, getState) => {
     try {
       let clientMeta = {
@@ -63,13 +100,13 @@ export function newSession(
       };
       dispatch({ type: WALLETCONNECT_UPDATE_REPORTABLE, value: true });
       FileLogger.debug(
-        `>> newSession:${uri},address:${address},walletId${walletId},returnAddress:${returnAddress ||
+        `>> newSession:${uri},returnAddress:${returnAddress ||
           ''},returnChainId${returnChainId || ''}, ,${getState().auth.config}`
       );
       let connectorWrapper = WalletConnectManager.newSession(
         uri,
-        address,
-        walletId,
+        '', //set later
+        0, //set later
         clientMeta,
         (error, payload) => {
           if (error) {
@@ -77,24 +114,70 @@ export function newSession(
             toastError(error);
             return;
           }
-          FileLogger.debug(`sessionRequest:${JSON.stringify(payload)}`);
-          dispatch({
-            type: WALLETCONNECT_SESSION_REQUEST,
-            pending: WalletConnectManager.getPendingMap(),
-          });
-          NavigationService.navigate('Connecting', {
-            peerId: connectorWrapper.getConnector().peerId,
-            peerName: connectorWrapper.getConnector().peerMeta.name,
-            payload,
-            address,
-            chainId: CHAIN_ID,
-            returnAddress,
-            returnChainId,
-          });
+          if (false) {
+            defaultSelectWallet(
+              dispatch,
+              getState,
+              connectorWrapper,
+              payload,
+              returnChainId,
+              returnAddress,
+              ethWallet,
+              'test'
+            );
+            return;
+          }
+          let chainId = -1; // payload.params[0].chainId
+          Wallets.getWalletsByChainIds([chainId])
+            .then(result => {
+              let wallets = result.wallets.filter(
+                w => !w.isPrivate && !hasValue(w.tokenAddress)
+              );
+              if (wallets.length == 0) {
+                defaultSelectWallet(
+                  dispatch,
+                  getState,
+                  connectorWrapper,
+                  payload,
+                  returnChainId,
+                  returnAddress,
+                  ethWallet,
+                  chainId
+                );
+                return;
+              }
+
+              FileLogger.debug(`sessionRequest:${JSON.stringify(payload)}`);
+              dispatch({
+                type: WALLETCONNECT_SESSION_REQUEST,
+                pending: WalletConnectManager.getPendingMap(),
+              });
+              NavigationService.navigate('Connecting', {
+                peerId: connectorWrapper.getConnector().peerId,
+                peerName: connectorWrapper.getConnector().peerMeta.name,
+                payload,
+                wallets: wallets,
+                chainId: chainId,
+                returnAddress,
+                returnChainId,
+              });
+            })
+            .catch(error => {
+              defaultSelectWallet(
+                dispatch,
+                getState,
+                connectorWrapper,
+                payload,
+                returnChainId,
+                returnAddress,
+                ethWallet,
+                error
+              );
+            });
         }
       );
 
-      NavigationService.navigate('Connecting', {});
+      NavigationService.navigate('Connecting', {}); //TODO:wc
     } catch (error) {
       FileLogger.debug(`newSession fail:${error}`);
     }
@@ -103,7 +186,8 @@ export function newSession(
 export function approveSession(
   peerId,
   peerName,
-  response: { accounts: string[], chainId: number }
+  response: { accounts: string[], chainId: number },
+  wallet
 ) {
   return async (dispatch, getState) => {
     // if (getState().auth.config == 'test') {
@@ -112,12 +196,15 @@ export function approveSession(
     FileLogger.debug(
       `>> approveSession_peerId:${peerId}, response:${JSON.stringify(response)}`
     );
-    WalletConnectManager.approveSession(
+    WalletConnectManager.approveSessionAndSetInfo(
       peerId,
       {
         accounts: response.accounts,
         chainId: response.chainId,
       },
+      wallet.address,
+      wallet.walletId,
+      response.chainId,
       (error: any, payload: any) => {
         if (error) {
           FileLogger.debug(`callRequest error:${error}`);
@@ -125,10 +212,30 @@ export function approveSession(
           return;
         }
         FileLogger.debug(`callRequest:${JSON.stringify(payload)}`);
+        let handleResult = getHandledPayload(
+          peerId,
+          payload,
+          getState().auth.config
+        );
+        if (handleResult.error) {
+          FileLogger.debug(`handleResult error:${handleResult.error}`);
+          NavigationService.navigate('GlobalModal', {
+            config: {
+              title: I18n.t('walletconnect'),
+              errorMsg: handleResult.error,
+              type: TYPE_FAIL,
+            },
+          });
+          rejectRequest(peerId, {
+            id: payload.id,
+            error: { message: handleResult.error },
+          });
+          return;
+        }
         NavigationService.navigate('Request', {
           peerId,
-          payload: getHandledPayload(peerId, payload, getState().auth.config),
-          walletId: WalletConnectManager.getWalletId(peerId),
+          payload: handleResult.payload,
+          wallet: wallet,
         });
       },
       (error, payload) => {
@@ -156,7 +263,7 @@ export function approveSession(
 function getHandledPayload(peerId, payload, config) {
   let map = WalletConnectManager.getConnectingMap();
   if (!map[peerId]) {
-    return payload;
+    return { payload: payload };
   }
   const { peerMeta } = map[peerId].getSessionPayload().params[0];
   switch (payload.method) {
@@ -187,24 +294,53 @@ function getHandledPayload(peerId, payload, config) {
         payload.params[0] = tx;
       }
       break;
-
+    case 'eth_sign':
+    case 'personal_sign':
+    case 'eth_sendRawTransaction':
+    case 'eth_sign':
+      break;
     default:
       if (payload.method.startsWith('eth_signTypedData')) {
-        let jsonstr = payload.params[1];
-        let o = JSON.parse(jsonstr);
-        let newDomain = getTrimmedTypedData(o.types.EIP712Domain, o.domain);
-        let newRelay = getTrimmedTypedData(o.types.RelayRequest, o.message);
-        o.types.EIP712Domain = newDomain.type;
-        o.domain = newDomain.data;
-        o.types.RelayRequest = newRelay.type;
-        o.message = newRelay.data;
-        payload.params[1] = JSON.stringify(o);
+        payload = getPayloadForSignTypedData(payload);
+      } else {
+        return {
+          error: `${I18n.t('unsupported_operation')}: ${payload.method}`,
+        };
       }
       break;
   }
+  return { payload: payload };
+}
+function getPayloadForSignTypedData(payload) {
+  if (false) {
+    payload.params[1] =
+      '{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Permit":[{"name":"holder","type":"address"},{"name":"spender","type":"address"},{"name":"nonce","type":"uint256"},{"name":"expiry","type":"uint256"},{"name":"allowed","type":"bool"}]},"domain":{"name":"Dai Stablecoin","version":"1","verifyingContract":"0x6B175474E89094C44Da98b954EedeAC495271d0F","chainId":1},"primaryType":"Permit","message":{"holder":"0x7d03149A2843E4200f07e858d6c0216806Ca4242","spender":"0xE592427A0AEce92De3Edee1F18E0157C05861564","allowed":true,"nonce":0,"expiry":1633072018}}';
+  }
+  let jsonstr = payload.params[1];
+  let o = JSON.parse(jsonstr);
+  let newDomain = getTrimmedTypedData(o.types.EIP712Domain, o.domain);
+  let newRelay = getTrimmedTypedData(o.types.RelayRequest, o.message);
+  o.types.EIP712Domain = newDomain.type;
+  o.domain = newDomain.data;
+  o.types.RelayRequest = newRelay.type;
+  o.message = newRelay.data;
+  payload.typedData = o;
+  payload = checkPermit(payload, o);
+  payload.params[1] = JSON.stringify(o);
   return payload;
 }
-
+export function checkPermit(payload, o) {
+  try {
+    if (o.primaryType == 'Permit') {
+      payload.isPermit = true;
+      payload.domainName = o.domain.name || 'Token';
+      payload.verifyingContract = o.domain.verifyingContract;
+    }
+    return payload;
+  } catch (e) {
+    return payload;
+  }
+}
 export function getTrimmedTypedData(type, data) {
   try {
     let nType = [],

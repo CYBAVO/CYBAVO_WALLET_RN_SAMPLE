@@ -36,13 +36,15 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
   const refs = [useRef(), useRef()];
-
+  const walletLimit = useSelector(state => {
+    return state.wallets.walletLimit;
+  });
   const paramCurrency = useNavigationParam('currency');
   const _getAvailableCurrencies = (currencies, wallets) => {
     if (paramCurrency) {
       return [paramCurrency];
     }
-    return getRestCurrencies(currencies, wallets);
+    return getRestCurrencies(currencies, wallets, walletLimit);
   };
 
   const currencies = useSelector(state => {
@@ -65,13 +67,40 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
     currencies.length > 0 ? currencies[0] : {}
   );
   const [parent, setParent] = useState({});
+  const _getParentName = (wallets, currency) => {
+    let count = 0;
+    for (let w of wallets) {
+      if (w.currency === currency.currency && !w.tokenAddress) {
+        count++;
+      }
+    }
+    if (count > 0) {
+      return `My ${currency.symbol}${count + 1}`;
+    } else {
+      return `My ${currency.symbol}`;
+    }
+  };
   const _getAvailableParents = (wallets, currency) => {
     if (!wallets || !currency) {
       return [];
     }
-    const r = wallets.filter(
-      w => w.currency === currency.currency && !w.tokenAddress
-    );
+    if (!currency.tokenAddress) {
+      return [];
+    }
+    let map = {}; //string: object|false
+    for (let w of wallets) {
+      if (w.currency !== currency.currency) {
+        continue;
+      }
+      if (!w.tokenAddress) {
+        if (map[w.address] != false) {
+          map[w.address] = w;
+        }
+      } else if (w.tokenAddress == currency.tokenAddress) {
+        map[w.address] = false;
+      }
+    }
+    const r = Object.values(map).filter(v => v != false);
     return r;
   };
   const [parents, setParents] = useState(
@@ -103,11 +132,12 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
       let parentId = parent.walletId || 0;
       if (_needParent()) {
         let parentCurrency = _getParentCurrency(currency);
+        let name = _getParentName(wallets, parentCurrency);
         let result = await Wallets.createWallet(
           parentCurrency.currency, // currency
           parentCurrency.tokenAddress, // tokenAddress
           0, // parentWalletId
-          `My ${parentCurrency.symbol}`, // name
+          name, // name
           { pinSecret, retain: true }, // pinSecret
           {
             account_name: undefined,
@@ -268,6 +298,29 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
               focusInput(refs, 0);
             }}
           />
+          {parents.length > 1 && (
+            <Text
+              style={[
+                Styles.secLabel,
+                styles.labelItem,
+                Theme.fonts.default.regular,
+              ]}>
+              {I18n.t('parent_wallet')}
+            </Text>
+          )}
+          {parents.length > 1 && (
+            <CurrencyPicker
+              rawData={parents}
+              clickItem={item => setParent(item)}
+              getKey={item => item.walletId}
+              getMainText={item => item.currencySymbol}
+              getSubText={item => item.name}
+              getXmlKey={item => {
+                return item.currencySymbol;
+              }}
+              title={I18n.t('select_parent_wallet')}
+            />
+          )}
           <CompoundTextInput
             ref={refs[0]}
             onSubmitEditing={

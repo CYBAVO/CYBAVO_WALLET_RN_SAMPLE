@@ -10,6 +10,7 @@ import {
   Animated,
   Dimensions,
   TouchableOpacity,
+  ImageBackground,
 } from 'react-native';
 import { useBackHandler } from '@react-native-community/hooks';
 import { withTheme, ActivityIndicator, Text } from 'react-native-paper';
@@ -39,23 +40,34 @@ import {
   AUTH_TYPE_OLD,
   AUTH_TYPE_SMS,
   Coin,
+  EDIT_ICON,
   ROUND_BUTTON_HEIGHT,
   sliderInnerWidth,
   sliderOuterWidth,
 } from '../Constants';
 import RoundButton2 from '../components/RoundButton2';
 import { titleKeys, TYPE_CANCEL } from '../components/ReplaceTransactionModal';
-import { Wallets, WalletConnectSdk } from '@cybavo/react-native-wallet-service';
+import {
+  Wallets,
+  WalletConnectSdk,
+  getEstimateGas,
+} from '@cybavo/react-native-wallet-service';
 const { WalletConnectManager, WalletConnectHelper } = WalletConnectSdk;
 import {
   checkAuthType,
   convertAmountFromRawNumber,
   convertHexToString,
+  extractAddress,
+  focusNext,
+  getAddressTagObjFromResult,
+  getAddressTagsFromResult,
   getAvailableBalance,
   getEstimateFee,
-  getEthGasFee,
   getExchangeAmount,
+  getFeeUnit,
+  getScoreColor,
   getWalletKeyByWallet,
+  getWarningView,
   hasValue,
   sleep,
   toastError,
@@ -65,24 +77,50 @@ import { Theme } from '../styles/MainTheme';
 import BigNumber from 'bignumber.js';
 import walletconnect from '../store/reducers/walletconnect';
 import InputPinCodeModal from './InputPinCodeModal';
-import DegreeSelecter from '../components/DegreeSelecter';
+import FeeDegreeSelector from '../components/FeeDegreeSelector';
+import CheckBox from '../components/CheckBox';
+import CompoundTextInput from '../components/CompoundTextInput';
 const { width, height } = Dimensions.get('window');
+const STEP_INIT = 0;
+const STEP_AML = 1;
 
 const RequestScreen: () => React$Node = ({ theme }) => {
+  const refs = [useRef()];
+  const scrollView = useRef();
   const [result, setResult] = useState(null);
   const dispatch = useDispatch();
   const peerId = useNavigationParam('peerId');
   const payload = useNavigationParam('payload');
-  const walletId = useNavigationParam('walletId');
+  const wallet = useNavigationParam('wallet');
   const [amountError, setAmountError] = useState({});
   const isSessionRequest = WalletConnectHelper.isSessionRequest(payload.method);
   const [fee, setFee] = useState({});
-  const [feeKeys, setFeeKeys] = useState([]);
   const [selectedFee, setSelectedFee] = useState('high');
   const [amountNum, setAmountNum] = useState(0);
+  const [eip155, setEip155] = useState(false);
+  const [isHex, setIsHex] = useState(true);
+  const [legacySign, setLegacySign] = useState(false);
+  const [permitConfirmed, setPermitConfirmed] = useState(false);
+  const [initAml, setInitAml] = useState(false);
+  const [initGasLimit, setInitGasLimit] = useState(false);
+  const [amlConfirmed, setAmlConfirmed] = useState(false);
+  const [addressTagsObj, setAddressTagsObj] = useState(null); //score, tags, model
+  const [gasLimit, setGasLimit] = useState('121000'); //121000
+  const [gasLimitError, setGasLimitError] = useState(null);
+  const [minGasLimit, setMinGasLimit] = useState('21000');
+  const [showAdvanceSign, setShowAdvanceSign] = useState(false);
+  const [customFeeGwei, setCustomFeeGwei] = useState('');
+  const [customFee, setCustomFee] = useState('');
+  const [customFeeErr, setCustomFeeErr] = useState(null);
+  const [step, setStep] = useState(STEP_INIT);
+  const CUSTOM_FEE_KEY = 'custom';
+  const feeUnit = useSelector(state => {
+    return getFeeUnit(wallet, state.currency.currencies);
+  });
   const enableBiometrics = useSelector(
     state => state.user.userState.enableBiometrics
   );
+  const apiVersion = useSelector(state => state.walletconnect.apiVersion);
   const skipSmsVerify = useSelector(
     state => state.user.userState.skipSmsVerify
   );
@@ -97,13 +135,17 @@ const RequestScreen: () => React$Node = ({ theme }) => {
   );
   const balanceItem = useSelector(state => {
     let balances = state.balance.balances || {};
-    return balances[getWalletKeyByWallet(state.wallets.ethWallet)];
+    return balances[getWalletKeyByWallet(wallet)];
   });
-  const title =
+  const isTransactionRequest =
     payload.method == 'eth_sendTransaction' ||
-    payload.method == 'eth_signTransaction'
-      ? I18n.t('transaction_request')
-      : I18n.t('sign_request');
+    payload.method == 'eth_signTransaction';
+
+  const title = isTransactionRequest
+    ? I18n.t('transaction_request')
+    : payload.method == 'eth_sendRawTransaction'
+    ? I18n.t('send_signed_transaction')
+    : I18n.t('sign_request');
   const exchangeCurrency = useSelector(
     state => state.currencyPrice.exchangeCurrency
   );
@@ -123,7 +165,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
   const _fetchWithdrawInfo = async (amount, gas) => {
     setLoading(true);
     try {
-      const rawFee = await Wallets.getTransactionFee(Coin.ETH);
+      const rawFee = await Wallets.getTransactionFee(wallet.currency);
       if (
         rawFee != null &&
         rawFee.high != null &&
@@ -133,6 +175,11 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         hasValue(rawFee.medium.amount) &&
         hasValue(rawFee.low.amount)
       ) {
+        rawFee.custom = {
+          amount: '',
+          description: '',
+          editable: true,
+        };
         setFee(rawFee);
       } else {
         setFee(null);
@@ -170,8 +217,12 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         low: { amount: '0.000000108', description: 'low d' },
         medium: { amount: '0.000000108', description: 'medium d' },
         high: { amount: '0.000000108', description: 'high d' },
+        custom: {
+          amount: '',
+          description: '',
+          editable: true,
+        },
       });
-      setFeeKeys(['low', 'medium', 'high']);
       _checkAmountNumerical(amount, 'low', fee);
     }
     setLoading(false);
@@ -186,17 +237,218 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     }
   }, [connectorWrapper]);
   useEffect(() => {
+    if (apiVersion.signOptions == false) {
+      setIsHex(false);
+    }
+  }, [apiVersion]);
+  useEffect(() => {
+    _getAddressTag();
     if (
       payload.method == 'eth_sendTransaction' ||
       payload.method == 'eth_signTransaction'
     ) {
+      _initGasLimit(payload, wallet.walletId);
       const tx = payload.params[0];
       const amount = convertAmountFromRawNumber(convertHexToString(tx.value));
       setAmountNum(amount);
       _fetchWithdrawInfo(amount, tx.gas);
+    } else {
+      setInitGasLimit(true);
     }
   }, []);
 
+  const _initGasLimit = (payload, walletId) => {
+    const tx = payload.params[0];
+    let signParams = WalletConnectSdk.WalletConnectHelper.getValidSignParams(
+      tx,
+      '0.000000009',
+      0,
+      value => {
+        console.debug('onLog', value);
+      },
+      '21000'
+    );
+    const minGasLimit = convertHexToString(tx.gas);
+    let gasLimitN = Number(minGasLimit);
+    Wallets.getEstimateGas(walletId, signParams)
+      .then(result => {
+        if (result.gasLimit) {
+          _setGasLimit(gasLimitN, minGasLimit, new BigNumber(result.gasLimit));
+        } else {
+          _setGasLimit(gasLimitN, minGasLimit);
+        }
+        setInitGasLimit(true);
+      })
+      .catch(error => {
+        toastError(error);
+        _setGasLimit(gasLimitN, minGasLimit, new BigNumber(result.gasLimit));
+        setInitGasLimit(true);
+      });
+  };
+  const _setGasLimit = (gasLimitN, minGasLimit, gasLimit2) => {
+    if (isNaN(gasLimitN)) {
+      setGasLimit(minGasLimit);
+      setMinGasLimit(minGasLimit);
+    } else {
+      let gasLimit = new BigNumber(gasLimitN);
+      if (gasLimit2 != null) {
+        gasLimit = gasLimit.isGreaterThan(gasLimit2) ? gasLimit : gasLimit2;
+      }
+      gasLimit = gasLimit
+        .plus(200000)
+        .toFixed(0)
+        .valueOf();
+      setGasLimit(gasLimit);
+      setMinGasLimit(minGasLimit);
+    }
+  };
+  const _getAddressTag = () => {
+    try {
+      let address = [];
+      switch (payload.method) {
+        case 'eth_sendTransaction':
+        case 'eth_signTransaction':
+          let tx = payload.params[0];
+          address = [tx.to];
+          break;
+        case 'eth_sign':
+          address = [payload.params[0]];
+          break;
+        case 'personal_sign':
+          address = [payload.params[1]];
+          break;
+        case 'eth_sendRawTransaction':
+          return;
+        default:
+          if (payload.method.startsWith('eth_signTypedData')) {
+            address = [payload.params[0]];
+            address = address.concat(
+              extractAddress(JSON.parse(payload.params[1]))
+            );
+          }
+          break;
+      }
+      console.debug('getAddressTags>', address.join(','));
+      if (false) {
+        setAddressTagsObj([
+          {
+            address: '0x415a47e3333052bd79c63776720452a3db84c633',
+            items: [
+              {
+                bold: 'Score 100: ',
+                normal: 'tag1, tag2, tag1,',
+              },
+              {
+                bold: 'Score 80: ',
+                normal: 'tag3, tag45678899000qwersdfkjldkjfl;sdkj;sj',
+              },
+              {
+                bold: 'Score 99: ',
+                normal:
+                  'tag1, tag2, tag1, tag2, tag1, tag2, tag1, tag2333444555666',
+              },
+              {
+                bold: 'Score 93: ',
+                normal:
+                  'tag1, tag2, tag1, tag2, tag1, tag2, tag1, tag2333444555666',
+              },
+            ],
+          },
+          {
+            address: '0x123a47e3333052bd79c63776720452a3db84c633',
+            items: [
+              {
+                bold: 'Provider2 - Score 80: ',
+                normal: 'tag3j',
+              },
+              {
+                bold: 'Provider3 - Score 99: ',
+                normal: 'tag1, tag2, tag1',
+              },
+              {
+                bold: 'Provider4 - Score 93: ',
+                normal:
+                  'tag1, tag2, tag1, tag2, tag1, tag2, tag1, tag2333444555666',
+              },
+              {
+                bold: 'Provider1 - Score 100: ',
+                normal:
+                  'tag1, tag2, tag1, tag2, tag1, tag2, tag1, tag2333444555666',
+              },
+            ],
+          },
+        ]);
+        setInitAml(true);
+        return;
+      }
+      if (false) {
+        address = [
+          '0x415a47e3333052bd79c63776720452a3db84c633',
+          '0x56eb4a5f64fa21e13548b95109f42fa08a644628',
+        ];
+      }
+      Wallets.getAddressesTags(wallet.currency, address)
+        .then(result => {
+          let { addressTagMap } = result;
+          if (false) {
+            addressTagMap['0xEEEa47e3333052bd79c63776720452a3db84c633'] = {
+              whiteList: false,
+              tags: ['test1'],
+              score: 70,
+              providers: {},
+              provider: '',
+              blackList: true,
+            };
+            addressTagMap['0xEEE1a47e3333052bd79c63776720452a3db84c633'] = {
+              whiteList: false,
+              score: 90,
+              providers: {},
+              provider: '',
+              blackList: true,
+            };
+            addressTagMap['0xEEE2a47e3333052bd79c63776720452a3db84c633'] = {
+              whiteList: false,
+              score: 90,
+              tags: ['test2'],
+              providers: {},
+              provider: '',
+              blackList: false,
+            };
+            addressTagMap['0xEEE3a47e3333052bd79c63776720452a3db84c633'] = {
+              whiteList: false,
+              score: 90,
+              tags: [
+                'test2',
+                'test2',
+                'test2',
+                'test2',
+                'test2',
+                'test2',
+                'test2',
+                'test2',
+                'test2',
+                'test2',
+              ],
+              providers: {},
+              provider: '',
+              blackList: true,
+            };
+          }
+          let { tagObjArr } = getAddressTagObjFromResult(addressTagMap);
+          if (tagObjArr.length > 0) {
+            setAddressTagsObj(tagObjArr);
+          }
+          setInitAml(true);
+        })
+        .catch(error => {
+          toastError(error);
+          setInitAml(true);
+        });
+    } catch (err) {
+      setInitAml(true);
+      console.log('getAddressTag err', err);
+    }
+  };
   const _walletConnectSignTypedData = async (
     pinSecret,
     type,
@@ -209,7 +461,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       let message = payload.params[1];
       let result;
       FileLogger.debug(
-        `>>_walletConnectSignTypedData${message}, walletId:${walletId}`
+        `>>_walletConnectSignTypedData${message}, walletId:${wallet.walletId}`
       );
       switch (type) {
         case AUTH_TYPE_SMS:
@@ -217,7 +469,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           result = await Wallets.walletConnectSignTypedDataSms(
             actionToken,
             code,
-            walletId,
+            wallet.walletId,
             message,
             pinSecret
           );
@@ -227,7 +479,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           result = await Wallets.walletConnectSignTypedDataBio(
             I18n.t('bio_msg'),
             I18n.t('cancel'),
-            walletId,
+            wallet.walletId,
             message,
             pinSecret
           );
@@ -235,7 +487,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         case AUTH_TYPE_OLD:
           tag = 'walletConnectSignTypedData';
           result = await Wallets.walletConnectSignTypedData(
-            walletId,
+            wallet.walletId,
             message,
             pinSecret
           );
@@ -250,6 +502,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       let response = { result: result.signedTx, id: payload.id };
       await dispatch(approveRequest(peerId, response));
       goBack();
+      dispatch(fetchApiHistory());
     } catch (error) {
       _handleFail('SignTypedData', tag, error);
     }
@@ -265,21 +518,27 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     let tag = '_walletConnectSignMessage';
     try {
       setLoading(true);
-      let utf8Msg = convertHexToUtf8(message);
+      let paramMsg = message;
+      if (!isHex) {
+        let utf8Msg = convertHexToUtf8(message);
+        paramMsg = utf8Msg;
+      }
 
       FileLogger.debug(
-        `>>_walletConnectSignMessage_${message},utf8:${utf8Msg}`
+        `>>_walletConnectSignMessage_${message},paramMsg:${paramMsg}`
       );
       let result;
+      let extras = { eip155: eip155, is_hex: isHex, legacy: legacySign };
       switch (type) {
         case AUTH_TYPE_SMS:
           tag = '_walletConnectSignMessageSms';
           result = await Wallets.walletConnectSignMessageSms(
             actionToken,
             code,
-            walletId,
-            utf8Msg,
-            pinSecret
+            wallet.walletId,
+            paramMsg,
+            pinSecret,
+            extras
           );
           break;
         case AUTH_TYPE_BIO:
@@ -287,23 +546,26 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           result = await Wallets.walletConnectSignMessageBio(
             I18n.t('bio_msg'),
             I18n.t('cancel'),
-            walletId,
-            utf8Msg,
-            pinSecret
+            wallet.walletId,
+            paramMsg,
+            pinSecret,
+            extras
           );
           break;
         case AUTH_TYPE_OLD:
           tag = '_walletConnectSignMessage';
           result = await Wallets.walletConnectSignMessage(
-            walletId,
-            utf8Msg,
-            pinSecret
+            wallet.walletId,
+            paramMsg,
+            pinSecret,
+            extras
           );
           break;
       }
       let response = { result: result.signedMessage, id: payload.id };
       await dispatch(approveRequest(peerId, response));
       goBack();
+      dispatch(fetchApiHistory());
     } catch (error) {
       _handleFail('SignMessage', tag, error);
     }
@@ -356,6 +618,28 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       goBack();
     }
   };
+  const _walletConnectSendRawTransaction = async () => {
+    let tag = '_walletConnectSendRawTransaction';
+    setLoading(true);
+    try {
+      const tx = payload.params[0];
+      let result2 = await Wallets.walletConnectSendSignedTransaction(
+        wallet.walletId,
+        tx
+      );
+      FileLogger.debug(
+        `${tag} success: ${result2.txid}, walletId:${wallet.walletId}`
+      );
+      let response = { result: result2.txid, id: payload.id };
+      console.debug(tag + ':' + JSON.stringify(response));
+      await dispatch(approveRequest(peerId, response));
+      goBack();
+    } catch (error) {
+      _handleFail('SendRawTransaction', tag, error);
+    }
+    dispatch(fetchApiHistory());
+    setLoading(false);
+  };
   const _walletConnectSignTransaction = async (
     pinSecret,
     type,
@@ -363,13 +647,24 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     code,
     onlySign
   ) => {
+    let feeAmount = null;
+    if (hasValue(customFeeErr)) {
+      return;
+    }
+    if (hasValue(gasLimitError)) {
+      return;
+    }
     let tag = onlySign
       ? '_walletConnectSignTransaction'
       : '_walletConnectSignSendTransaction';
     try {
       setLoading(true);
       const tx = payload.params[0];
-      const transactionFee = fee[selectedFee];
+      if (selectedFee == CUSTOM_FEE_KEY) {
+        feeAmount = customFee;
+      } else {
+        feeAmount = fee[selectedFee].amount;
+      }
       // let signParams = JSON.stringify(tx);
       let result;
       switch (type) {
@@ -378,15 +673,16 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           result = await Wallets.walletConnectSignTransactionSms(
             actionToken,
             code,
-            walletId,
+            wallet.walletId,
             tx,
-            transactionFee.amount,
+            feeAmount,
             pinSecret,
             true,
             value => {
               console.debug('onLog', value);
               FileLogger.debug(`>>${tag}_${payload.method}, ${value}`);
-            }
+            },
+            gasLimit
           );
           break;
         case AUTH_TYPE_BIO:
@@ -395,34 +691,36 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           result = await Wallets.walletConnectSignTransactionBio(
             I18n.t('bio_msg'),
             I18n.t('cancel'),
-            walletId,
+            wallet.walletId,
             tx,
-            transactionFee.amount,
+            feeAmount,
             pinSecret,
             true,
             value => {
               console.debug('onLog', value);
               FileLogger.debug(`>>${tag}_${payload.method}, ${value}`);
-            }
+            },
+            gasLimit
           );
           break;
         case AUTH_TYPE_OLD:
           result = await Wallets.walletConnectSignTransaction(
-            walletId,
+            wallet.walletId,
             tx,
-            transactionFee.amount,
+            feeAmount,
             pinSecret,
             true,
             value => {
               console.debug('onLog', value);
               FileLogger.debug(`>>${tag}_${payload.method}, ${value}`);
-            }
+            },
+            gasLimit
           );
           break;
       }
-      console.debug(tag + result.signedTx, payload.id);
+      console.debug(tag + result.signedTx, payload.id, gasLimit);
       FileLogger.debug(
-        `${tag} success: ${result.signedTx}, walletId:${walletId}`
+        `${tag} success: ${result.signedTx}, walletId:${wallet.walletId}, gasLimit:${gasLimit}`
       );
       if (onlySign) {
         let response = { result: result.signedTx, id: payload.id };
@@ -433,7 +731,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         return;
       }
       let result2 = await Wallets.walletConnectSendSignedTransaction(
-        walletId,
+        wallet.walletId,
         result.signedTx
       );
       console.debug(tag + '2:' + result2.txid, result2.state);
@@ -493,18 +791,151 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     }
   };
   const _getSubView = () => {
+    switch (step) {
+      case STEP_INIT:
+        return _getSubViewStep0();
+      case STEP_AML:
+        return _getAmlView();
+    }
+  };
+  const _getSubViewStep0 = () => {
     switch (payload.method) {
+      case 'eth_signTransaction':
       case 'eth_sendTransaction':
         return _getTransactionView();
       case 'eth_sign':
         return _getSignView(payload.params[0], payload.params[1]);
       case 'personal_sign':
         return _getSignView(payload.params[1], payload.params[0]);
+      case 'eth_sendRawTransaction':
+        return _getSendView(payload.params[0]);
       default:
         if (payload.method.startsWith('eth_signTypedData')) {
-          return _getSignTypedDataView(payload.params[1]);
+          return _getSignTypedDataView(JSON.parse(payload.params[1]));
         }
     }
+  };
+  const _getAmlAddressItemView = tagObj => {
+    return (
+      <View
+        style={{
+          paddingBottom: 20,
+          marginTop: 40,
+          borderBottomColor: theme.colors.countryCodeBg,
+          borderBottomWidth: 1,
+          flex: 0,
+        }}>
+        <Text style={Styles.secLabel}>{I18n.t('address')}</Text>
+        <View
+          style={[
+            Styles.bottomBoarderContainer,
+            { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 },
+          ]}>
+          <Text
+            selectable
+            style={[Styles.secContent, Theme.fonts.default.regular]}>
+            {tagObj.address}
+          </Text>
+        </View>
+        {tagObj.items.map((item, index) => {
+          return (
+            <View
+              style={{
+                flexWrap: 'wrap',
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginTop: 12,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                backgroundColor: theme.colors.error15,
+                alignSelf: 'baseline', //wrap-content
+              }}>
+              <Text
+                style={[
+                  {
+                    color: theme.colors.error,
+                    fontSize: 14,
+                  },
+                  Theme.fonts.default.heavyMax,
+                ]}>
+                {item.bold}
+              </Text>
+              <Text
+                style={[
+                  {
+                    color: theme.colors.error,
+                    fontSize: 12,
+                    flexShrink: 1,
+                  },
+                ]}>
+                {item.normal}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+  const _getAmlView = () => {
+    if (!addressTagsObj) {
+      return;
+    }
+    return (
+      <React.Fragment>
+        {getWarningView(I18n.t('aml_title'), I18n.t('aml_warning_contract'), {
+          marginHorizontal: 16,
+        })}
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            padding: 16,
+            paddingTop: 0,
+          }}>
+          {addressTagsObj.map(tagObj => {
+            return _getAmlAddressItemView(tagObj);
+          })}
+        </View>
+        <CheckBox
+          style={{ marginTop: 20, marginHorizontal: 16, marginBottom: 16 }}
+          text={I18n.t('aml_checkbox_hint')}
+          textStyle={{ fontWeight: 'bold' }}
+          selected={amlConfirmed}
+          onPress={() => setAmlConfirmed(!amlConfirmed)}
+        />
+      </React.Fragment>
+    );
+  };
+  const _getPermitInfoView = () => {
+    if (connectorWrapper == null) {
+      return;
+    }
+    const {
+      peerMeta,
+      chainId,
+    } = connectorWrapper.getSessionPayload().params[0];
+    let domainName = payload.domainName || '';
+    let bgOvalSize = 48 * 1.6;
+    return (
+      <React.Fragment>
+        {getWarningView(
+          I18n.t('permit_warning', {
+            name: peerMeta.name,
+            domainName: domainName,
+          }),
+          I18n.t('permit_warning_desc', {
+            name: peerMeta.name,
+            domainName: domainName,
+          })
+        )}
+        <CheckBox
+          text={I18n.t('aml_checkbox_hint')}
+          style={{ width: '90%', marginTop: 20, marginBottom: 20 }}
+          selected={permitConfirmed}
+          onPress={() => setPermitConfirmed(!permitConfirmed)}
+        />
+      </React.Fragment>
+    );
   };
   const _getBasicInfoView = () => {
     if (connectorWrapper == null) {
@@ -528,7 +959,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           }}>
           <Image
             source={{ uri: peerMeta.icons[0] }}
-            style={{ width: 50, height: 50 }}
+            style={{ width: 48, height: 48 }}
           />
         </View>
         <Text
@@ -537,7 +968,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
             {
               textAlign: 'center',
               fontSize: 20,
-              marginTop: 8,
+              marginTop: 16,
             },
           ]}>
           {peerMeta.name}
@@ -547,7 +978,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
             fontSize: 12,
             color: Theme.colors.resultTitle,
             textAlign: 'center',
-            marginVertical: 4,
+            marginTop: 8,
           }}>
           {peerMeta.url}
         </Text>
@@ -563,6 +994,52 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           backgroundColor: theme.colors.background,
         }}>
         {_getBasicInfoView()}
+        <CheckBox
+          style={{ marginTop: 50 }}
+          text={I18n.t('no_eip155_title')}
+          subText={I18n.t('no_eip155_desc')}
+          selected={!eip155}
+          onPress={() => {
+            setEip155(!eip155);
+          }}
+        />
+        <CheckBox
+          text={I18n.t('no_legacy_sign_title')}
+          subText={I18n.t('no_legacy_sign_desc')}
+          selected={!legacySign}
+          onPress={() => {
+            setLegacySign(!legacySign);
+          }}
+        />
+        {showAdvanceSign && (
+          <CheckBox
+            text={I18n.t('use_hex_title')}
+            selected={isHex}
+            onPress={() => {
+              setIsHex(!isHex);
+            }}
+          />
+        )}
+
+        <TouchableOpacity
+          style={{
+            marginTop: 0,
+            marginLeft: 16,
+          }}
+          onPress={() => setShowAdvanceSign(!showAdvanceSign)}>
+          <Text
+            style={[
+              {
+                color: theme.colors.primary,
+                fontSize: 12,
+                fontWeight: '800',
+                textDecorationLine: 'underline',
+              },
+              Theme.fonts.default.medium,
+            ]}>
+            {I18n.t(showAdvanceSign ? 'see_less' : 'see_more')}
+          </Text>
+        </TouchableOpacity>
         <Text
           style={[
             Styles.secLabel,
@@ -589,7 +1066,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       </View>
     );
   };
-  const _getSignTypedDataView = typedData => {
+  const _getSendView = msg => {
     return (
       <View
         style={{
@@ -598,16 +1075,119 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           backgroundColor: theme.colors.background,
         }}>
         {_getBasicInfoView()}
+        <Text style={Styles.secLabel}>{I18n.t('message')}</Text>
+        <View style={Styles.bottomBoarderContainer}>
+          <Text
+            selectable
+            style={[Styles.secContent, Theme.fonts.default.regular]}>
+            {msg}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+  const _getSignTypedDataView = typedData => {
+    const address = payload.params[0];
+    return (
+      <View
+        style={{
+          flex: 1,
+          padding: 16,
+          backgroundColor: theme.colors.background,
+        }}>
+        {payload.isPermit ? _getPermitInfoView() : _getBasicInfoView()}
 
         <Text
-          style={{
-            fontSize: 12,
-            color: Theme.colors.resultTitle,
-            textAlign: 'center',
-            marginVertical: 4,
-          }}>
-          {typedData}
+          style={[
+            Styles.secLabel,
+            Theme.fonts.default.regular,
+            { marginTop: 0 },
+          ]}>
+          {I18n.t('address')}
         </Text>
+        <View style={Styles.bottomBoarderContainer}>
+          <Text
+            selectable
+            style={[Styles.secContent, Theme.fonts.default.regular]}>
+            {address}
+          </Text>
+        </View>
+        <Text style={[Styles.secLabel, { marginTop: 16 }]}>
+          {I18n.t('message')}
+        </Text>
+        {typedData &&
+          Object.keys(typedData).map((key, idx) =>
+            typeof typedData[key] === 'object' ? (
+              <View key={idx}>
+                <Text
+                  style={[
+                    {
+                      fontSize: 14,
+                      color: theme.colors.text,
+                      marginVertical: 4,
+                      marginTop: 16,
+                    },
+                    Theme.fonts.default.heavyMax,
+                  ]}>
+                  {key}
+                </Text>
+                {Object.keys(typedData[key]).map((key2, idx) => (
+                  <View style={{}}>
+                    <Text
+                      style={[
+                        Styles.tag,
+                        {
+                          fontSize: 12,
+                          marginTop: 20,
+                          color: theme.colors.text,
+                          textAlign: 'left',
+                          alignSelf: 'flex-start',
+                          backgroundColor: theme.colors.tagBg,
+                        },
+                      ]}>
+                      {key2}
+                    </Text>
+                    <Text
+                      style={[
+                        {
+                          fontSize: 12,
+                          color: theme.colors.gray3,
+                          marginTop: 8,
+                        },
+                      ]}>
+                      {typeof typedData[key][key2] === 'object'
+                        ? JSON.stringify(typedData[key][key2])
+                        : `${typedData[key][key2]}`}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={{}}>
+                <Text
+                  style={[
+                    {
+                      fontSize: 14,
+                      color: theme.colors.text,
+                      marginTop: 16,
+                    },
+                    Theme.fonts.default.heavyMax,
+                  ]}>
+                  {key}
+                </Text>
+                <Text
+                  style={[
+                    {
+                      fontSize: 12,
+                      color: theme.colors.gray3,
+                      marginTop: 8,
+                    },
+                  ]}>
+                  {`${typedData[key]}`}
+                </Text>
+              </View>
+            )
+          )}
       </View>
     );
   };
@@ -615,6 +1195,59 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     'error_input_nan',
     'error_fund_insufficient',
   ];
+  const _getFeeCheckValue = (str, ignoreNull) => {
+    try {
+      if (!hasValue(str)) {
+        if (ignoreNull) {
+          return { error: null, str: str };
+        } else {
+          return { error: I18n.t('error_custom_fee_null'), str: str };
+        }
+      }
+      let value = new BigNumber(str);
+      if (value.isNaN()) {
+        return { error: I18n.t('error_custom_fee_invalid'), str: str };
+      }
+      if (value.isZero()) {
+        return { error: I18n.t('error_custom_fee_is_zero'), str: str };
+      }
+      return { error: null, str: value.toFixed(value.decimalPlaces()) };
+    } catch (e) {
+      return { error: e, str: str };
+    }
+  };
+  const _convertGweiToEth = str => {
+    try {
+      if (!hasValue(str)) {
+        return { error: null, str: str };
+      }
+      let value = new BigNumber(str);
+      if (value.isNaN()) {
+        return { error: I18n.t('error_custom_fee_invalid'), str: str };
+      }
+      value = value.times(new BigNumber('10').pow(-9));
+      return { error: null, str: value.toFixed(value.decimalPlaces()) };
+    } catch (e) {
+      return { error: e, str: str };
+    }
+  };
+  const _checkFee = (key, str, isSelect) => {
+    let hasErr = false;
+    if (key != CUSTOM_FEE_KEY) {
+      setCustomFeeErr(null);
+      return hasErr;
+    }
+    let result = _getFeeCheckValue(str, isSelect);
+    if (result.error == null) {
+      setCustomFee(result.str);
+      setCustomFeeErr(null);
+      return hasErr;
+    }
+    setCustomFee(str);
+    setCustomFeeErr(result.error);
+    hasErr = true;
+    return hasErr;
+  };
   const _checkAmountNumerical = (value, selectedFee, fee) => {
     if (isNaN(value)) {
       setAmountError({
@@ -636,7 +1269,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       }
       const feeStr =
         fee != null && fee[selectedFee] != null ? fee[selectedFee].amount : '0';
-      let f = getEstimateFee(Coin.ETH, '', feeStr);
+      let f = getEstimateFee(wallet.currency, '', feeStr);
       if (v.plus(f).isGreaterThan(b)) {
         setAmountError({
           key: 'error_fund_insufficient_to_cover_transaction_fee',
@@ -651,9 +1284,55 @@ const RequestScreen: () => React$Node = ({ theme }) => {
   const _getAvailableBalanceText = () => {
     let value = getAvailableBalance(balanceItem);
     if (hasValue(value)) {
-      return `${I18n.t('available_balance')} ${value} ETH`;
+      return `${I18n.t('available_balance')} ${value} ${wallet.currencySymbol}`;
     }
     return null;
+  };
+  const _onGasLimitEditClick = () => {
+    if (refs[0].current) {
+      refs[0].current.focus();
+    }
+  };
+  const _onGasLimitChanged = value => {
+    setGasLimit(value);
+  };
+  const _checkGasLimit = (str, minStr) => {
+    let r = _getGasLimitCheckValue(str, minStr);
+    if (r.error == null) {
+      setGasLimit(r.str);
+      setGasLimitError(null);
+      return;
+    }
+    setGasLimit(str);
+    setGasLimitError(r.error);
+  };
+  const _getGasLimitCheckValue = (str, minStr, ignoreNull) => {
+    try {
+      if (!hasValue(str)) {
+        if (ignoreNull) {
+          return { error: null, str: str };
+        } else {
+          return { error: I18n.t('error_gas_limit_null'), str: str };
+        }
+      }
+      let value = new BigNumber(str);
+      if (value.isNaN()) {
+        return { error: I18n.t('error_gas_limit_invalid'), str: str };
+      }
+      let minValue = new BigNumber(minStr);
+      if (minValue.isNaN()) {
+        return { error: null, str: value.toFixed(value.decimalPlaces()) };
+      }
+      if (value.isLessThan(minValue)) {
+        return {
+          error: I18n.t('error_gas_limit_less_then_min', { min: minStr }),
+          str: str,
+        };
+      }
+      return { error: null, str: value.toFixed(value.decimalPlaces()) };
+    } catch (e) {
+      return { error: e, str: str };
+    }
   };
   const _getTransactionView = () => {
     const tx = payload.params[0];
@@ -670,7 +1349,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           style={[
             Styles.secLabel,
             Theme.fonts.default.regular,
-            { marginTop: 40 },
+            { marginTop: 24 },
           ]}>
           {I18n.t('transfer_amount')}
         </Text>
@@ -680,7 +1359,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
             { flexDirection: 'column', alignItems: 'flex-start' },
           ]}>
           <Text selectable style={Styles.secContent}>
-            {`${amountNum}  ETH`}
+            {`${amountNum}  ${wallet.currencySymbol}`}
           </Text>
           <Text
             selectable
@@ -692,7 +1371,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
             {`≈ ${exchangeCurrency} \$${getExchangeAmount(
               amountNum,
               3,
-              { currency: Coin.ETH, tokenAddress: '' },
+              wallet,
               exchangeCurrency,
               currencyPrice,
               '0.000'
@@ -723,29 +1402,77 @@ const RequestScreen: () => React$Node = ({ theme }) => {
             {tx.to}
           </Text>
         </View>
+        <Text style={Styles.secLabel}>{I18n.t('gas_limit')}</Text>
+        <CompoundTextInput
+          ref={refs[0]}
+          enablesReturnKeyAutomatically={true}
+          style={Styles.compoundInput}
+          value={gasLimit}
+          maxLength={21}
+          keyboardType="numeric"
+          underlineColor={Theme.colors.normalUnderline}
+          hasError={hasValue(gasLimitError)}
+          onChangeText={_onGasLimitChanged}
+          onBlur={() => {
+            _checkGasLimit(gasLimit, minGasLimit);
+          }}
+          errorMsg={gasLimitError}
+          onRightIconClick={_onGasLimitEditClick}
+          rightIcon={EDIT_ICON}
+          placeholder={I18n.t('gas_limit_placeholder')}
+        />
         {!HIDE_TRANSACTION_ERRORS.includes(amountError.key) && (
           <>
             <Text style={[Styles.labelBlock]}>{I18n.t('blockchain_fee')}</Text>
-            <DegreeSelecter
-              itemStyle={Styles.block}
-              getValue={(item = {}) => `${item.amount} ETH`}
+            <FeeDegreeSelector
+              initValue={0}
+              keys={['high', 'medium', 'low', 'custom']}
+              getValue={(item = {}) => `${item.amount} ${feeUnit}`}
               valueObj={fee}
+              showEditable={true}
               outerWidth={sliderOuterWidth[Platform.OS || 'android']}
               innerWidth={sliderInnerWidth[Platform.OS || 'android']}
               reserveErrorMsg={false}
               style={{
-                marginTop: 16,
+                marginTop: 20,
               }}
-              labels={[I18n.t('slow'), I18n.t('medium'), I18n.t('fast')]}
               onSelect={value => {
                 setSelectedFee(value);
-                _checkAmountNumerical(amountNum, value, fee);
+                _checkFee(value, customFee, true);
+                // _checkAmountNumerical(amountNum, value, fee);
               }}
+              onBlur={() => {
+                _checkFee(selectedFee, customFee, false);
+              }}
+              onInput={message => {
+                let r = _convertGweiToEth(message);
+                setCustomFeeGwei(message);
+                setCustomFee(r.str || '');
+              }}
+              currentInput={customFeeGwei}
+              currentInputCal={customFee ? `${customFee} ${feeUnit}` : ''}
+              inputError={customFeeErr}
             />
           </>
         )}
       </View>
     );
+  };
+  const _isApproveDisable = () => {
+    switch (step) {
+      case STEP_INIT:
+        return (
+          amountError.key != null ||
+          (payload.isPermit && !permitConfirmed) ||
+          gasLimitError ||
+          !initAml ||
+          customFeeErr
+        );
+      case STEP_AML:
+        return !amlConfirmed && addressTagsObj;
+      default:
+        return false;
+    }
   };
   return (
     <Container
@@ -756,7 +1483,9 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         title={title}
       />
 
-      <ScrollView>{_getSubView()}</ScrollView>
+      <ScrollView style={{ marginTop: 24 }} ref={scrollView}>
+        {_getSubView()}
+      </ScrollView>
       {HIDE_TRANSACTION_ERRORS.includes(amountError.key) ? (
         <View style={{ marginTop: 8 }}>
           <Text
@@ -790,6 +1519,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
             style={{
               justifyContent: 'center',
               alignItems: 'center',
+              height: ROUND_BUTTON_HEIGHT,
             }}
             onPress={() => {
               _rejectRequest(I18n.t('user_reject_call_request_message'));
@@ -806,10 +1536,25 @@ const RequestScreen: () => React$Node = ({ theme }) => {
 
           <RoundButton2
             height={ROUND_BUTTON_HEIGHT}
-            style={[Styles.bottomButton]}
-            disabled={amountError.key != null}
-            labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+            style={[Styles.bottomButton, { marginTop: 8 }]}
+            disabled={_isApproveDisable()}
+            labelStyle={[{ color: theme.colors.text, fontSize: 16 }]}
             onPress={async () => {
+              if (step == STEP_INIT && addressTagsObj != null) {
+                setStep(STEP_AML);
+                if (scrollView.current) {
+                  scrollView.current.scrollTo({
+                    y: 0,
+                    animated: false,
+                  });
+                }
+                return;
+              }
+              if (isTransactionRequest && selectedFee == CUSTOM_FEE_KEY) {
+                if (_checkFee(selectedFee, customFee, false)) {
+                  return;
+                }
+              }
               setLoading(true);
               let { isSms, error } = await checkAuthType(
                 enableBiometrics,
@@ -826,6 +1571,10 @@ const RequestScreen: () => React$Node = ({ theme }) => {
                   }),
                   title: I18n.t('check_failed'),
                 });
+                return;
+              }
+              if (payload.method == 'eth_sendRawTransaction') {
+                _walletConnectSendRawTransaction();
                 return;
               }
               NavigationService.navigate('InputPinSms', {
@@ -852,7 +1601,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         </View>
       )}
 
-      {loading && (
+      {(!initGasLimit || !initAml || loading) && (
         <ActivityIndicator
           color={theme.colors.primary}
           size="large"

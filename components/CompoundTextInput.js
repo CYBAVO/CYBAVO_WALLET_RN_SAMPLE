@@ -30,7 +30,8 @@ const CompoundTextInput = React.forwardRef(
       onChangeText = value => {},
       onBlur = () => {},
       errorMsg = {},
-      goScan,
+      onRightIconClick,
+      rightIcon = SCAN_ICON,
       convertText,
       placeholder,
       style = { marginHorizontal: 16 },
@@ -49,7 +50,7 @@ const CompoundTextInput = React.forwardRef(
       if (onClear) {
         value += 34;
       }
-      if (goScan) {
+      if (onRightIconClick) {
         value += 24;
       }
       return value;
@@ -105,7 +106,7 @@ const CompoundTextInput = React.forwardRef(
                 width: 24,
                 height: 24,
                 position: 'absolute',
-                right: goScan ? 40 : 5,
+                right: onRightIconClick ? 40 : 5,
                 bottom: 10,
               }}
               // accessibilityLabel={clearAccessibilityLabel}
@@ -127,16 +128,16 @@ const CompoundTextInput = React.forwardRef(
               accessibilityRole="button"
             />
           )}
-          {goScan && (
+          {onRightIconClick && (
             <IconButton
               borderless
               style={{ position: 'absolute', right: 5, bottom: 5 }}
               // accessibilityLabel={clearAccessibilityLabel}
               color={'rgba(255, 255, 255, 0.56)'}
               // rippleColor={rippleColor}
-              onPress={goScan}
+              onPress={onRightIconClick}
               icon={({ size, color }) => (
-                <Image source={SCAN_ICON} style={{ width: 24, height: 24 }} />
+                <Image source={rightIcon} style={{ width: 24, height: 24 }} />
               )}
               accessibilityTraits="button"
               accessibilityComponentType="button"

@@ -22,6 +22,8 @@ import {
   getNftColorIndex,
   getNftIconIndex,
   getWalletKeyByWallet,
+  hasValue,
+  isETHForkChain,
   renderNftItem,
 } from '../Helpers';
 import I18n from '../i18n/i18n';
@@ -50,6 +52,19 @@ const WalletNftList: () => React$Node = ({
   const expolreImg = require('../assets/image/open_window.png');
   const config = useSelector(state => {
     return state.auth.config;
+  });
+  const currencyMap = useSelector(state => {
+    if (state.currency.currencies == null) {
+      return {};
+    }
+    let c = state.currency.currencies || [];
+    let map = {};
+    for (let i = 0; i < c.length; i++) {
+      if (isETHForkChain(c[i].currency) && !hasValue(c[i].tokenAddress)) {
+        map[c[i].currency] = c[i].displayName;
+      }
+    }
+    return map;
   });
   const tokenUriMap = useSelector(state => {
     return state.tokenUri.tokenUriMap;
@@ -279,7 +294,8 @@ const WalletNftList: () => React$Node = ({
       config,
       expolreImg,
       0,
-      tokenUriMap
+      tokenUriMap,
+      currencyMap
     );
   };
   return (

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import I18n from '../i18n/i18n';
 import { useSelector, useDispatch } from 'react-redux';
-import {AUTH_UPDATE_DEV, AUTH_UPDATE_FOR_NEWS, initAuth, setSkipNews} from '../store/actions';
+import {AUTH_UPDATE_DEV, AUTH_UPDATE_GLOBAL_MODAL, initAuth, setSkipNews} from '../store/actions';
 import { Dimensions } from 'react-native';
 const { height, width } = Dimensions.get('window');
 import { Text } from 'react-native-paper';

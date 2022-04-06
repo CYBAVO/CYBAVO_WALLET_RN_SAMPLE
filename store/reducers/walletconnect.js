@@ -16,6 +16,7 @@ import {
   WALLETCONNECT_SESSION_DISCONNECTED,
   WALLETCONNECT_SESSION_REJECTION,
   WALLETCONNECT_SESSION_REQUEST,
+  WALLETCONNECT_UPDATE_API_VERSION,
   WALLETCONNECT_UPDATE_REPORTABLE,
 } from '../actions';
 
@@ -26,6 +27,7 @@ function walletconnect(
     pending: {},
     reportable: false,
     pendingUri: null,
+    apiVersion: { ethWalletId: false, signOptions: true },
   },
   action
 ) {
@@ -90,6 +92,11 @@ function walletconnect(
         ...state,
         requests: action.payload,
         reportable: true,
+      };
+    case WALLETCONNECT_UPDATE_API_VERSION:
+      return {
+        ...state,
+        apiVersion: action.apiVersion,
       };
     default:
       return state;

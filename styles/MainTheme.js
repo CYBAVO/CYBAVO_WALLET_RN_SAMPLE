@@ -155,6 +155,7 @@ export const endColors = {
 export const Theme = {
   colors: {
     primary: '#24bcd0',
+    primaryDisabled: 'rgba(36,188,208,0.4)',
     primary16: 'rgba(36,188,208,0.16)',
     background: '#09102a',
     backgroundPressed: 'rgba(255,255,255,0.04)',
@@ -162,6 +163,7 @@ export const Theme = {
     divider: 'rgba(255,255,255,0.1)',
     normalUnderline: 'rgba(255,255,255,0.1)',
     error: '#f91f6b',
+    error15: 'rgba(249,31,107,0.15)',
     errorInfo: 'rgba(232,32,17,1)',
     errorInfo16: 'rgba(232,32,17,0.16)',
     errorBg: '#fde8ec',
@@ -186,6 +188,7 @@ export const Theme = {
     battleshipGrey: 'rgba(107,114,130,1)',
     resultTitle: '#99a1b0',
     gray600: '#6B7282',
+    gray1: '#F6F7F8',
     white35: 'rgba(255,255,255,0.35)',
     buttonBroader: '#5f6272',
     highlightLight: 'rgba(255,255,255,0.32)',
@@ -198,6 +201,10 @@ export const Theme = {
     dividerDarkBg: 'rgba(255, 255, 255, 0.16)',
     sliver: 'rgba(184, 190, 202, 1)',
     melon: 'rgba(255,126,82,1)',
+    line: '#D8DCE2',
+    disclaimer: '#B8BECA',
+    tagBg: '#262C41',
+    gray3: '#D8DCE2',
   },
   fonts: {
     default: {

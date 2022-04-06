@@ -31,8 +31,9 @@ import {
   stopFetchFee,
   getSkipNews,
   setSkipNews,
-  AUTH_UPDATE_FOR_NEWS,
+  AUTH_UPDATE_GLOBAL_MODAL,
   fetchTokenUriIfNeed,
+  fetchSameCurrencyWalletLimit,
 } from '../store/actions';
 import I18n, { LanguageIndexMap } from '../i18n/i18n';
 import WalletList from '../components/WalletList';
@@ -61,9 +62,13 @@ import {
 import CurrencyPriceTextLite from '../components/CurrencyPriceTextLite';
 import NavigationService from '../NavigationService';
 import { SvgXml } from 'react-native-svg';
-import { Wallets } from '@cybavo/react-native-wallet-service';
+import {
+  getWalletsByChainIds,
+  Wallets,
+} from '@cybavo/react-native-wallet-service';
 import {
   ADD_SVG,
+  ALL_WALLET_ID,
   CANCEL_SVG,
   Coin,
   ROUND_BUTTON_HEIGHT,
@@ -206,8 +211,7 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   const hasApiHistory = useSelector(state => {
     let hasApiHistory = false;
     try {
-      let apihistoryMap =
-        state.apihistory.apihistory[state.wallets.ethWallet.walletId].data;
+      let apihistoryMap = state.apihistory.apihistory[ALL_WALLET_ID].data;
       let arr = Object.values(apihistoryMap);
       if (arr.length > 0) {
         hasApiHistory = true;
@@ -224,7 +228,8 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
     }
     let restCurrencies = getRestCurrencies(
       state.currency.currencies,
-      state.wallets.wallets
+      state.wallets.wallets,
+      state.wallets.walletLimit
     );
     return restCurrencies.length > 0;
   });
@@ -266,7 +271,9 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
       getSkipNews()
         .then(skip => {
           if (!skip) {
-            NavigationService.navigate('News');
+            NavigationService.navigate('GlobalModal', {
+              isNews: true,
+            });
           }
         })
         .catch(error => {});
@@ -274,6 +281,7 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   }, [appState]);
 
   useEffect(() => {
+    dispatch(fetchSameCurrencyWalletLimit());
     dispatch(fetchWallets());
     dispatch(fetchUserState());
   }, [dispatch]);
@@ -282,6 +290,7 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
     if (!refresh) {
       return;
     }
+    dispatch(fetchSameCurrencyWalletLimit());
     dispatch(fetchWallets());
     dispatch(fetchUserState());
   }, [refresh]);
@@ -304,9 +313,7 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
       if (Date.now() - deeplink.timestamp < 240000) {
         if (ethWallet) {
           NavigationService.navigate('Connecting', {});
-          dispatch(
-            newSession(deeplink.uri, ethWallet.address, ethWallet.walletId)
-          );
+          dispatch(newSession(deeplink.uri, null, null, ethWallet));
           dispatch({ type: WALLETCONNECT_PENDING_URI, uri: null });
         } else {
           toast(I18n.t('no_eth_wallet_prompt'));
@@ -530,8 +537,14 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
             hide={hide}
             latestKey={latestKey}
             onClickAction={item => {
-              if (item.currency == Coin.BTC && !hasValue(item.tokenAddress)) {
-                dispatch({ type: AUTH_UPDATE_FOR_NEWS, showNews: true });
+              if (
+                (item.currency == Coin.BTC || item.currency == Coin.ETH) &&
+                !hasValue(item.tokenAddress)
+              ) {
+                dispatch({
+                  type: AUTH_UPDATE_GLOBAL_MODAL,
+                  globalModal: { isNews: true, isShow: true },
+                });
                 // getSkipNews()
                 //   .then(skip => {
                 //     if (!skip) {

@@ -181,7 +181,7 @@ export default StyleSheet.create({
     padding: 16,
   },
   input: {
-    fontSize: 14,
+    fontSize: 16,
     color: 'white',
     flexShrink: 1,
     flex: 1,
@@ -287,6 +287,17 @@ export default StyleSheet.create({
     marginTop: 24,
     marginHorizontal: 36,
     flexDirection: 'row',
+  },
+  warningBackground: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    backgroundColor: 'rgba(232,32,17,0.16)',
+    borderColor: 'rgba(232,32,17,1)',
+    padding: 8,
+    borderWidth: 1,
+    borderRadius: 4,
+    marginVertical: 8,
+    flexDirection: 'column',
   },
   inputCell: {
     borderRadius: 4,

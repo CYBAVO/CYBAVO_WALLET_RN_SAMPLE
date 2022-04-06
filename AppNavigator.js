@@ -37,8 +37,8 @@ import SetBioScreen from './screens/SetBioScreen';
 import InputPinSmsScreen from './screens/InputPinSmsScreen';
 import AddContractCurrencyScreen from './screens/AddContractCurrencyScreen';
 import WalletNftDetailScreen from './screens/WalletNftDetailScreen';
-import WarningScreen from "./screens/WarningScreen";
-import NewsScreen from "./screens/NewsScreen";
+import WarningScreen from './screens/WarningScreen';
+import GlobalModalScreen from './screens/GlobalModalScreen';
 
 const MainTab = createBottomTabNavigator(
   {
@@ -170,7 +170,7 @@ const LoadingStack = createStackNavigator(
   {
     Top: { screen: MainStack },
     Loading: { screen: LoadingScreen },
-    News: { screen: NewsScreen },
+    GlobalModal: { screen: GlobalModalScreen },
     scanModal: { screen: ScanScreen },
     Connecting: { screen: ConnectingScreen },
     Request: { screen: RequestScreen },

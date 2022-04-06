@@ -5,7 +5,7 @@ import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import I18n from '../i18n/i18n';
 import { useDispatch } from 'react-redux';
 import { signOut } from '../store/actions/auth';
-import ResultModal, {TYPE_CONFIRM} from '../components/ResultModal';
+import ResultModal, { TYPE_CONFIRM } from '../components/ResultModal';
 
 const LoadingScreen: () => React$Node = ({ theme }) => {
   const dispatch = useDispatch();

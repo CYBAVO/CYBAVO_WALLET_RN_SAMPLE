@@ -28,7 +28,12 @@ import Styles from '../styles/Styles';
 import I18n from '../i18n/i18n';
 import { Container } from 'native-base';
 import Headerbar from './Headerbar';
-import { animateFadeInOut, hasValue } from '../Helpers';
+import {
+  animateFadeInOut,
+  getScoreColor,
+  getWarningView,
+  hasValue,
+} from '../Helpers';
 import { useBackHandler } from '@react-native-community/hooks';
 import CheckBox from './CheckBox';
 
@@ -119,56 +124,82 @@ const ResultModal: () => React$Node = ({
     }
   };
 
-  const _getAmlView = addressTags => {
-    if (!addressTags) {
+  const _getAmlAddressItemView = tagObj => {
+    return (
+      <View
+        style={{
+          paddingBottom: 0,
+          marginTop: 36,
+          justifyContent: 'center',
+          alignItems: 'center',
+          flex: 0,
+        }}>
+        {tagObj.items.map((item, index) => {
+          return (
+            <View
+              style={{
+                flexWrap: 'wrap',
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginTop: 12,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                backgroundColor: theme.colors.error15,
+                alignSelf: 'center', //wrap-content
+              }}>
+              <Text
+                style={[
+                  {
+                    color: theme.colors.error,
+                    fontSize: 14,
+                  },
+                  Theme.fonts.default.heavyMax,
+                ]}>
+                {item.bold}
+              </Text>
+              <Text
+                style={[
+                  {
+                    color: theme.colors.error,
+                    fontSize: 12,
+                    flexShrink: 1,
+                  },
+                ]}>
+                {item.normal}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+  const _getAmlView = addressTagsObj => {
+    if (!addressTagsObj) {
       return;
     }
     return (
       <React.Fragment>
-        <View style={styles.infoBackground}>
-          <Text
-            style={[
-              {
-                textAlign: 'left',
-                // marginLeft: 5,
-                // paddingRight: 10,
-              },
-              Platform.OS == 'android' ? { lineHeight: 20 } : {},
-            ]}>
-            {I18n.t('aml_warning')}
-          </Text>
-
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {addressTags.map(tagStr => {
-              let color = '#ef637e';
-              return (
-                <Text
-                  style={[
-                    Styles.tag,
-                    {
-                      color: 'white',
-                      marginRight: 8,
-                      marginTop: 8,
-                      fontSize: 13,
-                      fontWeight: 'bold',
-                      backgroundColor: color,
-                      alignSelf: 'center',
-                    },
-                  ]}>
-                  {tagStr}
-                </Text>
-              );
-            })}
-          </View>
-          <CheckBox
-            style={{ marginTop: 8 }}
-            text={I18n.t('aml_checkbox_hint')}
-            size={24}
-            textStyle={{ fontWeight: 'bold' }}
-            selected={amlConfirmed}
-            onPress={() => setAmlConfirmed(!amlConfirmed)}
-          />
+        {getWarningView(I18n.t('aml_title'), I18n.t('aml_warning_contract'), {
+          marginHorizontal: 16,
+        })}
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            padding: 16,
+            paddingTop: 0,
+          }}>
+          {addressTagsObj.map(tagObj => {
+            return _getAmlAddressItemView(tagObj);
+          })}
         </View>
+        <CheckBox
+          style={{ marginTop: 20, marginHorizontal: 16, marginBottom: 36 }}
+          text={I18n.t('aml_checkbox_hint')}
+          textStyle={{ fontWeight: 'bold' }}
+          selected={amlConfirmed}
+          onPress={() => setAmlConfirmed(!amlConfirmed)}
+        />
       </React.Fragment>
     );
   };
@@ -183,7 +214,7 @@ const ResultModal: () => React$Node = ({
               padding: 16,
               backgroundColor: theme.colors.background,
             }}>
-            {_getAmlView(detail.addressTags)}
+            {_getAmlView(detail.addressTagsObj)}
             {detail.tokenId && (
               <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
                 {I18n.t('token_id')}
@@ -331,7 +362,7 @@ const ResultModal: () => React$Node = ({
             height={ROUND_BUTTON_HEIGHT}
             style={Styles.bottomButton}
             labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
-            disabled={detail.addressTags != null && amlConfirmed == false}
+            disabled={detail.addressTagsObj != null && amlConfirmed == false}
             onPress={onButtonClick}>
             {type === TYPE_FAIL ? failButtonText : successButtonText}
           </RoundButton2>
@@ -533,7 +564,7 @@ const ResultModal: () => React$Node = ({
                         fontWeight: '700',
                       },
                     ]
-                  : { color: secondaryConfig.color, fontSize: 14 }
+                  : { color: secondaryConfig.color, fontSize: 16 }
               }>
               {secondaryConfig.text}
             </Text>

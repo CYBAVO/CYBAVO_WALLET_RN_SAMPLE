@@ -34,9 +34,8 @@ import {
   isErc20,
 } from '../Helpers';
 import { useBackHandler } from '@react-native-community/hooks';
-import DegreeSlider from './DegreeSlider';
 import { BigNumber } from 'bignumber.js';
-import DegreeSelecter from './DegreeSelecter';
+import DegreeSelector from './FeeDegreeSelector';
 
 export const TYPE_CANCEL = 'cancel';
 export const TYPE_ACCELERATE = 'accelerate';
@@ -154,7 +153,7 @@ const ReplaceTransactionModal: () => React$Node = ({
               backgroundColor: theme.colors.background,
             }}>
             <Text style={Styles.secLabel}>{I18n.t(messageKeys[type])}</Text>
-            <DegreeSelecter
+            <DegreeSelector
               itemStyle={Styles.block}
               valueObj={fee}
               getValue={item => `${item.amountUi} ${feeUnit}${feeNote}`}

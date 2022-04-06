@@ -198,8 +198,8 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
   const [walletName, setWalletName] = useState(wallet.name);
   const { navigate, goBack } = useNavigation();
   const dispatch = useDispatch();
-  const showNews = useSelector(state => {
-    return state.auth.showNews;
+  const globalModal = useSelector(state => {
+    return state.auth.globalModal || {};
   });
   const balanceItem = useSelector(state => {
     if (!state.balance.balances) {
@@ -244,15 +244,15 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
   });
 
   useEffect(() => {
-    if (showNews) {
-      NavigationService.navigate('News');
+    if (globalModal.isShow && globalModal.isNews) {
+      NavigationService.navigate('GlobalModal', { isNews: true });
     }
-  }, [showNews]);
+  }, [globalModal]);
   useEffect(() => {
     if (loading == NOT_LOADING && balanceItem != null && ready == false) {
       setReady(true);
     }
-  }, [loading, balanceItem]);
+  }, [loading, balanceItem, ready]);
   useEffect(() => {
     if (appState == 'active' && ready) {
       _refresh();

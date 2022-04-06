@@ -29,7 +29,6 @@
 		A6AFCDF323D805CF00871285 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A6AFCDF223D805CF00871285 /* GoogleService-Info.plist */; };
 		A6B7418E2499D5A4009E9990 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A6B7418D2499D5A4009E9990 /* Images.xcassets */; };
 		A6B741932499E6E5009E9990 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A6B7418F2499E6E5009E9990 /* main.m */; };
-		A6B741942499E6E5009E9990 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A6B741912499E6E5009E9990 /* Info.plist */; };
 		A6B741952499E6E5009E9990 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = A6B741922499E6E5009E9990 /* AppDelegate.m */; };
 		A6B741982499E8B5009E9990 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = A6B741962499E8B5009E9990 /* LaunchScreen.xib */; };
 		B839224442104203B7EBAC17 /* Entypo.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7BEB02E4A8AB42B5825EF37D /* Entypo.ttf */; };
@@ -302,7 +301,6 @@
 				287A3F74025E4013B072FE21 /* rubicon-icon-font.ttf in Resources */,
 				6416EDC1376F4A50BD6A04E5 /* SimpleLineIcons.ttf in Resources */,
 				886FA8B142854705BD48B0E1 /* Zocial.ttf in Resources */,
-				A6B741942499E6E5009E9990 /* Info.plist in Resources */,
 				A6AFCDF323D805CF00871285 /* GoogleService-Info.plist in Resources */,
 				160A316B0B1240F39F0764CE /* Fontisto.ttf in Resources */,
 				6ACF171279D74E7E91D2A681 /* Avenir-Heavy.ttf in Resources */,
@@ -642,6 +640,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
 				CODE_SIGN_ENTITLEMENTS = cybavo_wallet/cybavo_wallet.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
@@ -763,6 +762,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
 				CODE_SIGN_ENTITLEMENTS = cybavo_wallet/cybavo_wallet.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;

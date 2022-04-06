@@ -460,7 +460,9 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
                 outlined={true}
                 labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
                 onPress={() => {
-                  NavigationService.navigate('News');
+                  NavigationService.navigate('GlobalModal', {
+                    isNews: true,
+                  });
                 }}>
                 {I18n.t('start_using')}
               </RoundButton2>

@@ -26,13 +26,19 @@ import ResultModal, {
 import {
   checkStoragePermission,
   checkWalletConnectUri,
+  effectiveBalance,
+  getWalletKeyByWallet,
   toastError,
 } from '../Helpers';
 import { Wallets } from '@cybavo/react-native-wallet-service';
 import { Coin, SCAN_ICON } from '../Constants';
 import IconSvgXml from '../components/IconSvgXml';
-import { newSession } from '../store/actions';
+import { newSession, DONT_SHOW_WC_DISCLAIMER } from '../store/actions';
 import NavigationService from '../NavigationService';
+import DisclaimerModal from '../components/DisclaimerModal';
+import AsyncStorage from '@react-native-community/async-storage';
+import AssetPicker from '../components/AssetPicker';
+import AssetPickerLite from '../components/AssetPickerLite';
 
 const ScanScreen: () => React$Node = ({ theme }) => {
   const qrScannerRef = useRef();
@@ -40,18 +46,24 @@ const ScanScreen: () => React$Node = ({ theme }) => {
   const [result, setResult] = useState(null);
   const [qrCode, setQrCode] = useState(null);
   const [address, setAddress] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [wcResult, setWcResult] = useState(null);
+  const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
+  const [dontShowWcDisclaimer, setDontShowWcDisclaimer] = useState(false);
   const { navigate, goBack } = useNavigation();
   const onResult = useNavigationParam('onResult');
   const isModal = useNavigationParam('modal');
   const scanHint = useNavigationParam('scanHint');
   const disableWalletConnect = useNavigationParam('disableWalletConnect');
+  const balances = useSelector(state => state.balance.balances || {});
 
   const enableWalletconnect = useSelector(
     state => state.user.userState.enableWalletconnect
   );
   const dispatch = useDispatch();
   const [possibleCurrencies, setPossibleCurrencies] = useState([]);
+  const [possibleWallets, setPossibleWallets] = useState([]);
   const _getCoinKey = item => `${item.currency}#`;
   const _getCurrencyKey = item => `${item.currency}#${item.tokenAddress}`;
   const ethWallet = useSelector(state => state.wallets.ethWallet);
@@ -69,6 +81,16 @@ const ScanScreen: () => React$Node = ({ theme }) => {
   });
   const wallets = useSelector(state => state.wallets.wallets || []);
   useEffect(() => {
+    if (dontShowWcDisclaimer) {
+      return;
+    }
+    AsyncStorage.getItem(DONT_SHOW_WC_DISCLAIMER, (error, r) => {
+      if (r == '1') {
+        setDontShowWcDisclaimer(true);
+      }
+    });
+  }, []);
+  useEffect(() => {
     if (qrCode == null) {
       return;
     }
@@ -78,41 +100,21 @@ const ScanScreen: () => React$Node = ({ theme }) => {
     }
     let result = checkWalletConnectUri(qrCode);
     if (result.valid) {
-      _qrCodeAsWalletConnect(result.uri, result.address, result.chainId);
+      if (dontShowWcDisclaimer) {
+        _qrCodeAsWalletConnect(result.uri, result.address, result.chainId);
+        return;
+      }
+      setWcResult(result);
+      setShowDisclaimerModal(true);
     } else {
       _qrCodeAsAddress(qrCode);
     }
   }, [qrCode]);
 
   const _qrCodeAsWalletConnect = (qrCode, address, chainId) => {
-    if (ethWallet) {
-      goBack();
-      NavigationService.navigate('Connecting', {});
-      dispatch(newSession(qrCode, ethWallet.address, ethWallet.walletId, address, chainId));
-    } else {
-      let item = currencies.find(
-        w => w.currency === Coin.ETH && !w.tokenAddress
-      );
-      setResult({
-        title: I18n.t('create_first_wallet', item),
-        message: I18n.t('ask_create_wallet_desc', item),
-        type: TYPE_CONFIRM,
-        successButtonText: I18n.t('go_create'),
-        currency: item,
-        buttonClick: () => {
-          goBack();
-          navigate('AddAsset', { currency: item });
-          setResult(null);
-        },
-        secondaryConfig: {
-          color: theme.colors.primary,
-          text: I18n.t('cancel'),
-          onClick: () => {
-            _reactivateOrLeave();
-          },
-        },
-      });
-    }
+    goBack();
+    NavigationService.navigate('Connecting', {});
+    dispatch(newSession(qrCode, address, chainId, ethWallet));
   };
   const _qrCodeAsAddress = qrCode => {
     setAddress(qrCode);
@@ -143,7 +145,7 @@ const ScanScreen: () => React$Node = ({ theme }) => {
             _onSelectCurrency(currencies[0]);
           } else if (currencies.length > 1) {
             setPossibleCurrencies(currencies);
-            setShowModal(true);
+            setShowCurrencyModal(true);
           } else {
             setResult({
               title: I18n.t('invalid_address'),
@@ -157,23 +159,27 @@ const ScanScreen: () => React$Node = ({ theme }) => {
         .catch(error => {
           setAddress(qrCode);
           setPossibleCurrencies(currencies);
-          setShowModal(true);
+          setShowCurrencyModal(true);
           toastError(error);
         });
     }
   };
+  const _onSelectWallet = item => {
+    setAddress(item.address);
+    goBack();
+    navigate('Withdraw', {
+      qrCode: item.address,
+      wallet: item,
+      onComplete: () => {},
+    });
+  };
   const _onSelectCurrency = item => {
-    let wallet = wallets.find(
+    let ws = wallets.filter(
       w => w.currency === item.currency && w.tokenAddress === item.tokenAddress
     );
-    if (wallet) {
-      goBack();
-      navigate('Withdraw', {
-        qrCode: address,
-        wallet: wallet,
-        onComplete: () => {},
-      });
-    } else {
+    if (ws.length == 1) {
+      _onSelectWallet(ws[0]);
+    } else if (ws.length == 0) {
       setResult({
         title: I18n.t('create_first_wallet', item),
         message: I18n.t('ask_create_wallet_desc', item),
@@ -193,6 +199,9 @@ const ScanScreen: () => React$Node = ({ theme }) => {
           },
         },
       });
+    } else {
+      setPossibleWallets(ws);
+      setShowWalletModal(true);
     }
   };
   const _reactivateOrLeave = () => {
@@ -200,6 +209,7 @@ const ScanScreen: () => React$Node = ({ theme }) => {
     if (qrScannerRef.current) {
       qrScannerRef.current.reactivate();
       setQrCode(null);
+      setWcResult(null);
     } else {
       goBack();
     }
@@ -260,6 +270,11 @@ const ScanScreen: () => React$Node = ({ theme }) => {
       }
       setLoading(false);
     });
+  };
+  const _getBalanceText = item => {
+    let key = getWalletKeyByWallet(item);
+    let b = effectiveBalance(balances[key], '');
+    return b;
   };
   const _renderViewFinder = () => {
     return (
@@ -335,6 +350,35 @@ const ScanScreen: () => React$Node = ({ theme }) => {
         />
         {_renderViewFinder()}
       </View>
+      {showDisclaimerModal && (
+        <DisclaimerModal
+          onCancel={() => {
+            _reactivateOrLeave();
+            setShowDisclaimerModal(false);
+          }}
+          onConfirm={dontShow => {
+            if (dontShow) {
+              AsyncStorage.setItem(DONT_SHOW_WC_DISCLAIMER, '1')
+                .then(() => {
+                  console.debug('set SHOWED_WC_DISCLAIMER');
+                })
+                .catch(error => {
+                  console.debug('set SHOWED_WC_DISCLAIMER err:' + error);
+                });
+            }
+            setShowDisclaimerModal(false);
+            if (wcResult != null) {
+              setTimeout(() => {
+                _qrCodeAsWalletConnect(
+                  wcResult.uri,
+                  wcResult.address,
+                  wcResult.chainId
+                );
+              }, 100);
+            }
+          }}
+        />
+      )}
       {result && (
         <ResultModal
           visible={!!result}
@@ -359,7 +403,7 @@ const ScanScreen: () => React$Node = ({ theme }) => {
           }}
         />
       )}
-      {showModal && (
+      {showCurrencyModal && (
         <CurrencyPickerLite
           rawData={possibleCurrencies}
           onCancel={() => {
@@ -367,15 +411,35 @@ const ScanScreen: () => React$Node = ({ theme }) => {
               setQrCode(null);
               qrScannerRef.current.reactivate();
             }
-            setShowModal(false);
+            setShowCurrencyModal(false);
           }}
           clickItem={item => {
-            setShowModal(false);
+            setShowCurrencyModal(false);
             setTimeout(() => {
               // ios need wait after perivous modal close
               _onSelectCurrency(item);
             }, 100);
           }}
+        />
+      )}
+      {showWalletModal && (
+        <AssetPickerLite
+          rawData={possibleWallets}
+          onCancel={() => {
+            if (qrScannerRef.current) {
+              setQrCode(null);
+              qrScannerRef.current.reactivate();
+            }
+            setShowWalletModal(false);
+          }}
+          clickItem={item => {
+            setShowWalletModal(false);
+            setTimeout(() => {
+              // ios need wait after perivous modal close
+              _onSelectWallet(item);
+            }, 100);
+          }}
+          getBalanceText={_getBalanceText}
         />
       )}
     </View>

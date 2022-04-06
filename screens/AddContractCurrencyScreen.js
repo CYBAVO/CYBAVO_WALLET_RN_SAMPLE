@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Image, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Container, Content } from 'native-base';
 import {
+  chainI18n,
   Coin,
   ROUND_BUTTON_HEIGHT,
   sliderInnerWidth,
@@ -29,6 +30,7 @@ import {
   getRestCurrencies,
   getWalletConnectSvg2,
   hasValue,
+  isETHForkChain,
   isValidEosAccount,
   sleep,
   toastError,
@@ -41,29 +43,51 @@ import ResultModal, {
   TYPE_FAIL,
   TYPE_SUCCESS,
 } from '../components/ResultModal';
-import DegreeSelecter from '../components/DegreeSelecter';
+import DegreeSelector from '../components/DegreeSelector';
 import NavigationService from '../NavigationService';
 import { SvgXml } from 'react-native-svg';
+import BottomActionMenu from '../components/BottomActionMenu';
 const AddContractCurrencyScreen: () => React$Node = ({ theme }) => {
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
   const [loading, setLoading] = useState(false);
   const refs = [useRef(), useRef()];
   const [address, setAddress] = useState('');
-  const [currency, setCurrency] = useState(Coin.ETH);
+  // const [currency, setCurrency] = useState(Coin.ETH);
+  const [currencyIndex, setCurrencyIndex] = useState(0);
   const [inputPinCode, setInputPinCode] = useState(false);
   const [addressError, setAddressError] = useState(null);
   const [result, setResult] = useState(null);
-  const enabledBsc = useSelector(state => {
+  const [showMenu1, setShowMenu1] = useState(false);
+  const valueObjArr = useSelector(state => {
     if (state.currency.currencies == null) {
-      return false;
+      return [];
     }
-    for (let i = 0; i < state.currency.currencies.length; i++) {
-      if (state.currency.currencies[i].currency == Coin.BSC) {
-        return true;
+    let c = state.currency.currencies || [];
+    let others = [];
+    let top3 = [];
+    for (let i = 0; i < c.length; i++) {
+      if (hasValue(c[i].tokenAddress)) {
+        continue;
+      }
+      switch (c[i].currency) {
+        case Coin.ETH:
+          top3[0] = c[i];
+          break;
+        case Coin.BSC:
+          top3[1] = c[i];
+          break;
+        case Coin.ONE:
+          top3[2] = c[i];
+          break;
+        default:
+          if (isETHForkChain(c[i].currency)) {
+            others.push(c[i]);
+          }
+          break;
       }
     }
-    return false;
+    return top3.concat(others);
   });
   const _setAddress = r => {
     r = r.trim();
@@ -75,20 +99,6 @@ const AddContractCurrencyScreen: () => React$Node = ({ theme }) => {
         focusInput(refs, 0);
       }
     }, 500);
-  };
-  const valueObj = {
-    eth: {
-      currency: Coin.ETH,
-      description: I18n.t('eth_desc'),
-    },
-    bsc: {
-      currency: Coin.BSC,
-      description: I18n.t('bsc_desc'),
-    },
-    one: {
-      currency: Coin.ONE,
-      description: I18n.t('one_desc'),
-    },
   };
   const _goScan = async () => {
     if (await checkCameraPermission()) {
@@ -113,11 +123,8 @@ const AddContractCurrencyScreen: () => React$Node = ({ theme }) => {
   const _addContractCurrency = async pinSecret => {
     setLoading(true);
     try {
-      let result = await Wallets.addContractCurrency(
-        currency,
-        address,
-        pinSecret
-      );
+      let c = valueObjArr[currencyIndex].currency;
+      let result = await Wallets.addContractCurrency(c, address, pinSecret);
       let msg = '';
       if (result.successResults) {
         if (result.successResults.length == 0) {
@@ -186,45 +193,36 @@ const AddContractCurrencyScreen: () => React$Node = ({ theme }) => {
             ]}>
             {I18n.t('blockchain')}
           </Text>
-
-          <DegreeSelecter
-            itemStyle={Styles.block}
-            keys={enabledBsc ? ['eth', 'bsc', 'one'] : ['eth', 'one']}
-            valueObj={valueObj}
-            reserveErrorMsg={false}
-            style={{ flexDirection: 'row', flex: 1 }}
-            onSelect={key => {
-              setCurrency(valueObj[key].currency);
+          <BottomActionMenu
+            visible={showMenu1}
+            currentSelect={currencyIndex}
+            title={I18n.t('blockchain')}
+            scrollEnabled={true}
+            data={valueObjArr}
+            getValue={obj =>
+              I18n.t(chainI18n[obj.currency], {
+                defaultValue: obj.displayName || '',
+              })
+            }
+            onClick={() => {
+              setShowMenu1(true);
             }}
-            getLabel={(key = {}) => I18n.t(key, { defaultValue: key })}
-            getValue={(item = {}) => item.description}
-            // getDesc={(key = {}) => ''}
-            line3={false}
+            onCancel={() => {
+              setShowMenu1(false);
+            }}
+            onChange={index => {
+              setCurrencyIndex(index);
+              setShowMenu1(false);
+            }}
+            containerStyle={{
+              flex: null,
+              marginVertical: 10,
+              paddingHorizontal: 10,
+              minHeight: 40,
+              borderRadius: 4,
+              justifyContent: 'space-between',
+            }}
           />
-          <View
-            style={[
-              Styles.infoBackground,
-              {
-                marginHorizontal: 0,
-                marginTop: 0,
-                marginBottom: 4,
-                backgroundColor: Theme.colors.errorInfo16,
-                borderColor: Theme.colors.errorInfo,
-              },
-            ]}>
-            <SvgXml xml={getInfoSvg('#E82047')} width={16} height={16} />
-            <Text
-              style={[
-                Theme.fonts.default.regular,
-                {
-                  textAlign: 'left',
-                  marginLeft: 5,
-                  paddingRight: 10,
-                },
-              ]}>
-              {I18n.t('different_address_info')}
-            </Text>
-          </View>
           <Text style={Styles.labelBlock}>{I18n.t('contract_address')}</Text>
           <CompoundTextInput
             ref={refs[0]}
@@ -247,31 +245,10 @@ const AddContractCurrencyScreen: () => React$Node = ({ theme }) => {
             hasError={hasValue(addressError)}
             onChangeText={_onAddressChanged}
             errorMsg={addressError}
-            goScan={_goScan}
+            onRightIconClick={_goScan}
           />
         </ScrollView>
         <View style={{ marginTop: 50 }}>
-          <View
-            style={[
-              Styles.infoBackground,
-              { marginHorizontal: 16, marginTop: 0, marginBottom: 4 },
-            ]}>
-            <Image
-              style={{ marginTop: 3 }}
-              source={require('../assets/image/ic_Info.png')}
-            />
-            <Text
-              style={[
-                Theme.fonts.default.regular,
-                {
-                  textAlign: 'left',
-                  marginLeft: 5,
-                  paddingRight: 10,
-                },
-              ]}>
-              {I18n.t('add_currency_info')}
-            </Text>
-          </View>
           <RoundButton2
             height={ROUND_BUTTON_HEIGHT}
             style={[Styles.bottomButton]}

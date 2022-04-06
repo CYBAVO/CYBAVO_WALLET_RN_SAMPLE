@@ -15,7 +15,7 @@
     ]
   },
   "dependencies": {
-    "@cybavo/react-native-wallet-service": "^1.2.141",
+    "@cybavo/react-native-wallet-service": "^1.2.184",
     "@invertase/react-native-apple-authentication": "1.0.0",
     "@react-native-community/async-storage": "^1.7.0",
     "@react-native-community/cameraroll": "^1.5.2",
@@ -80,7 +80,7 @@
     "react-native-screens": "^1.0.0-alpha.23",
     "react-native-scrollable-tab-view": "^1.0.0",
     "react-native-snap-carousel": "^3.8.4",
-    "react-native-svg": "^12.1.0",
+    "react-native-svg": "12.1.1",
     "react-native-tcp": "^3.3.2",
     "react-native-twitter-signin": "^1.1.1",
     "react-native-udp": "^2.7.0",
@@ -122,7 +122,7 @@
     "jest": "^24.9.0",
     "metro": "^0.57.0",
     "metro-core": "^0.57.0",
-    "metro-react-native-babel-preset": "^0.57.0",
+    "metro-react-native-babel-preset": "^0.59.0",
     "prettier": "^1.19.1",
     "react-native-fabric": "^0.5.2",
     "react-native-push-notification": "^3.1.9",

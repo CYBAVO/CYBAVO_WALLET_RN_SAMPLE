@@ -45,6 +45,7 @@ import { Dimensions } from 'react-native';
 import { Theme } from '../styles/MainTheme';
 import { DotIndicator } from 'react-native-indicators';
 import {
+  ALL_WALLET_ID,
   Api,
   FULL_WIDTH_WITH_PADDING,
   HEADER_BAR_PADDING,
@@ -86,6 +87,7 @@ const ConnectionListScreen: () => React$Node = ({ theme }) => {
   const [showMenu1, setShowMenu1] = useState(false);
   const [showMenu2, setShowMenu2] = useState(false);
   const [result, setResult] = useState(null);
+  const wallets = useSelector(state => state.wallets.wallets);
   const connectingList = useSelector(state => {
     return getConnectionList(state.walletconnect.connecting);
   });
@@ -93,7 +95,7 @@ const ConnectionListScreen: () => React$Node = ({ theme }) => {
     if (!state.wallets.ethWallet) {
       return null;
     }
-    let key = state.wallets.ethWallet.walletId;
+    let key = ALL_WALLET_ID;
     if (state.apihistory.apihistory[key] == undefined) {
       return null;
     }
@@ -177,7 +179,7 @@ const ConnectionListScreen: () => React$Node = ({ theme }) => {
     if (state.apihistory.apihistory == null) {
       return { start: 0, total: 0, data: [] };
     }
-    let key = ethWallet.walletId;
+    let key = ALL_WALLET_ID;
     if (
       state.apihistory.apihistory[key] == null ||
       state.apihistory.apihistory[key].data == null
@@ -221,6 +223,53 @@ const ConnectionListScreen: () => React$Node = ({ theme }) => {
           return renderTabBar(theme, _scrollX);
         }}
         onScroll={x => _scrollX.setValue(x)}>
+        <View
+          style={{ paddingTop: 8, flex: 1, marginHorizontal: 16 }}
+          tabLabel={{ label: I18n.t('connections') }}>
+          <ConnectionList data={connectingList} onPress={_killSession} />
+          {connectingList.length > 0 ? (
+            <FAB.Group
+              theme={theme}
+              color={theme.colors.primary}
+              fabStyle={{ backgroundColor: theme.colors.pickerBg }}
+              open={open}
+              onStateChange={v => setOpen(!open)}
+              icon={open ? 'close' : require('../assets/image/ic_setting.png')}
+              actions={[
+                {
+                  icon: 'link-off',
+                  color: theme.colors.primary,
+                  style: { backgroundColor: theme.colors.pickerBg },
+                  onPress: _killAllSession,
+                },
+                {
+                  icon: SCAN_ICON,
+                  color: theme.colors.primary,
+                  style: { backgroundColor: theme.colors.pickerBg },
+                  onPress: async () => {
+                    if (await checkCameraPermission()) {
+                      NavigationService.navigate('scanModal', {
+                        modal: true,
+                      });
+                    }
+                  },
+                },
+              ]}
+            />
+          ) : (
+            <FAB
+              style={[Styles.fab, { marginRight: 0 }]}
+              icon={SCAN_ICON}
+              color={theme.colors.primary}
+              onPress={async () => {
+                if (await checkCameraPermission()) {
+                  NavigationService.navigate('scanModal', { modal: true });
+                }
+              }}
+            />
+          )}
+        </View>
+
         {rawDataObj.data.length > 0 && (
           <View
             style={{ paddingTop: 8, flex: 1, marginHorizontal: 16 }}
@@ -287,57 +336,15 @@ const ConnectionListScreen: () => React$Node = ({ theme }) => {
               onEndReached={_fetchMoreHistory}
               footLoading={_hasMore() ? loading : NO_MORE}
               onPress={item => {
+                const r = wallets.filter(w => w.walletId === item.walletId);
+                if (r.length > 0) {
+                  item.wallet = r[0];
+                }
                 navigate('ApiHistoryDetail', { apiHistory: item });
               }}
             />
           </View>
         )}
-        <View
-          style={{ paddingTop: 8, flex: 1, marginHorizontal: 16 }}
-          tabLabel={{ label: I18n.t('connections') }}>
-          <ConnectionList data={connectingList} onPress={_killSession} />
-          {connectingList.length > 0 ? (
-            <FAB.Group
-              theme={theme}
-              color={theme.colors.primary}
-              fabStyle={{ backgroundColor: theme.colors.pickerBg }}
-              open={open}
-              onStateChange={v => setOpen(!open)}
-              icon={open ? 'close' : require('../assets/image/ic_setting.png')}
-              actions={[
-                {
-                  icon: 'link-off',
-                  color: theme.colors.primary,
-                  style: { backgroundColor: theme.colors.pickerBg },
-                  onPress: _killAllSession,
-                },
-                {
-                  icon: SCAN_ICON,
-                  color: theme.colors.primary,
-                  style: { backgroundColor: theme.colors.pickerBg },
-                  onPress: async () => {
-                    if (await checkCameraPermission()) {
-                      NavigationService.navigate('scanModal', {
-                        modal: true,
-                      });
-                    }
-                  },
-                },
-              ]}
-            />
-          ) : (
-            <FAB
-              style={[Styles.fab, { marginRight: 0 }]}
-              icon={SCAN_ICON}
-              color={theme.colors.primary}
-              onPress={async () => {
-                if (await checkCameraPermission()) {
-                  NavigationService.navigate('scanModal', { modal: true });
-                }
-              }}
-            />
-          )}
-        </View>
       </ScrollableTabView>
 
       {result && (

@@ -31,7 +31,12 @@ import {
   replaceConfig,
   ROUND_BUTTON_LARGE_HEIGHT,
 } from '../Constants';
-import { renderNftItem, renderTxItem } from '../Helpers';
+import {
+  hasValue,
+  isETHForkChain,
+  renderNftItem,
+  renderTxItem,
+} from '../Helpers';
 import { useSelector } from 'react-redux';
 import RoundButton2 from './RoundButton2';
 import { SvgXml } from 'react-native-svg';
@@ -66,8 +71,29 @@ const TransactionNftWalletList: () => React$Node = ({
   const tokenUriMap = useSelector(state => {
     return state.tokenUri.tokenUriMap;
   });
+  const currencyMap = useSelector(state => {
+    if (state.currency.currencies == null) {
+      return {};
+    }
+    let c = state.currency.currencies || [];
+    let map = {};
+    for (let i = 0; i < c.length; i++) {
+      if (isETHForkChain(c[i].currency) && !hasValue(c[i].tokenAddress)) {
+        map[c[i].currency] = c[i].displayName;
+      }
+    }
+    return map;
+  });
   const _renderNft = ({ item }) => {
-    return renderNftItem(item, onClickAction, config, expolreImg, 16, tokenUriMap);
+    return renderNftItem(
+      item,
+      onClickAction,
+      config,
+      expolreImg,
+      16,
+      tokenUriMap,
+      currencyMap
+    );
   };
   const _renderTransaction = obj => {
     let tokenId = obj.item.amount;

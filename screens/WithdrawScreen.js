@@ -76,7 +76,10 @@ import {
   sleep,
   strToBigNumber,
   toastError,
-  getParentCurrency, getFeeUnit,
+  getParentCurrency,
+  getFeeUnit,
+  getAddressTagsFromResult,
+  getAddressTagObjFromResult,
 } from '../Helpers';
 import Headerbar from '../components/Headerbar';
 import {
@@ -104,7 +107,7 @@ import {
   updateBioSetting,
 } from '../store/actions';
 import NavigationService from '../NavigationService';
-import DegreeSelecter from '../components/DegreeSelecter';
+import FeeDegreeSelector from '../components/FeeDegreeSelector';
 import currency from '../store/reducers/currency';
 const paddingBottom = {
   ios: 220 * (height / 667),
@@ -244,6 +247,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
   const [estimateResultMap, setEstimateResultMap] = useState({});
   const [estimateResult, setEstimateResult] = useState(null);
   const [addressTags, setAddressTags] = useState(null);
+  const [addressTagsObj, setAddressTagsObj] = useState(null); //score, tags, model
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');
   const [description, setDescription] = useState('');
@@ -696,6 +700,31 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
   const _estimateTransaction = toAddress => {
     setLoading(true);
     if (false) {
+      setAddressTagsObj([
+        {
+          address: '0x415a47e3333052bd79c63776720452a3db84c633',
+          items: [
+            {
+              bold: 'Score 100: ',
+              normal: 'tag1, tag2, tag1,',
+            },
+            {
+              bold: 'Score 80: ',
+              normal: 'tag3, tag45678899000qwersdfkjldkjfl;sdkj;sj',
+            },
+            {
+              bold: 'Score 99: ',
+              normal:
+                'tag1, tag2, tag1, tag2, tag1, tag2, tag1, tag2333444555666',
+            },
+            {
+              bold: 'Score 93: ',
+              normal:
+                'tag1, tag2, tag1, tag2, tag1, tag2, tag1, tag2333444555666',
+            },
+          ],
+        },
+      ]);
       setAddressTags([
         'SanctionsRisk',
         'ciphertrace',
@@ -705,27 +734,19 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
       ]);
       _estimateTransactionSub(toAddress);
     } else {
+      //0x415a47e3333052bd79c63776720452a3db84c633
       Wallets.getAddressesTags(wallet.currency, [receiver])
         .then(result => {
           let { addressTagMap } = result;
-          let tagArr = [];
-          let showAml = false;
-          let keys = Object.keys(addressTagMap);
-          for (let key of keys) {
-            let v = addressTagMap[key];
-            if (v.blackList) {
-              showAml = true;
-            }
-            if (v.tags != null) {
-              for (let t of v.tags) {
-                if (tagArr.indexOf(t) == -1) {
-                  tagArr.push(t);
-                }
-              }
-            }
-          }
-          if (showAml && tagArr.length > 0) {
+          let { tagObjArr, tagArr } = getAddressTagObjFromResult(
+            addressTagMap,
+            true
+          );
+          if (tagArr.length > 0) {
             setAddressTags(tagArr);
+          }
+          if (tagObjArr.length > 0) {
+            setAddressTagsObj(tagObjArr);
           }
           _estimateTransactionSub(toAddress);
         })
@@ -1201,7 +1222,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
             onChangeText={_onReceiverChanged}
             // onBlur={() => _checkReceiver(receiver)}
             errorMsg={receiverError}
-            goScan={_goScan}
+            onRightIconClick={_goScan}
             placeholder={I18n.t('to_address_placeholder')}
             onClear={() => {
               setReceiver('');
@@ -1345,7 +1366,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
               <Text style={[Styles.labelBlock, { marginBottom: 8 }]}>
                 {I18n.t('blockchain_fee')}
               </Text>
-              <DegreeSelecter
+              <FeeDegreeSelector
                 getValue={(item = {}) => `${item.amount} ${feeUnit}`}
                 valueObj={fee.data}
                 reserveErrorMsg={false}
@@ -1419,7 +1440,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
           }
           full={result.type === TYPE_CONFIRM}
           detail={{
-            addressTags: addressTags,
+            addressTagsObj: addressTagsObj,
             amount: (estimateResult && estimateResult.amount) || amount,
             tokenId: estimateResult && estimateResult.tokenId,
             currency: wallet.currencySymbol,
