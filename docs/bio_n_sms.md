@@ -61,8 +61,8 @@ function getBiometricsType(): Promise<GetBiometricsTypeResult>;
 /// @return Promise<UpdateDeviceInfoResult>
 ///
 function updateDeviceInfo(
-        biometricsType: number
-    ): Promise<UpdateDeviceInfoResult>;
+          biometricsType: number
+       ): Promise<UpdateDeviceInfoResult>;
 
 /// register public key for biometrics authentication
 /// @return Promise<RegisterPubkeyResult>
@@ -99,8 +99,8 @@ function registerPubkey(): Promise<RegisterPubkeyResult>;
     /// @return Promise<GetActionTokenResult>
     ///
     function getTransactionSmsCode(
-        duration: number
-    ): Promise<GetActionTokenResult>;
+              duration: number
+           ): Promise<GetActionTokenResult>;
     ```
 
 - `actionToken` + `OTP code` + `PinSecret / PinCode` ➜ call SMS version function
