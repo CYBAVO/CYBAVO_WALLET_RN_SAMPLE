@@ -18,18 +18,19 @@ If that kind of `Currency` already exists, there's no need to add it again.
 /// @param contractAddress Token address for tokens, i.e. an ERC-20 token wallet maps to an Ethereum wallet
 /// @param pinSecret PIN secret retrieved via PinCodeInputView
 /// @return Promise<AddContractCurrenciesResult>
-///         resolve: Contains WalletID
+///         resolve: Contains WalletId
+///
 function addContractCurrency(
-        currency: number,
-        tokenAddress: string,
-        pinSecret: number | PinSecretBearer | string
+          currency: number,
+          tokenAddress: string,
+          pinSecret: number | PinSecretBearer | string
     ): Promise<AddContractCurrenciesResult>;
 
 /// Batch version of addContractCurrency
 function addContractCurrencies(
-        currency: Array<{number}>,
-        tokenAddress: Array<{string}>,
-        pinSecret: number | PinSecretBearer | string,
+          currency: Array<{number}>,
+          tokenAddress: Array<{string}>,
+          pinSecret: number | PinSecretBearer | string,
     ): Promise<AddContractCurrenciesResult>;
 ```
 
@@ -75,11 +76,12 @@ type Balance = {
   /// @param tokenAddresses Array of token address to query
   /// @param tokenIds Array of token address to query
   /// @return Promise<GetMultipleTokenUriResult> 
-  ///         Contains Map {string, TokenUri}
+  ///         resolve: Contains Map {string, TokenUri}
+  ///
   function getMultipleTokenUri(
-        currency: number,
-        tokenAddresses: Array<{string}>,
-        tokenIds: Array<{string}>,
+            currency: number,
+            tokenAddresses: Array<{string}>,
+            tokenIds: Array<{string}>,
     ): Promise<GetMultipleTokenUriResult>;
   ```
 
@@ -92,9 +94,10 @@ type Balance = {
   /// @param walletId walletId Wallet ID
   /// @param tokenIds ERC-1155 token IDs for register
   /// @return Promise<RegisterTokenIdsResult>
+  ///
   function registerTokenIds(
-        walletId: number,
-        tokenIds: Array<{string}>,
+            walletId: number,
+            tokenIds: Array<{string}>,
     ): Promise<RegisterTokenIdsResult>;
   ```
 
