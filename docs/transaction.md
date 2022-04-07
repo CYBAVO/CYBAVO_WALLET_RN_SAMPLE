@@ -31,10 +31,11 @@ you will get three levels { high, medium, low } of fees for the user to select.
 /// @param currency Currency to query
 /// @param tokenAddress fee of private to public transaction
 /// @return Promise<GetTransactionFeeResult>
+///
 function getTransactionFee(
-        currency: number,
-        tokenAddress: string
-    ): Promise<GetTransactionFeeResult>;
+          currency: number,
+          tokenAddress: string
+       ): Promise<GetTransactionFeeResult>;
 ```
 
 ### getCurrencyTraits
@@ -48,12 +49,13 @@ function getTransactionFee(
 /// @param tokenVersion query tokenVersion
 /// @param walletAddress query walletAddress
 /// @return Promise<GetCurrencyTraitsResult>
+///
 function getCurrencyTraits(
-        currency: number,
-        tokenAddress: string,
-        tokenVersion: number,
-        walletAddress: string
-    ): Promise<GetCurrencyTraitsResult>;
+          currency: number,
+          tokenAddress: string,
+          tokenVersion: number,
+          walletAddress: string
+       ): Promise<GetCurrencyTraitsResult>;
 ```
 
 - Response: `GetCurrencyTraitsResult`
@@ -87,14 +89,15 @@ function getCurrencyTraits(
 /// @param walletId Wallet ID to estimated transaction
 /// @param toAddress To Address
 /// @return Promise<EstimateTransactionResult>
+///
 function estimateTransaction(
-        currency: number,
-        tokenAddress: string,
-        amount: string,
-        transactionFee: string,
-        walletId?: number,
-        toAddress?: string,
-    ): Promise<EstimateTransactionResult>;
+          currency: number,
+          tokenAddress: string,
+          amount: string,
+          transactionFee: string,
+          walletId?: number,
+          toAddress?: string,
+       ): Promise<EstimateTransactionResult>;
 ```
 
 - Response: `EstimateTransactionResult`
@@ -125,10 +128,11 @@ function estimateTransaction(
 /// @param currency query currency
 /// @param addresses query address
 /// @return Promise<GetAddressesTagsResult>
+///
 function getAddressesTags(
-        currency: number,
-        addresses: Array<{string}>,
-    ): Promise<GetAddressesTagsResult>;
+          currency: number,
+          addresses: Array<{string}>,
+       ): Promise<GetAddressesTagsResult>;
 ```
 
 ### createTransaction
@@ -164,14 +168,14 @@ function getAddressesTags(
 ///  @return Promise<CreateTransactionResult>
 ///
 function createTransaction(
-        fromWalletId: number,
-        toAddress: string,
-        amount: string,
-        transactionFee: string,
-        description: string,
-        pinSecret?: number | PinSecretBearer | string,
-        extraAttributes?: object
-    ): Promise<CreateTransactionResult>;
+          fromWalletId: number,
+          toAddress: string,
+          amount: string,
+          transactionFee: string,
+          description: string,
+          pinSecret?: number | PinSecretBearer | string,
+          extraAttributes?: object
+      ): Promise<CreateTransactionResult>;
 ```
 
 ## Transaction Detail
@@ -196,14 +200,15 @@ function createTransaction(
 ///     - end_time {Long} - End of time period to query, in Unix timestamp
 ///       - ex: ["direction": Direction.OUT, "pending": true, "start_time": 1632387959]
 /// @return Promise<GetHistoryResult>
+///
 function getHistory(
-        currency: number,
-        tokenAddress: string,
-        walletAddress: string,
-        start: number,
-        count: number,
-        filters?: object
-    ): Promise<GetHistoryResult>;
+          currency: number,
+          tokenAddress: string,
+          walletAddress: string,
+          start: number,
+          count: number,
+          filters?: object
+       ): Promise<GetHistoryResult>;
 ```
 
 - Paging query: you can utilize `start` and `count` to fulfill paging query.  
@@ -242,17 +247,18 @@ function getHistory(
 /// @param currency currency to get transaction result
 /// @param txid txid of transaction
 /// @return Promise<GetTransactionInfoResult>
+///
 function getTransactionInfo(
-        currency: number,
-        txid: string
-    ): Promise<GetTransactionInfoResult>;
+          currency: number,
+          txid: string
+       ): Promise<GetTransactionInfoResult>;
 
 
 /// the batch version of getTransactionInfo
 function getTransactionsInfo(
-        currency: number,
-        txid: string[]
-    ): Promise<GetTransactionsInfoResult>;
+          currency: number,
+          txid: string[]
+       ): Promise<GetTransactionsInfoResult>;
 ```
 
 ## Transaction Replacement
