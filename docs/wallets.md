@@ -18,6 +18,7 @@
 ```ts
 /// Get supported currency list
 /// @return Promise<GetCurrenciesResult>
+///
 function getCurrencies(): Promise<GetCurrenciesResult>;
 ```
 
@@ -26,6 +27,7 @@ function getCurrencies(): Promise<GetCurrenciesResult>;
 ```ts
 /// Get wallet list of signed in user
 /// @return Promise<GetWalletsResult>
+///
 function getWallets(): Promise<GetWalletsResult>;
 ```
 
@@ -68,12 +70,14 @@ function getWallets(): Promise<GetWalletsResult>;
 /// @param exchangeCurrencys: currencies which need to get price. ex usd, twd
 /// @param approximateRates: rate reference. When the price is 0, it can be calculated by other exchange currency's price multiply the rate. ex ["TWD", ["USD", 29.45]]
 /// @return Promise<GetCurrenciesResult>
+///
 function getCurrencyPrices(wallets: Array<{
-      /** currency, refer to [[getCurrencies]] API */
-      currency: number;
-      /** token contract address, refer to [[getCurrencies]] API */
-      tokenAddress: string;
-    }>, exchangeCurrencies: Array<{string}>, approximateRates: object): Promise<GetCurrenciesResult>;
+          /** currency, refer to [[getCurrencies]] API */
+          currency: number;
+          /** token contract address, refer to [[getCurrencies]] API */
+          tokenAddress: string;
+         }>, 
+         exchangeCurrencies: Array<{string}>, approximateRates: object): Promise<GetCurrenciesResult>;
 ```
 
 ### getBalances
@@ -81,19 +85,17 @@ function getCurrencyPrices(wallets: Array<{
 ```ts
 /// Get number balances on a batch of addresses
 /// @param addresses: Map of addresses to query. ex: {Wallet.walletId: Wallet}
-///
 /// @return Promise<GetBalancesResult>
 ///         resolve: ➡️ Contains Map of Balances. ex: {Wallet.walletId: Balance}
-function getBalances(
-        addresses: Array<{
+///
+function getBalances(addresses: Array<{
           /** currency, refer to [[getCurrencies]] API */
           currency: number;
           /** token contract address, refer to [[getCurrencies]] API */
           tokenAddress: string;
           /** wallet address */
           address: string;
-        }>
-    ): Promise<GetBalancesResult>;
+        }>): Promise<GetBalancesResult>;
 ```
 
 - Response: `Balance`
@@ -173,14 +175,15 @@ function getWallet(walletId: number): Promise<GetWalletResult>;
 ///             Supported extras: account_name (String) - Account name for EOS
 /// @return Promise<CreateWalletResult>
 ///         resolve: ➡️ Contains walletId
+///
 function createWallet(
-        currency: number,
-        tokenAddress: string,
-        parentWalletId: number,
-        name: string,
-        pinSecret: number | PinSecretBearer | string,
-        extraAttributes: object
-    ): Promise<CreateWalletResult>;
+          currency: number,
+          tokenAddress: string,
+          parentWalletId: number,
+          name: string,
+          pinSecret: number | PinSecretBearer | string,
+          extraAttributes: object
+      ): Promise<CreateWalletResult>;
 ```
 
 ### getSameCurrencyWalletLimit
@@ -195,6 +198,7 @@ function createWallet(
 /// Get wallet count limit per currency
 /// @return Promise<GetSameCurrencyWalletLimitResult>
 ///         resolve: ➡️ Contains wallet count limit of the same currency
+///
 function getSameCurrencyWalletLimit(): Promise<GetSameCurrencyWalletLimitResult>;
 ```
 
@@ -205,10 +209,11 @@ function getSameCurrencyWalletLimit(): Promise<GetSameCurrencyWalletLimitResult>
 /// @param walletId: Wallet ID to rename
 /// @param name: New name of the wallet
 /// @return Promise<RenameWalletResult>
+///
 function renameWallet(
-        walletId: number,
-        name: string
-    ): Promise<RenameWalletResult>;
+          walletId: number,
+          name: string
+       ): Promise<RenameWalletResult>;
 ```
 
 ## Others
@@ -222,9 +227,10 @@ function renameWallet(
 /// Get coin type with address
 /// @param address: wallet address string
 /// @return Promise<QueryCoinTypeResult>
+///
 function queryCoinType(
-        address: string,
-    ): Promise<QueryCoinTypeResult>;
+          address: string,
+       ): Promise<QueryCoinTypeResult>;
 ```
 
 ### getMarketInfos
@@ -232,6 +238,6 @@ function queryCoinType(
 ```ts
 /// Get current top currency infos
 /// @return Promise<GetMarketInfosResult>
-function getMarketInfos(
-    ): Promise<GetMarketInfosResult>;
+///
+function getMarketInfos(): Promise<GetMarketInfosResult>;
 ```
