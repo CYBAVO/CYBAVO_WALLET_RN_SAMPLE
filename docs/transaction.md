@@ -122,8 +122,8 @@ function estimateTransaction(
 
 ```ts
 /// Get AML tag for address
-/// @param currency: query currency
-/// @param addresses: query address
+/// @param currency query currency
+/// @param addresses query address
 /// @return Promise<GetAddressesTagsResult>
 function getAddressesTags(
         currency: number,
