@@ -17,14 +17,14 @@
 
   <img src="images/sdk_guideline/screenshot_skip_sms_2.png" alt="drawing" width="800"/> 
 
-    ```java
-    public final class UserState {
+    ```ts
+    type UserState = {
 
-        public boolean enableBiometrics; // Is enable biometric authentication
+        enableBiometrics: boolean; // Is enable biometric authentication
 
-        public boolean skipSmsVerify; // Is skip SMS/Biometrics verify
+        skipSmsVerify: boolean; // Is skip SMS/Biometrics verify
 
-        public boolean accountSkipSmsVerify; // Is skip SMS for specific case, ex. Apple account
+        accountSkipSmsVerify: boolean; // Is skip SMS for specific case, ex. Apple account
 
         ...
     }
@@ -49,19 +49,22 @@
     4. `if (BiometryType != BiometricsType.NONE)` ➜ call `registerPubkey`
     5. `if (BiometryType == BiometricsType.NONE)` && `accountSkipSmsVerify` ➜ prompt error. ex. The device not supporting biometrics, please contact the system admin.
 
-```java
+```ts
 /// Get device's biometrics type
-/// - Returns: BiometryType { NONE / FACE / FINGER }
-public abstract BiometricsType getBiometricsType(Context context);
+/// @return Promise<GetBiometricsTypeResult>
+///         resolve: BiometryType { NONE / FACE / FINGER }
+function getBiometricsType(): Promise<GetBiometricsTypeResult>;
 
 /// Update device's biometrics type, detect type by sdk
-/// - Parameters:
-///   - type: BiometricsType's raw value, pass nil WalletSDK will decide the value for you
-///   - callback: asynchronous callback
-public abstract void updateDeviceInfo(Context context, Callback<UpdateDeviceInfoResult> callback);
+/// @param type: BiometricsType's raw value, pass nil WalletSDK will decide the value for you
+/// @return Promise<UpdateDeviceInfoResult>
+function updateDeviceInfo(
+        biometricsType: number
+    ): Promise<UpdateDeviceInfoResult>;
 
 /// register public key for biometrics authentication
-public abstract void registerPubkey(Callback<RegisterPubkeyResult> callback);
+/// @return Promise<RegisterPubkeyResult>
+function registerPubkey(): Promise<RegisterPubkeyResult>;
 ```
 
 ## Biometrics / SMS Verification for transaction and sign operation
@@ -87,12 +90,13 @@ public abstract void registerPubkey(Callback<RegisterPubkeyResult> callback);
 
 - call `getTransactionSmsCode` to send a SMS to the user
 
-    ```java
+    ```ts
     /// get SMS code for transaction
-    /// - Parameters:
-    ///   - duration: SMS expire duration (second), ex. 60
-    ///   - callback: asynchronous callback
-    public abstract void getTransactionSmsCode(long duration, Callback<GetActionTokenResult> callback);
+    /// @param duration: SMS expire duration (second), ex. 60
+    /// @return Promise<GetActionTokenResult>
+    function getTransactionSmsCode(
+        duration: number
+    ): Promise<GetActionTokenResult>;
     ```
 
 - `actionToken` + `OTP code` + `PinSecret / PinCode` ➜ call SMS version function
