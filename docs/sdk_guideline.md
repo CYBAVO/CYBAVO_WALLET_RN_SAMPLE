@@ -158,7 +158,7 @@ function signIn(
 /// sign-up with Wallet SDK Auth
 /// @param token: refer to signIn()
 /// @param identityProvider: refer to signIn()
-/// @reutrn Promise<SignUpResult>
+/// @return Promise<SignUpResult>
 ///     resolve: ➡️ ready to signIn()
 ///     reject: handle according ErrorCodes
 ///
