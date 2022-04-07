@@ -141,8 +141,8 @@ react-native link @cybavo/react-native-wallet-service
 ///     6. WeChat - "WeChat"
 ///
 /// @return Promise<SignInResult>
-///     resolve: ➡️ ready to getUserState()
-///     reject: if (error.code == ErrorCodes.ErrRegistrationRequired) ➡️ go to the Sign-up flow
+///         resolve: ➡️ ready to getUserState()
+///         reject: if (error.code == ErrorCodes.ErrRegistrationRequired) ➡️ go to the Sign-up flow
 ///
 function signIn(
           token: string,
@@ -159,8 +159,8 @@ function signIn(
 /// @param token: refer to signIn()
 /// @param identityProvider: refer to signIn()
 /// @return Promise<SignUpResult>
-///     resolve: ➡️ ready to signIn()
-///     reject: handle according ErrorCodes
+///         resolve: ➡️ ready to signIn()
+///         reject: handle according ErrorCodes
 ///
 function signUp(
           token: string,
@@ -214,7 +214,8 @@ enum SignInState {
   /// @param countryCode: country code, ex. 886
   /// @param phone: phone number, ex. 900123456
   /// @return Promise<RegisterPhoneNumberResult>
-  ///     resolve: ➡️ get actionToken
+  ///         resolve: ➡️ get actionToken
+  ///
   function registerPhoneNumber(
           countryCode: string,
           phone: string,
@@ -229,6 +230,7 @@ enum SignInState {
   /// @param actionToken: actionToken returned by registerPhoneNumber / getSmsCode
   /// @param code: SMS code that registered phone received
   /// @return Promise<VerifyOtpResult>
+  ///
   function verifyOtp(
           actionToken: string,
           code: string
@@ -291,6 +293,7 @@ Ensure your users setPin right after sign-in success.
 /// @param pinSecret: PIN secret retrieved via PinCodeInputView
 ///        If the type is number or PinSecretBearer means pass pinSecret, string means pass plaintext
 /// @return Promise<ChangePinCodeResult>
+///
 function setupPinCode(pinSecret: number | PinSecretBearer | string): Promise<SetupPinCodeResult>;
 
 function changePinCode(
