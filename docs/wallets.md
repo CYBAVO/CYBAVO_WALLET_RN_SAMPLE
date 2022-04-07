@@ -15,87 +15,98 @@
 - Use case 2: before `createWallet`, call `getCurrencies` + `getSameCurrencyWalletLimit` to decide whether the user can create a new wallet or not.
 - For `Currency.currency`, please refer to [Currency Definition](https://github.com/CYBAVO/SOFA_MOCK_SERVER#currency-definition)
 
-```java
+```ts
 /// Get supported currency list
-/// - Parameter callback: asynchronous callback
-public abstract void getCurrencies(Callback<GetCurrenciesResult> callback);
+function getCurrencies(): Promise<GetCurrenciesResult>;
 ```
 
 ### getWallets
 
-```java
+```ts
 /// Get wallet list of signed in user
-/// - Parameter callback: asynchronous callback
-public abstract void getWallets(Callback<GetWalletsResult> callback);
+function getWallets(): Promise<GetWalletsResult>;
 ```
 
 - Response: List of `Wallet`
 
-  ```java
-  public final class Wallet {
+  ```ts
+  type Wallet = {
 
-    public long walletId; // Wallet ID
+    walletId: number; // Wallet ID
 
-    public int type = Type.REGULAR; // REGULAR, MAPPED_WALLET, RELAYER_WALLET
+    type: Wallet.Type;; // REGULAR, MAPPED_WALLET, RELAYER_WALLET
 
-    public String address = ""; // Wallet Address
+    address: string; // Wallet Address
 
-    public String tokenAddress = ""; // Contract ddress for tokens (ex. ERC-20)
+    tokenAddress: string; // Contract ddress for tokens (ex. ERC-20)
 
-    public String name = ""; // Name of wallet
+    name: string; // Name of wallet
 
-    public long currency; // Wallet currency ID, refer to Wallets.getCurrencies() API
+    currency: number; // Wallet currency ID, refer to Wallets.getCurrencies() API
 
-    public String currencySymbol = ""; // Wallet simple currency name.
+    currencySymbol: string; // Wallet simple currency name.
 
-    public boolean isPrivate; // Is private chain (CPSC)
+    isPrivate: boolean; // Is private chain (CPSC)
 
     ...
   }
   ```
 
   - Classify:
-    - `TextUtils.isEmpty(tokenAddress) == true` ➜ it is a normal wallet
-    - `TextUtils.isEmpty(tokenAddress) == false` ➜ it is a mapped wallet
+    - `tokenAddress == ''` ➜ it is a normal wallet
+    - `tokenAddress != ''` ➜ it is a mapped wallet
       - `Currency.tokenVersion == 721 || 1155` ➜ it is an NFT wallet
     - `isPrivate == true` ➜ it is on private chain (CPSC), see [Private Chain](private_chain.md)
 
 ### getCurrencyPrices
 
-```java
+```ts
 /// Get Currency price
-/// - Parameters:
-///   - wallets: array of com.cybavo.wallet.service.wallet.Wallet
-///   - exchangeCurrencys: currencies which need to get price. ex usd, twd
-///   - approximateRates: rate reference. When the price is 0, it can be calculated by other exchange currency's price multiply the rate. ex ["TWD", ["USD", 29.45]]
-///   - callback: asynchronous callback
-public abstract void getCurrencyPrice(Wallet[] wallets, String[] exchangeCurrencies, Map<String, Map<String, Double>> approximateRates, Callback<GetCurrencyPriceResult> callback);
+/// @param wallets: array of com.cybavo.wallet.service.wallet.Wallet
+/// @param exchangeCurrencys: currencies which need to get price. ex usd, twd
+/// @param approximateRates: rate reference. When the price is 0, it can be calculated by other exchange currency's price multiply the rate. ex ["TWD", ["USD", 29.45]]
+function getCurrencyPrices(wallets: Array<{
+      /** currency, refer to [[getCurrencies]] API */
+      currency: number;
+      /** token contract address, refer to [[getCurrencies]] API */
+      tokenAddress: string;
+    }>, exchangeCurrencies: Array<{string}>, approximateRates: object): Promise<GetCurrenciesResult>;
 ```
 
 ### getBalances
 
-```java
+```ts
 /// Get number balances on a batch of addresses
-/// - Parameters:
-///   - addresses: Map of addresses to query. ex: (Wallet.walletId, Wallet)
-///   - callback: Contains Map of Balances. ex: (Wallet.walletId, Balance)
-public abstract void getBalances(Map<Integer, BalanceAddress> addresses, Callback<GetBalancesResult> callback);
+/// @param addresses: Map of addresses to query. ex: {Wallet.walletId: Wallet}
+///
+/// @return Promise<GetBalancesResult>
+///         resolve: ➡️ Contains Map of Balances. ex: {Wallet.walletId: Balance}
+function getBalances(
+        addresses: Array<{
+          /** currency, refer to [[getCurrencies]] API */
+          currency: number;
+          /** token contract address, refer to [[getCurrencies]] API */
+          tokenAddress: string;
+          /** wallet address */
+          address: string;
+        }>
+    ): Promise<GetBalancesResult>;
 ```
 
 - Response: `Balance`
 
-  ```java
-  public final class Balance {
+  ```ts
+  type Balance = {
 
-      public String balance = "0"; /** Balance */
+      balance: string; /** Balance */
 
-      public String tokenBalance = "0"; /** Balance of token */
+      tokenBalance: string; /** Balance of token */
 
-      public String availableBalance = "0"; /** Available balance */
+      availableBalance: string | null; /** Available balance */
 
-      public String[] tokens = {}; /** Non-Fungible Token IDs for ERC-721*/
+      tokens: Array<string>; /** Non-Fungible Token IDs for ERC-721*/
 
-      public TokenIdAmount[] tokenIdAmounts = {}; /** Non-Fungible Token ID and amounts for ERC-1155 */
+      tokenIdAmount: Array<TokenIdAmount> /** Non-Fungible Token ID and amounts for ERC-1155 */
 
       ...
   }
@@ -119,12 +130,12 @@ public abstract void getBalances(Map<Integer, BalanceAddress> addresses, Callbac
 
 ![img](images/sdk_guideline/single_wallet_refreshing.jpg)
 
-```java
+```ts
+/// 
 /// Get single wallet information
-/// - Parameters:
-///   - walletId: Wallet ID to query
-///   - callback: asynchronous callback
-public abstract void getWallet(long walletId, Callback<GetWalletResult> callback);
+/// @param walletId Wallet ID to query
+/// 
+function getWallet(walletId: number): Promise<GetWalletResult>;
 ```
 
 ## Wallet Management
@@ -139,26 +150,33 @@ public abstract void getWallet(long walletId, Callback<GetWalletResult> callback
   - `getCurrencies` provides supported currencies
   - `getSameCurrencyWalletLimit` provides the limit wallet count of the same currency
   - `getWallets` provides current user's wallets
-  - `TextUtils.isEmpty(tokenAddress) == false` means the currency needs a parent wallet
-  - `TextUtils.isEmpty(tokenAddress) == true` means the currency don't need a parent wallet
+  - `tokenAddress != ''` means the currency needs a parent wallet
+  - `tokenAddress == ''` means the currency don't need a parent wallet
   - A mapped wallet has same wallet address with its parent wallet.  
   If a wallet address has been used for create a mapped wallet, you cannot create 2 or more mapped wallet with same `currency` and `tokenAddress` to this wallet address. You have to choose another parent wallet.
   - If you're creating a mapped wallet and there is no parent wallet available. You need to create a parent wallet for it.
 
 - For `currency`, please refer to [Currency Definition](https://github.com/CYBAVO/SOFA_MOCK_SERVER#currency-definition)
 
-```java
+```ts
 /// Create a new wallet
-/// - Parameters:
-///   - currency: Currency of desired new wallet. ex: 60 for ETH
-///   - tokenAddress: Token address for tokens, i.e. an ERC-20 token wallet maps to an Ethereum wallet
-///   - parentWalletId: Parent wallet for tokens, i.e. an ERC-20 token wallet maps to an Ethereum wallet
-///   - name: Name of the new wallet
-///   - pinSecret: PIN Secret retrieved via PinCodeInputView
-///   - extraAttributes: Extra attributes for specific currencies, pass null if unspecified.
+/// @param currency: Currency of desired new wallet. ex: 60 for ETH
+/// @param tokenAddress: Token address for tokens, i.e. an ERC-20 token wallet maps to an Ethereum wallet
+/// @param parentWalletId: Parent wallet for tokens, i.e. an ERC-20 token wallet maps to an Ethereum wallet
+/// @param name: Name of the new wallet
+/// @param pinSecret: PIN Secret retrieved via PinCodeInputView
+/// @param extraAttributes: Extra attributes for specific currencies, pass null if unspecified.
 ///             Supported extras: account_name (String) - Account name for EOS
-///   - callback: asynchronous callback of walletId
-public abstract void createWallet(long currency, String tokenAddress, long parentWalletId, String name, PinSecret pinSecret, Map<String, String> extraAttributes, Callback<CreateWalletResult> callback);
+/// @return Promise<CreateWalletResult>
+///         resolve: ➡️ Contains walletId
+function createWallet(
+        currency: number,
+        tokenAddress: string,
+        parentWalletId: number,
+        name: string,
+        pinSecret: number | PinSecretBearer | string,
+        extraAttributes: object
+    ): Promise<CreateWalletResult>;
 ```
 
 ### getSameCurrencyWalletLimit
@@ -169,22 +187,24 @@ public abstract void createWallet(long currency, String tokenAddress, long paren
 
 - Before `createWallet`, call `getCurrencies` + `getSameCurrencyWalletLimit` to decide whether the user can create a new wallet or not.
 
-```java
+```ts
 /// Get wallet count limit per currency
-/// - Parameters:
-///   - callback: wallet count limit of the same currency
-public abstract void getSameCurrencyWalletLimit(Callback<GetSameCurrencyWalletLimitResult> callback);
+/// @return Promise<GetSameCurrencyWalletLimitResult>
+///         resolve: ➡️ Contains wallet count limit of the same currency
+function getSameCurrencyWalletLimit(): Promise<GetSameCurrencyWalletLimitResult>;
 ```
 
 ### renameWallet
 
-```java
+```ts
 /// Rename an existing wallet
-/// - Parameters:
-///   - walletId: Wallet ID to rename
-///   - name: New name of the wallet
-///   - callback: asynchronous callback
-public abstract void renameWallet(long walletId, String name, Callback<RenameWalletResult> callback);
+/// @param walletId: Wallet ID to rename
+/// @param name: New name of the wallet
+/// @return Promise<RenameWalletResult>
+function renameWallet(
+        walletId: number,
+        name: string
+    ): Promise<RenameWalletResult>;
 ```
 
 ## Others
@@ -194,18 +214,20 @@ public abstract void renameWallet(long walletId, String name, Callback<RenameWal
 - Use case:  
     When scanning a wallet address with QR code, use this API to get which currency type it is.
 
-```java
+```ts
 /// Get coin type with address
-/// - Parameters:
-///   - address: wallet address string
-///   - callback: asynchronous callback
-public abstract void queryCoinType(String address, Callback<QueryCoinTypeResult> callback);
+/// @param address: wallet address string
+/// @return Promise<QueryCoinTypeResult>
+function queryCoinType(
+        address: string,
+    ): Promise<QueryCoinTypeResult>;
 ```
 
 ### getMarketInfos
 
-```java
+```ts
 /// Get current top currency infos
-/// - Parameter callback: asynchronous callback
-public abstract void getMarketInfos(Callback<GetMarketInfosResult> callback);
+/// @return Promise<GetMarketInfosResult>
+function getMarketInfos(
+    ): Promise<GetMarketInfosResult>;
 ```

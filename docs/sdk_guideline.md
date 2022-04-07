@@ -124,8 +124,7 @@ react-native link @cybavo/react-native-wallet-service
 ```ts
 /// Sign in with Wallet SDK Auth 
 ///
-/// - Parameters:
-///   - token: Token String from different 3rd party SDK
+/// @param token Token String from different 3rd party SDK
 ///     1. Apple - appleAuthRequestResponse.identityToken
 ///     2. Google - user.idToken
 ///     3. Facebook - accessToken.toString()
@@ -133,7 +132,7 @@ react-native link @cybavo/react-native-wallet-service
 ///     5. Twitter - identity token
 ///     6. WeChat - identity token
 ///
-///   - identityProvider: String of provider
+/// @param identityProvider String of provider
 ///     1. Apple - "Apple"
 ///     2. Google - "Google"
 ///     3. Facebook - "Facebook"
@@ -141,8 +140,7 @@ react-native link @cybavo/react-native-wallet-service
 ///     5. Twitter - "Twitter"
 ///     6. WeChat - "WeChat"
 ///
-/// - Returns:
-///   - Promise<SignInResult>
+/// @return Promise<SignInResult>
 ///     resolve: ➡️ ready to getUserState()
 ///     reject: if (error.code == ErrorCodes.ErrRegistrationRequired) ➡️ go to the Sign-up flow
 ///
@@ -158,11 +156,9 @@ function signIn(
 
 ```ts
 /// sign-up with Wallet SDK Auth
-/// - Parameters:
-///   - token: refer to signIn()
-///   - identityProvider: refer to signIn()
-/// - Returns:
-///   - Promise<SignUpResult>
+/// @param token: refer to signIn()
+/// @param identityProvider: refer to signIn()
+/// @reutrn Promise<SignUpResult>
 ///     resolve: ➡️ ready to signIn()
 ///     reject: handle according ErrorCodes
 ///
@@ -215,11 +211,9 @@ enum SignInState {
 
   ```ts
   /// register phone number
-  /// - Parameters:
-  ///   - countryCode: country code, ex. 886
-  ///   - phone: phone number, ex. 900123456
-  /// - Returns:
-  ///   - Promise<RegisterPhoneNumberResult>
+  /// @param countryCode: country code, ex. 886
+  /// @param phone: phone number, ex. 900123456
+  /// @return Promise<RegisterPhoneNumberResult>
   ///     resolve: ➡️ get actionToken
   function registerPhoneNumber(
           countryCode: string,
@@ -232,9 +226,8 @@ enum SignInState {
 
   ```ts
   /// verify OTP
-  /// - Parameters:
-  ///   - actionToken: actionToken returned by registerPhoneNumber / getSmsCode
-  ///   - code: SMS code that registered phone received
+  /// @param actionToken: actionToken returned by registerPhoneNumber / getSmsCode
+  /// @param code: SMS code that registered phone received
   function verifyOtp(
           actionToken: string,
           code: string
@@ -294,8 +287,7 @@ Ensure your users setPin right after sign-in success.
 
 ```ts
 /// setup PIN code
-/// - Parameters:
-///   - pinSecret: PIN secret retrieved via PinCodeInputView
+/// @param pinSecret: PIN secret retrieved via PinCodeInputView
 ///     If the type is number or PinSecretBearer means pass pinSecret, string means pass plaintext
 function setupPinCode(pinSecret: number | PinSecretBearer | string): Promise<SetupPinCodeResult>;
 
