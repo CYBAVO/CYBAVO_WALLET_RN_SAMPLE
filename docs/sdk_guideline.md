@@ -228,6 +228,7 @@ enum SignInState {
   /// verify OTP
   /// @param actionToken: actionToken returned by registerPhoneNumber / getSmsCode
   /// @param code: SMS code that registered phone received
+  /// @return Promise<VerifyOtpResult>
   function verifyOtp(
           actionToken: string,
           code: string
@@ -288,7 +289,8 @@ Ensure your users setPin right after sign-in success.
 ```ts
 /// setup PIN code
 /// @param pinSecret: PIN secret retrieved via PinCodeInputView
-///     If the type is number or PinSecretBearer means pass pinSecret, string means pass plaintext
+///        If the type is number or PinSecretBearer means pass pinSecret, string means pass plaintext
+/// @return Promise<ChangePinCodeResult>
 function setupPinCode(pinSecret: number | PinSecretBearer | string): Promise<SetupPinCodeResult>;
 
 function changePinCode(

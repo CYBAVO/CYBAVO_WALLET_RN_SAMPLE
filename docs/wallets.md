@@ -17,6 +17,7 @@
 
 ```ts
 /// Get supported currency list
+/// @return Promise<GetCurrenciesResult>
 function getCurrencies(): Promise<GetCurrenciesResult>;
 ```
 
@@ -24,6 +25,7 @@ function getCurrencies(): Promise<GetCurrenciesResult>;
 
 ```ts
 /// Get wallet list of signed in user
+/// @return Promise<GetWalletsResult>
 function getWallets(): Promise<GetWalletsResult>;
 ```
 
@@ -65,6 +67,7 @@ function getWallets(): Promise<GetWalletsResult>;
 /// @param wallets: array of com.cybavo.wallet.service.wallet.Wallet
 /// @param exchangeCurrencys: currencies which need to get price. ex usd, twd
 /// @param approximateRates: rate reference. When the price is 0, it can be calculated by other exchange currency's price multiply the rate. ex ["TWD", ["USD", 29.45]]
+/// @return Promise<GetCurrenciesResult>
 function getCurrencyPrices(wallets: Array<{
       /** currency, refer to [[getCurrencies]] API */
       currency: number;
@@ -134,6 +137,7 @@ function getBalances(
 /// 
 /// Get single wallet information
 /// @param walletId Wallet ID to query
+/// @return Promise<GetWalletResult>
 /// 
 function getWallet(walletId: number): Promise<GetWalletResult>;
 ```
