@@ -4,7 +4,7 @@
 
 1. Create a `NumericPinCodeInputView` simply
 
-```ts
+```jsx
 <NumericPinCodeInputView
           ref={myRef}
           style={{
