@@ -12,17 +12,25 @@
 - Suppose you'd like to receive some NFT tokens with Wallet SDK, but there's no that kind of `Currency` in the currency list, you can add NFT currency by calling `addContractCurrency`.  
 If that kind of `Currency` already exists, there's no need to add it again.
 
-```java
+```ts
 /// [NFT] Add a new token & create first wallet
-/// - Parameters:
-///   - currency: Currency of desired new wallet
-///   - contractAddress: Token address for tokens, i.e. an ERC-20 token wallet maps to an Ethereum wallet
-///   - pinSecret: PIN secret retrieved via PinCodeInputView
-///   - callback: asynchronous callback of WalletID
-public abstract void addContractCurrency(long currency, String contractAddress, PinSecret pinSecret, Callback<AddContractCurrenciesResult> callback);
+/// @param currency Currency of desired new wallet
+/// @param contractAddress Token address for tokens, i.e. an ERC-20 token wallet maps to an Ethereum wallet
+/// @param pinSecret PIN secret retrieved via PinCodeInputView
+/// @return Promise<AddContractCurrenciesResult>
+///         resolve: Contains WalletID
+function addContractCurrency(
+        currency: number,
+        tokenAddress: string,
+        pinSecret: number | PinSecretBearer | string
+    ): Promise<AddContractCurrenciesResult>;
 
 /// Batch version of addContractCurrency
-public abstract void addContractCurrencies(long[] currency, String[] contractAddresses, PinSecret pinSecret, Callback<AddContractCurrenciesResult> callback);
+function addContractCurrencies(
+        currency: Array<{number}>,
+        tokenAddress: Array<{string}>,
+        pinSecret: number | PinSecretBearer | string,
+    ): Promise<AddContractCurrenciesResult>;
 ```
 
 - How to get a contract address?  
@@ -45,12 +53,12 @@ Take CryptoKitties for example, you can find its contract address on Etherscan
 
 refer to [Balance](wallets.md#getbalances)
 
-```java
-public final class Balance {
+```ts
+type Balance = {
 
-    public String[] tokens = {}; /** Non-Fungible Token IDs for ERC-721*/
+    tokens: Array<string>;; /** Non-Fungible Token IDs for ERC-721*/
 
-    public TokenIdAmount[] tokenIdAmounts = {}; /** Non-Fungible Token ID and amounts for ERC-1155 */
+    tokenIdAmount: Array<TokenIdAmount> /** Non-Fungible Token ID and amounts for ERC-1155 */
 
     ...
 }
@@ -61,27 +69,33 @@ public final class Balance {
 
 - In order to present images, call `getMultipleTokenUri` to get token urls.
   
-  ```java
+  ```ts
   /// Get NFT Token URI
-  /// - Parameters:
-  ///   - currency: Currency of token to query
-  ///   - tokenAddresses: Array of token address to query
-  ///   - tokenIds: Array of token address to query
-  ///   - callback: asynchronous callback of Map<String, TokenUri>
-  public abstract void getMultipleTokenUri(long currency, String[] tokenAddresses, String[]  tokenIds, Callback<GetMultipleTokenUriResult> callback);
+  /// @param currency Currency of token to query
+  /// @param tokenAddresses Array of token address to query
+  /// @param tokenIds Array of token address to query
+  /// @return Promise<GetMultipleTokenUriResult> 
+  ///         Contains Map {string, TokenUri}
+  function getMultipleTokenUri(
+        currency: number,
+        tokenAddresses: Array<{string}>,
+        tokenIds: Array<{string}>,
+    ): Promise<GetMultipleTokenUriResult>;
   ```
 
 ### Error Handling
 
 - for ERC-1155
 
-  ```java
+  ```ts
   /// If ERC-1155 token didn't show in wallet's balance, register token ID manually make them in track
-  /// - Parameters:
-  ///   - walletId: walletId Wallet ID
-  ///   - tokenIds: ERC-1155 token IDs for register
-  ///   - callback: asynchronous callback
-  public abstract void registerTokenIds(long walletId, String[] tokenIds, Callback<RegisterTokenIdsResult> callback);
+  /// @param walletId walletId Wallet ID
+  /// @param tokenIds ERC-1155 token IDs for register
+  /// @return Promise<RegisterTokenIdsResult>
+  function registerTokenIds(
+        walletId: number,
+        tokenIds: Array<{string}>,
+    ): Promise<RegisterTokenIdsResult>;
   ```
 
 ## Deposit
@@ -95,7 +109,7 @@ public final class Balance {
 - The steps are similar to normal transactions. Refer to [Withdraw](transaction.md#withdraw)
 - when `createTransaction()`
   - for [EIP-721](https://eips.ethereum.org/EIPS/eip-721) , set parameter `amount = tokenId`
-  - for [EIP-1155](https://eips.ethereum.org/EIPS/eip-1155) , set parameter `amount = tokenIdAmount` and `extras.put("token_id", tokenId)`
+  - for [EIP-1155](https://eips.ethereum.org/EIPS/eip-1155) , set parameter `amount = tokenIdAmount` and `extras['token_id'] = tokenId`
 
 ## Transaction Detail
 
