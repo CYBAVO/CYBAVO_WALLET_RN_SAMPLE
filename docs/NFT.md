@@ -46,7 +46,7 @@ Take CryptoKitties for example, you can find its contract address on Etherscan
 - Same way as we mentioned in [Wallet Information](wallets.md#wallet-information)
 - Conditions:
   - `Wallet.isPrivate == false` ➜ it is on public chain
-  - `TextUtils.isEmpty(tokenAddress) == false` ➜ it is a mapped wallet (NFT wallet is also mapped wallet)
+  - `tokenAddress != ''` ➜ it is a mapped wallet (NFT wallet is also mapped wallet)
   - `Currency.tokenVersion == 721 || 1155` ➜ it is an NFT wallet
 
 ## Balance
