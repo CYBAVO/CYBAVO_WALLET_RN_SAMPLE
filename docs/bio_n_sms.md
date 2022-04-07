@@ -53,17 +53,20 @@
 /// Get device's biometrics type
 /// @return Promise<GetBiometricsTypeResult>
 ///         resolve: BiometryType { NONE / FACE / FINGER }
+///
 function getBiometricsType(): Promise<GetBiometricsTypeResult>;
 
 /// Update device's biometrics type, detect type by sdk
-/// @param type: BiometricsType's raw value, pass nil WalletSDK will decide the value for you
+/// @param biometricsType: BiometricsType's raw value, pass nil WalletSDK will decide the value for you
 /// @return Promise<UpdateDeviceInfoResult>
+///
 function updateDeviceInfo(
         biometricsType: number
     ): Promise<UpdateDeviceInfoResult>;
 
 /// register public key for biometrics authentication
 /// @return Promise<RegisterPubkeyResult>
+///
 function registerPubkey(): Promise<RegisterPubkeyResult>;
 ```
 
@@ -94,6 +97,7 @@ function registerPubkey(): Promise<RegisterPubkeyResult>;
     /// get SMS code for transaction
     /// @param duration: SMS expire duration (second), ex. 60
     /// @return Promise<GetActionTokenResult>
+    ///
     function getTransactionSmsCode(
         duration: number
     ): Promise<GetActionTokenResult>;
