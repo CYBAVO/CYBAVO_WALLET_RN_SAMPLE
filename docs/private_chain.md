@@ -80,9 +80,7 @@ type Currency = {
 - How to create a private chain wallet with the currency?
   - Basically, it's the same way as we mentioned in [createWallet](wallets.md#createwallet), the only difference is the filtering condition of currency and wallet.
   - In the chart below, `Available Currencies` should be:  
-    ```javascript
-    isPrivate == true && (canCreateFinanceWallet == true || !tokenAddress)
-    ```
+    `isPrivate == true && (canCreateFinanceWallet == true || !tokenAddress)`
   ![img](images/sdk_guideline/create_wallet.jpg)
 
 ### UserState
