@@ -52,7 +52,7 @@ Take CryptoKitties for example, you can find its contract address on Etherscan
 
 ## Balance
 
-refer to [Balance](wallets.md#getbalances)
+Refer to [Balance](wallets.md#getbalances)
 
 ```ts
 type Balance = {
@@ -65,8 +65,8 @@ type Balance = {
 }
 ```
 
-- if ERC-721 (NFT), use `tokens`
-- if ERC-1155 (NFT), use `tokenIdAmounts`
+- If ERC-721 (NFT), use `tokens`
+- If ERC-1155 (NFT), use `tokenIdAmounts`
 
 - In order to present images, call `getMultipleTokenUri` to get token urls.
   
@@ -75,8 +75,7 @@ type Balance = {
   /// @param currency Currency of token to query
   /// @param tokenAddresses Array of token address to query
   /// @param tokenIds Array of token address to query
-  /// @return Promise<GetMultipleTokenUriResult> 
-  ///         resolve: Contains Map {string, TokenUri}
+  /// @return Promise<GetMultipleTokenUriResult>
   ///
   function getMultipleTokenUri(
             currency: number,
@@ -87,7 +86,7 @@ type Balance = {
 
 ### Error Handling
 
-- for ERC-1155
+- For ERC-1155
 
   ```ts
   /// If ERC-1155 token didn't show in wallet's balance, register token ID manually make them in track
@@ -110,9 +109,9 @@ type Balance = {
 ## Withdraw
 
 - The steps are similar to normal transactions. Refer to [Withdraw](transaction.md#withdraw)
-- when `createTransaction()`
-  - for [EIP-721](https://eips.ethereum.org/EIPS/eip-721) , set parameter `amount = tokenId`
-  - for [EIP-1155](https://eips.ethereum.org/EIPS/eip-1155) , set parameter `amount = tokenIdAmount` and `extras['token_id'] = tokenId`
+- When `createTransaction`
+  - For [EIP-721](https://eips.ethereum.org/EIPS/eip-721) , set parameter `amount = tokenId`
+  - For [EIP-1155](https://eips.ethereum.org/EIPS/eip-1155) , set parameter `amount = tokenIdAmount` and `extras['token_id'] = tokenId`
 
 ## Transaction Detail
 

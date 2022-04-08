@@ -117,7 +117,7 @@ type UserState = {
 #### getTransactionFee
 
 - Withdrawing to public chain will be charged a fixed transaction fee.  
-i.e. `getTransactionFee()` will return the same amount of { high, medium, low } level for private chain currency.
+i.e. `getTransactionFee` will return the same amount of { high, medium, low } level for private chain currency.
 - Use `wallet.depositAddress` 's `Currency` and `tokenAddress` as parameters to get the transaction fee for withdraw to public chain.
 - The { receive amount = transfer amount - transaction fee }
 - The receive amount cannot less than `withdrawMin`

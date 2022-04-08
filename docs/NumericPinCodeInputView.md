@@ -43,7 +43,17 @@
           onChanged={_inputPinCode}
         />
 ```
-2. Set function to `onChanged` property
+2. Set `onChanged` property
+
+    ```javascript
+    const _inputPinCode = length => { ... }
+
+    ...
+
+    <NumericPinCodeInputView
+     onChanged={_inputPinCode}
+    />
+    ```
     ```ts
     interface NumericPinCodeInputViewProps extends PinCodeInputViewProps {
         /**
@@ -53,23 +63,19 @@
         onChanged?: (length: number) => void
         ...
     }
-
-     /* 
-    <NumericPinCodeInputView
-     onChanged={_inputPinCode}
-    />
-    */
-    const _inputPinCode = length => { ... }
     ```
 
 3. Get `PinSecret` by `NumericPinCodeInputView.submit()` and pass it to Wallet and Auth API
-    ```ts
+    ```javascript
     const myRef = useRef(null); 
-    /* 
+
+    ...
+
     <NumericPinCodeInputView
      ref={myRef}
     />
-    */
+    
+    ...
 
     const pinSecret = await myRef.current.submit();
     await Wallets.createTransaction(..., pinSecret, ... );
@@ -89,13 +95,16 @@
 
 5. You can also use `NumericPinCodeInputView.clear()` to clear current input
 
-    ```ts
+    ```javascript
     const myRef = useRef(null); 
-    /* 
+    
+    ...
+
     <NumericPinCodeInputView
      ref={myRef}
     />
-    */
+    
+    ...
     
     myRef.current.clear();
     ```
