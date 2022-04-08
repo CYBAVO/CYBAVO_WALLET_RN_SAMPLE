@@ -63,7 +63,7 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    $ yarn add rn-nodeify
    $ rn-nodeify --install --hack
    ```
-4. unmark `require('crypto')` in `shim.js`
+4. Unmark `require('crypto')` in `shim.js`
 5. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont.  
 For example, Set `MAIN_ENDPOINT` = https://mvault.cybavo.com/v1/mw/ for test environemnt
 ## Android
@@ -86,20 +86,20 @@ For example, Set `MAIN_ENDPOINT` = https://mvault.cybavo.com/v1/mw/ for test env
     sed -i "" 's/targetSdkVersion .*/targetSdkVersion 29/g' node_modules/react-native-twitter-signin/android/build.gradle
     ./appcenter-pre-build.sh
     ```
-3. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `package name` and `Signature keystore SHA1 fingerprint`, follow the instruction to retrieve an `API Code`.  
+3. Register your app on CYBAVO WALLET MANAGEMENT system web ➜ Administration ➜ System settings, input `package name` and `Signature keystore SHA1 fingerprint`, follow the instruction to retrieve an `API Code`.  
 Please refer to "How to Create an Application" section in CYBAVO Wallet SDK Admin Panel User Manual
 4. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_ANDROID` to fill in your `API Code` 
 5. Place your `google-services.json` file downloaded from Firebase to `android/app` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
 6. Edit `BuildConfig.json` ➜ `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` to your `Google sign-in client ID`.  
 Please refer to "Google Login - Setup with Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
-7. (Skip it if not using Twitter sign-in )  
+7. **_Skip this if not using Twitter sign-in_**  
 Edit `BuildConfig.json` ➜ `MY_TWITTER_CONSUMER_KEY` to your `Twitter APP ID`.  
 Edit `BuildConfig.json` ➜ `My_TWITTER_CONSUMER_SECRET` to your `Twitter consumer key`.  
 Please refer to "Twitter Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.
-8. (Skip it if not using Facebook sign-in )  
+8. **_Skip this if not using Facebook sign-in_**  
 Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_FACEBOOK_APP_ID` to fill in your `Facebook app id`.  
 Please refer to "Facebook Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.
-9. (Skip it if not using Line sign-in )  
+9. **_Skip this if not using Line sign-in_**  
 Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_LINE_CHANNEL_ID` to fill in your `LINE channel scheme`.  
 Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.    
     
@@ -127,22 +127,22 @@ Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User
    rm -rf node_modules/react-native-twitter-signin/ios/dependencies
    sed -i "" 's/s.dependency "TwitterKit", "~> 3.3"/s.dependency "TwitterKit5"/g'
     ```
-2. Register your app on CYBAVO WALLET MANAGEMENT system web > Administration > System settings, input `bundle id`, follow the instruction to retrieve an `API Code`.  
+2. Register your app on CYBAVO WALLET MANAGEMENT system web ➜ Administration ➜ System settings, input `bundle id`, follow the instruction to retrieve an `API Code`.  
 Please refer to "Setup in iOS" section in CYBAVO Wallet SDK Admin Panel User Manual.
 3. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code` 
 4. Place your `GoogleService-Info.plist` file downloaded from Firebase to `ios/` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
-5. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your `Google sign-in client ID`. 
+5. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your `Google sign-in client ID`.  
 Please refer to "Google Login - Setup with Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
 6. Open your project configuration: double-click the project name in the left tree view. Select your app from the TARGETS section, then select the Info tab, and expand the URL Types section. Replace `Identifier` and `URL Schemes` with `CLIENT_ID` and `REVERSED_CLIENT_ID` in your `GoogleService-Info.plist`. [(LearnMore)](https://developers.google.com/identity/sign-in/ios/start-integrating)
 7. Replace `MY_GOOGLE_SIGN_IN_WEB_CLI_ID` with your `Google sign-in client ID`.
-8. (Skip it if not using Twitter sign-in )  
+8. **_Skip this if not using Twitter sign-in_**  
 Edit `BuildConfig.json` ➜ `MY_TWITTER_CONSUMER_KEY` to your `Twitter APP ID`.  
 Edit `BuildConfig.json` ➜ `My_TWITTER_CONSUMER_SECRET` to your `Twitter consumer key`.  
 Please refer to "Twitter Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.
-8. (Skip it if not using Facebook sign-in )  
+8. **_Skip this if not using Facebook sign-in_**   
 Replace `MY_FACEBOOK_APP_ID` with your `Facebook app id`.  
 Please refer to "Facebook Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.
-9. (Skip it if not using Line sign-in )  
+9. **_Skip this if not using Line sign-in_**   
 Replace `MY_LINE_CHANNEL_ID` with your `LINE channel scheme`.  
 Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.   
     
