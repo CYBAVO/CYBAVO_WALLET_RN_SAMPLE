@@ -30,11 +30,11 @@
     }
     ```
 
-- `if (enableBiometrics && !skipSmsVerify)` ➜ need biometrics / SMS verification for transaction and sign operation
+- `if (enableBiometrics && !skipSmsVerify)` ➜ Need biometrics / SMS verification for transaction and sign operation.
 
-- `if (accountSkipSmsVerify == true)` ➜ cannot use SMS for verification, use biometrics verification instead.
+- `if (accountSkipSmsVerify == true)` ➜ Cannot use SMS for verification, use biometrics verification instead.
 
-    e.g. Only biometrics verification available for Apple Sign-In account.
+    e.g. only biometrics verification available for Apple Sign-In account.
 
 ## Biometrics / SMS Verification Setup
 
@@ -45,9 +45,10 @@
     1. Check if the user needs biometrics / SMS verification
     2. Call `updateDeviceInfo`, pass nil Wallet SDK will decide the value for you.
         - Pass `BiometricsType.NONE` means you are registering for SMS verification
-    3. Call `getBiometricsType` ➜ supported biometric type
+    3. Call `getBiometricsType` ➜ Supported biometric type
     4. `if (BiometryType != BiometricsType.NONE)` ➜ call `registerPubkey`
-    5. `if (BiometryType == BiometricsType.NONE)` && `accountSkipSmsVerify` ➜ prompt error. ex. The device not supporting biometrics, please contact the system admin.
+    5. `if (BiometryType == BiometricsType.NONE)` && `accountSkipSmsVerify` ➜ Prompt error.  
+    ex. The device not supporting biometrics, please contact the system admin.
 
 ```ts
 /// Get device's biometrics type
@@ -91,7 +92,7 @@ function registerPubkey(): Promise<RegisterPubkeyResult>;
 
 ### SMS version
 
-- call `getTransactionSmsCode` to send a SMS to the user
+- Call `getTransactionSmsCode` to send a SMS to the user
 
     ```ts
     /// get SMS code for transaction
@@ -103,8 +104,8 @@ function registerPubkey(): Promise<RegisterPubkeyResult>;
            ): Promise<GetActionTokenResult>;
     ```
 
-- `actionToken` + `OTP code` + `PinSecret / PinCode` ➜ call SMS version function
+- `actionToken` + `OTP code` + `PinSecret / PinCode` ➜ Call SMS version function
 
 ### Biometrics version
 
-- `promptMessage` + `PinSecret / PinCode` ➜ call biometrics version function
+- `promptMessage` + `PinSecret / PinCode` ➜ Call biometrics version function
