@@ -80,7 +80,7 @@ $ react-native link @cybavo/react-native-wallet-service
 - Then run:  
 
     ```shell
-    pod install
+    $ pod install
     ```
 
 
@@ -88,7 +88,7 @@ $ react-native link @cybavo/react-native-wallet-service
 
 - Initialize Wallet SDK before using it.
 
-  ```ts
+  ```javascript
   import { WalletSdk } from '@cybavo/react-native-wallet-service';
 
   WalletSdk.init({
@@ -152,9 +152,9 @@ $ react-native link @cybavo/react-native-wallet-service
 ///         reject: if (error.code == ErrorCodes.ErrRegistrationRequired) ➡️ go to the Sign-up flow
 ///
 function signIn(
-          token: string,
-          identityProvider: string
-      ): Promise<SignInResult>;
+            token: string,
+            identityProvider: string
+        ): Promise<SignInResult>;
 ```
 
 ## Sign-up flow
@@ -170,10 +170,10 @@ function signIn(
 ///         reject: handle according ErrorCodes
 ///
 function signUp(
-          token: string,
-          identityProvider: string,
-          extras: object
-      ): Promise<SignUpResult>;
+            token: string,
+            identityProvider: string,
+            extras: object
+        ): Promise<SignUpResult>;
 ```
 
 ## Sign-out
@@ -203,7 +203,7 @@ enum SignInState {
 
   1. Add the listener through `Auth.addListener` with eventType `Auth.Events.onSignInStateChanged` to handle according to signInState. 
 
-  ```ts
+  ```javascript
   Auth.addListener(Auth.Events.onSignInStateChanged, signInState => {});
   ```
 
@@ -224,10 +224,10 @@ enum SignInState {
   ///         resolve: ➡️ get actionToken
   ///
   function registerPhoneNumber(
-          countryCode: string,
-          phone: string,
-          duration: number,
-      ): Promise<RegisterPhoneNumberResult>;
+            countryCode: string,
+            phone: string,
+            duration: number,
+         ): Promise<RegisterPhoneNumberResult>;
   ```
 
 - VerifyOTP
@@ -244,7 +244,7 @@ enum SignInState {
       ): Promise<VerifyOtpResult>;
   ```
 
-- call `getSignInState` anytime when you need current `SignInState`
+- Call `getSignInState` anytime when you need current `SignInState`
 
   ```ts
   function getSignInState(): Promise<SignInState>;
@@ -271,7 +271,7 @@ type UserState = {
 
   `if (setPin == false)` ➡️ go to **_Setup PIN Code_** in the next section
 
-- call `getUserState` to get the current `UserState`
+- Call `getUserState` to get the current `UserState`
 
   ```ts
   function getUserState(): Promise<GetUserStateResult>;
@@ -304,9 +304,9 @@ Ensure your users setPin right after sign-in success.
 function setupPinCode(pinSecret: number | PinSecretBearer | string): Promise<SetupPinCodeResult>;
 
 function changePinCode(
-          newPinSecret: number | PinSecretBearer | string,
-          currentPinSecret: number | PinSecretBearer | string
-      ): Promise<ChangePinCodeResult>;
+            newPinSecret: number | PinSecretBearer | string,
+            currentPinSecret: number | PinSecretBearer | string
+        ): Promise<ChangePinCodeResult>;
 ```
 
 ## Reset PIN code - with Security Question
@@ -315,11 +315,11 @@ function changePinCode(
   1. Before that, the user has to set the answers of security questions.
   ```ts
   function setupBackupChallenge(
-          pinSecret: number | PinSecretBearer | string,
-          challenge1: BackupChallenge,
-          challenge2: BackupChallenge,
-          challenge3: BackupChallenge
-      ): Promise<SetupBackupChallengeResult>;
+            pinSecret: number | PinSecretBearer | string,
+            challenge1: BackupChallenge,
+            challenge2: BackupChallenge,
+            challenge3: BackupChallenge
+        ): Promise<SetupBackupChallengeResult>;
   ```
   2. Get the security question for user to answer
   ```ts
@@ -328,19 +328,19 @@ function changePinCode(
   3. Verify user input answer (just check if the answers are correct)
   ```ts
   function verifyRestoreQuestions(
-          challenge1: BackupChallenge,
-          challenge2: BackupChallenge,
-          challenge3: BackupChallenge
-      ): Promise<VerifyRestoreQuestionsResult>;
+            challenge1: BackupChallenge,
+            challenge2: BackupChallenge,
+            challenge3: BackupChallenge
+          ): Promise<VerifyRestoreQuestionsResult>;
   ```
   4. Reset PIN code by security questions and answers
   ```ts
   function restorePinCode(
-          newPinSecret: number | PinSecretBearer | string,
-          challenge1: BackupChallenge,
-          challenge2: BackupChallenge,
-          challenge3: BackupChallenge
-      ): Promise<RestorePinCodeResult>;
+            newPinSecret: number | PinSecretBearer | string,
+            challenge1: BackupChallenge,
+            challenge2: BackupChallenge,
+            challenge3: BackupChallenge
+          ): Promise<RestorePinCodeResult>;
   ```
 
 ## Reset PIN code - with Admin System
@@ -356,16 +356,16 @@ function changePinCode(
   3. Verify the recovery code  (just check if the recovery code is correct)
   ```ts
   function verifyRecoveryCode(
-          recoveryCode: string
-      ): Promise<VerifyRecoveryCodeResult>;
+            recoveryCode: string
+          ): Promise<VerifyRecoveryCodeResult>;
   ```
   4. Reset PIN code by the recovery code.
 
   ```ts
   function recoverPinCode(
-          newPinSecret: number | PinSecretBearer | string,
-          recoveryCode: string
-      ): Promise<RecoverPinCodeResult>;
+            newPinSecret: number | PinSecretBearer | string,
+            recoveryCode: string
+          ): Promise<RecoverPinCodeResult>;
   ```
 
 ## Notice
@@ -394,14 +394,14 @@ function changePinCode(
 > After user signin, register your FCM instance ID via `setPushDeviceToken`.
 - For admin panel configuration, please refre to "Google Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
 - After signin, call `setPushDeviceToken`
-  ```ts
+  ```javascript
   import iid from '@react-native-firebase/iid';
 
   const token = await iid().getToken();
   const resp = await Auth.setPushDeviceToken(token);
   ```
 - Receive and handle the notification 
-  ```ts
+  ```javascript
   import messaging from '@react-native-firebase/messaging';
   
   messaging().onMessage(remoteMessage => {
@@ -503,7 +503,7 @@ namespace WalletSdk {
 }
 ```
 - Usage
-```ts
+```javascript
  try {
 
    const resp = await Auth.signUp(idToken, identityProvider, extras); 
