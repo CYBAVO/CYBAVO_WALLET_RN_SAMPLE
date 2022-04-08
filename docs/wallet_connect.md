@@ -34,7 +34,7 @@
 2. After receive session request, call `getWalletsByChainIds([-1])` to get all wallets.
 3. Guide the user to choose a parent wallet.
     ```javascript
-    // sessionRequestCallback will be called in newSession's callback
+    // sessionRequestCallback is called in newSession's callback
     let chainId = -1;
     let sessionRequestCallback = (peerId, error, payload) => {
             Wallets.getWalletsByChainIds([chainId])
@@ -49,11 +49,11 @@
     ```
 4. Approve session request with selected wallet and listen upcoming call request.
     ```javascript
-    //approve session, then pass the listeners to receive call request and disconnect event
     let respForDapp = {
             accounts: [wallet.address],
             chainId: wallet.chainId,
         };
+    //approve session, then pass the listeners to receive call request and disconnect event
     WalletConnectManager.approveSessionAndSetInfo(
         peerId,
         respForDapp,
@@ -69,9 +69,9 @@
     ```
 
 ## [JSON-RPC Call Requests](https://docs.walletconnect.com/json-rpc-api-methods/ethereum)
-> When receiving a call request, identify by `method` and handle it correspondingly
+> When receiving a call request, identify by `method` and handle it correspondingly.
 ```javascript
-// callRequestListener will be called in approveSessionAndSetInfo's callback
+// callRequestListener is called in approveSessionAndSetInfo's callback
 let callRequestListener = (peerId, error, payload) => {
     switch (payload.method) {
         case 'eth_sendTransaction':
@@ -94,7 +94,7 @@ let callRequestListener = (peerId, error, payload) => {
 - ### [personal_sign](https://docs.walletconnect.com/json-rpc-api-methods/ethereum#personal_sign)
     ![img](images/sdk_guideline/wc_sign.jpg)
   - Use `walletConnectSignMessage` to sign a message. ➜ Approve request with `signedMessage`
-  - Suggestion: `extras['is_hex'] = true` to avoid encode / decode issues which lead to invalid signatures.
+  - Suggestion: set `extras['is_hex'] = true` to avoid encode / decode issues which lead to invalid signatures.
 
     ```javascript
     let extras = { eip155: eip155, is_hex: isHex, legacy: legacySign };
@@ -138,7 +138,7 @@ let callRequestListener = (peerId, error, payload) => {
 - ### [eth_sign](https://docs.walletconnect.com/json-rpc-api-methods/ethereum#eth_sign)
 
   - As above, **_personal_sign_**.
-  - The only difference is the order of message in the payload param
+  - The only difference is the order of message in the payload `params`
   ```javascript
   let message = payload.params[1];
   ```
@@ -288,7 +288,7 @@ let callRequestListener = (peerId, error, payload) => {
 
 - Call `getWalletConnectApiHistory` to get WalletConnect API history.
 
-    ```javascript
+    ```ts
     /// Get WalletConnect API history from
     /// 1. walletConnectSignTypedData(number, string, number | PinSecretBearer | string)
     /// 2. walletConnectSignTransaction(number, string, number | PinSecretBearer | string)
@@ -316,7 +316,7 @@ let callRequestListener = (peerId, error, payload) => {
 
 - In list of `ApiHistoryItem`
 
-    ```javascript
+    ```ts
     type ApiHistoryItem = {
 
         apiName: string; // API Name
@@ -350,7 +350,7 @@ let callRequestListener = (peerId, error, payload) => {
         - if (Tx fee > original Tx fee) ➜ use the new Tx fee
         - if (Tx fee <= original Tx fee) ➜ decide a higher Tx fee by your rules
             - Suggestion: In our experience, (original Tx fee) * 1.1 might be an easy way to calculate a new price for doing this operation.
-    3. same as [Transaction_Replacement](transaction.md#transaction-replacement)
+    3. Same as [Transaction_Replacement](transaction.md#transaction-replacement)
 
 - How to see the cancel history?
     1. In list of `ApiHistoryItem`
@@ -360,4 +360,4 @@ let callRequestListener = (peerId, error, payload) => {
     2. In same pair of operations:
         - When cancel operation's `status == Wallets.ApiHistoryItem.Status.DONE` means cancel operation success.
         - When origin Tx operation's `status == Wallets.ApiHistoryItem.Status.DONE` means cancel operation failed. The original Tx was succeeded.
-    3. refer to [Transaction Replacement History](transaction.md#transaction-replacement-history)
+    3. Refer to [Transaction Replacement History](transaction.md#transaction-replacement-history)
