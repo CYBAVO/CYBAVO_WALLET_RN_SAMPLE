@@ -71,10 +71,10 @@ function getCurrencyTraits(
     }
     ```
 
-  - about `granularity`, see [EIP-777](https://eips.ethereum.org/EIPS/eip-777) ➜ search for granularity section
-  - about `existentialDeposit`, see [this](https://support.polkadot.network/support/solutions/articles/65000168651-what-is-the-existential-deposit-)
+  - About `granularity`, see [EIP-777](https://eips.ethereum.org/EIPS/eip-777) ➜ Search for granularity section
+  - About `existentialDeposit`, see [this](https://support.polkadot.network/support/solutions/articles/65000168651-what-is-the-existential-deposit-)
 
-  - about `minimumAccountBalance`, see [this](https://developers.stellar.org/docs/glossary/minimum-balance/)
+  - About `minimumAccountBalance`, see [this](https://developers.stellar.org/docs/glossary/minimum-balance/)
 
 ### estimateTransaction
 
@@ -153,18 +153,18 @@ function getAddressesTags(
 /// @param pinSecret: PIN secret retrieved via {PinCodeInputView}
 /// @param extraAttributes Extra attributes for specific currencies, pass null if unspecified.
 ///      - Supported extras:
-///         1. memo (String) - Memo for XRP, XML, EOS, BNB
+///         1. memo (string) - Memo for XRP, XML, EOS, BNB
 ///         2. eos_transaction_type (EosResourceTransactionType) - Resource transaction type for EOS, such as buy RAM, delegate CPU
-///         3. num_bytes (Long) - Bytes of RAM/NET for EOS RAM delegation/undelegation transactions. The minimal amounts are 1024 bytes
-///         4. input_data (String) - Hex string of input data. Must also set gas_limit when have this attributes
-///         5. gas_limit (Long) - Must specify this if there were input_data
+///         3. num_bytes (number) - Bytes of RAM/NET for EOS RAM delegation/undelegation transactions. The minimal amounts are 1024 bytes
+///         4. input_data (string) - Hex string of input data. Must also set gas_limit when have this attributes
+///         5. gas_limit (number) - Must specify this if there were input_data
 ///         6. skip_email_notification (Boolean) -Determined whether or not to skip sending notification mail after create a transaction
-///         7. token_id (String) -token ID for ERC-1155
-///         8. kind (String) -kind for private chain, code: private to private; out: private to public
-///         9. to_address_tag (String[]) -AML tag, get from getAddressesTags() API
+///         7. token_id (string) -token ID for ERC-1155
+///         8. kind (string) -kind for private chain, code: private to private; out: private to public
+///         9. to_address_tag (Array<string>) -AML tag, get from getAddressesTags() API
 ///      - Note:
 ///         - When eos_transaction_type is EosResourceTransactionType.SELL_RAM, EosResourceTransactionType.UNDELEGATE_CPU or EosResourceTransactionType.UNDELEGATE_NET, the receiver should be address of Wallet fromWalletId
-///         - ex: ["memo": "abcd", "eos_transaction_type": EosResourceTransactionType.SELL_RAM.rawValue, "skip_email_notification": false, "kind": "code"]
+///         - ex: {"memo": "abcd", "eos_transaction_type": EosResourceTransactionType.SELL_RAM, "skip_email_notification": false, "kind": "code"}
 ///  @return Promise<CreateTransactionResult>
 ///
 function createTransaction(
@@ -194,11 +194,11 @@ function createTransaction(
 /// @param crosschain For private chain transaction history filtering. 0: history for private chain transfer; 1: history for crossing private and public chain
 /// @param Filter parameters:
 ///     - direction {Transaction.Direction} - Direction of transaction
-///     - pending {Boolean} - Pending state of transactions
-///     - success {Boolean} - Success state of transactions
-///     - start_time {Long} - Start of time period to query, in Unix timestamp
-///     - end_time {Long} - End of time period to query, in Unix timestamp
-///       - ex: ["direction": Direction.OUT, "pending": true, "start_time": 1632387959]
+///     - pending {boolean} - Pending state of transactions
+///     - success {boolean} - Success state of transactions
+///     - start_time {number} - Start of time period to query, in Unix timestamp
+///     - end_time {number} - End of time period to query, in Unix timestamp
+///       - ex: {"direction": Direction.OUT, "pending": true, "start_time": 1632387959}
 /// @return Promise<GetHistoryResult>
 ///
 function getHistory(
@@ -213,7 +213,7 @@ function getHistory(
 
 - Paging query: you can utilize `start` and `count` to fulfill paging query.  
   - For example:
-    - pass `start: transactions.count, count: 10` to get 10 more records when it reaches your load more condition until there's no more transactions.
+    - Pass `start: transactions.count, count: 10` to get 10 more records when it reaches your load more condition until there's no more transactions.
     - Has more: `result.start` + `result.transactions.length` < `result.total`
 - Response: list of `Transaction`
 
@@ -271,7 +271,7 @@ The user needs to create another Tx with higher Tx fee and the same nonce to rep
 - Condition: `replaceable == true`
 
   ```ts
-  public final class Transaction {
+  type Transaction = {
 
       txid: string;
       
@@ -290,8 +290,8 @@ The user needs to create another Tx with higher Tx fee and the same nonce to rep
   - Steps:
     1. Call `getTransactionFee` to get the current Tx fee.
     2. Decide a new Tx fee
-        - if (Tx fee > original Tx fee) ➜ use the new Tx fee
-        - if (Tx fee <= original Tx fee) ➜ decide a higher Tx fee by your rules
+        - If (Tx fee > original Tx fee) ➜ use the new Tx fee
+        - If (Tx fee <= original Tx fee) ➜ decide a higher Tx fee by your rules
             - Suggestion: In our experience, (original Tx fee) * 1.1 might be a easy way to calculate a new price for doing this operation.
     3. Call `cancelTransaction` for canceling transactions.
     4. Call `increaseTransactionFee` for accelerating transactions.
@@ -300,17 +300,17 @@ The user needs to create another Tx with higher Tx fee and the same nonce to rep
 
 - In the result of `getHistory`, you will need to determine different states for a transaction.
 - How to determine a transaction is replaced or not:
-    1. filter `platformFee == false` ➜ reduce the transactions which are platform fees.
-    2. filter `nonce != 0` ➜ reduce normal transactions
-    3. mapping transactions with the same nonce
-    4. in a set of transactions:
-        - the Tx fee lower one ➜ the original order
-        - `if Tx1.amount == Tx2.amount` ➜ is Accelerate transaction operation
-        - `if Tx.amount == 0` ➜ is Cancel transaction operation
-        - `if Tx1.replaced == false && Tx2.replaced == false` ➜ is operating
-        - `if Original-Tx.replaced == true` ➜ Cancel / Accelerate success
-        - `if Replacement-Tx.replaced == true` ➜ Cancel / Accelerate failed
+    1. Filter `platformFee == false` ➜ reduce the transactions which are platform fees.
+    2. Filter `nonce != 0` ➜ reduce normal transactions
+    3. Mapping transactions with the same nonce
+    4. In a set of transactions:
+        - The Tx fee lower one ➜ The original order
+        - `if (Tx1.amount == Tx2.amount)` ➜ It's Accelerate transaction operation
+        - `if (Tx.amount == 0)` ➜ It's Cancel transaction operation
+        - `if (Tx1.replaced == false && Tx2.replaced == false)` ➜ It's operating
+        - `if (Original-Tx.replaced == true)` ➜ Cancel / Accelerate success
+        - `if (Replacement-Tx.replaced == true)` ➜ Cancel / Accelerate failed
 
 ## Others
 
-- ABI functions `callAbiFunctionTransaction()`, `callAbiFunctionRead()` see this [Sample](https://github.com/CYBAVO/react-native_wallet_sdk_sample/blob/ef60268619ead205c25c708af0dbc119f2497a3e/screens/WithdrawScreen.js)
+- For ABI function APIs: `callAbiFunctionTransaction()`, `callAbiFunctionRead()`, see [Sample](https://github.com/CYBAVO/react-native_wallet_sdk_sample/blob/ef60268619ead205c25c708af0dbc119f2497a3e/screens/WithdrawScreen.js)
