@@ -1,10 +1,12 @@
 # WalletConnect
 
-> WalletConnect is an open protocol which makes Dapps able to interact with wallets on different platforms.  
+> WalletConnect is an open protocol which makes Dapps able to interact with wallets on different platforms. 
+>
 > Wallet SDK has integrated [WalletConnect v1.0](https://docs.walletconnect.org/) to support wallet apps connecting with Dapps, also provides corresponding APIs which help you get the results to return to Dapp.  
+>
 > In later sections, we'll illustrate how to establish wallet client and use those APIs to respond to [session request](https://docs.walletconnect.com/tech-spec#session-request) and JSON-RPC call requests which are defined in [JSON-RPC API Methods](https://docs.walletconnect.com/json-rpc-api-methods/ethereum).  
 >
-> For further technical specification, see [this](https://docs.walletconnect.org/tech-spec)
+> For further technical specification, see [this](https://docs.walletconnect.org/tech-spec).
 
 - Bookmark:
   - [Session Request](#session-request)
@@ -16,7 +18,7 @@
 
 ![img](images/sdk_guideline/wc_session.jpg)
 
-1. Scan QR code from Dapp, if it's a valid [WalletConnect URI](https://docs.walletconnect.com/tech-spec#requesting-connection), establish a new session with it.
+1. Scan a WalletConnect QR code from Dapp, if it's a valid [WalletConnect URI](https://docs.walletconnect.com/tech-spec#requesting-connection), establish a new session with it.
     ```javascript
     import { WalletConnectSdk } from "@cybavo/react-native-wallet-service";
     const { WalletConnectManager} = WalletConnectSdk;
@@ -226,8 +228,8 @@ let callRequestListener = (peerId, error, payload) => {
 
     - Use `walletConnectSendSignedTransaction` to broadcast and get the `txid`. ➜ Approve request with `txid`
         - During some transactions, you may receive new currencies / tokens which don't exist in the currency list, like swapping a new type of token.
-        - call `walletConnectSync()` to add currencies and wallets which are created by `walletConnectSendSignedTransaction`.
-        - call `getWallets()` to get the new wallet list
+        - Call `walletConnectSync()` to add currencies and wallets which are created by `walletConnectSendSignedTransaction`.
+        - Call `getWallets()` to get the new wallet list
     ```javascript
     let signedTx = params[0];
     let sendResult = await Wallets.walletConnectSendSignedTransaction(
@@ -257,7 +259,7 @@ let callRequestListener = (peerId, error, payload) => {
     1. Use `walletConnectSignTransaction` to get the `signedTx`.  
     See **_eth_signTransaction_**.  
     2. Use `walletConnectSendSignedTransaction` to get the `txid`. ➜ Approve request with `txid`.  
-     See **_eth_sendRawTransaction_**.  
+    See **_eth_sendRawTransaction_**.  
 
         ```javascript
         let tx = payload.params[0];
@@ -347,15 +349,15 @@ let callRequestListener = (peerId, error, payload) => {
 - How to decide the new transaction fee?
     1. Call `getTransactionFee` to get the current Tx fee.
     2. Decide a new Tx fee
-        - if (Tx fee > original Tx fee) ➜ use the new Tx fee
-        - if (Tx fee <= original Tx fee) ➜ decide a higher Tx fee by your rules
-            - Suggestion: In our experience, (original Tx fee) * 1.1 might be an easy way to calculate a new price for doing this operation.
+        - if (Tx fee > original Tx fee) ➜ Use the new Tx fee
+        - if (Tx fee <= original Tx fee) ➜ Decide a higher Tx fee by your rules
+            - Suggestion: in our experience, (original Tx fee) * 1.1 might be an easy way to calculate a new price for doing this operation.
     3. Same as [Transaction_Replacement](transaction.md#transaction-replacement)
 
 - How to see the cancel history?
     1. In list of `ApiHistoryItem`
-        - filter `apiName == 'eth_sendRawTransaction'` ➜ original Tx operation
-        - filter `apiName == 'eth_cancelTransaction'` ➜ cancel Tx operation
+        - Filter `apiName == 'eth_sendRawTransaction'` ➜ original Tx operation
+        - Filter `apiName == 'eth_cancelTransaction'` ➜ cancel Tx operation
         - Use `nonce` to map same pair of operations
     2. In same pair of operations:
         - When cancel operation's `status == Wallets.ApiHistoryItem.Status.DONE` means cancel operation success.
