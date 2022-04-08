@@ -20,17 +20,17 @@ If that kind of `Currency` already exists, there's no need to add it again.
 /// @return Promise<AddContractCurrenciesResult>
 ///
 function addContractCurrency(
-          currency: number,
-          tokenAddress: string,
-          pinSecret: number | PinSecretBearer | string
-    ): Promise<AddContractCurrenciesResult>;
+            currency: number,
+            tokenAddress: string,
+            pinSecret: number | PinSecretBearer | string
+        ): Promise<AddContractCurrenciesResult>;
 
 /// Batch version of addContractCurrency
 function addContractCurrencies(
-          currency: Array<{number}>,
-          tokenAddress: Array<{string}>,
-          pinSecret: number | PinSecretBearer | string,
-    ): Promise<AddContractCurrenciesResult>;
+            currency: Array<{number}>,
+            tokenAddress: Array<{string}>,
+            pinSecret: number | PinSecretBearer | string,
+        ): Promise<AddContractCurrenciesResult>;
 ```
 
 - How to get a contract address?  
@@ -77,10 +77,10 @@ type Balance = {
   /// @return Promise<GetMultipleTokenUriResult>
   ///
   function getMultipleTokenUri(
-            currency: number,
-            tokenAddresses: Array<{string}>,
-            tokenIds: Array<{string}>,
-    ): Promise<GetMultipleTokenUriResult>;
+              currency: number,
+              tokenAddresses: Array<{string}>,
+              tokenIds: Array<{string}>,
+          ): Promise<GetMultipleTokenUriResult>;
   ```
 
 ### Error Handling
@@ -94,9 +94,9 @@ type Balance = {
   /// @return Promise<RegisterTokenIdsResult>
   ///
   function registerTokenIds(
-            walletId: number,
-            tokenIds: Array<{string}>,
-    ): Promise<RegisterTokenIdsResult>;
+              walletId: number,
+              tokenIds: Array<{string}>,
+          ): Promise<RegisterTokenIdsResult>;
   ```
 
 ## Deposit
