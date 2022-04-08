@@ -26,18 +26,25 @@ It provides both high-level and low-level APIs for nearly all **CYBAVO Wallet AP
 Please contact **CYBAVO** to get your `endPoint` and `apiCode`.
 
 ### Installation
+[![npm version](https://badge.fury.io/js/@cybavo%2Freact-native-wallet-service.svg)](https://badge.fury.io/js/@cybavo%2Freact-native-wallet-service)  
 
-[![NPM](https://nodeico.herokuapp.com/@cybavo/react-native-wallet-service.svg)](https://npmjs.com/package/@cybavo/react-native-wallet-service)
-
-```shell
-npm install @cybavo/react-native-wallet-service --save
-react-native link @cybavo/react-native-wallet-service
+**Using yarn**  
+```
+$ yarn add @cybavo/react-native-wallet-service
 ```
 
-```shell
-yarn add @cybavo/react-native-wallet-service
-react-native link @cybavo/react-native-wallet-service
+**Using npm**  
 ```
+$ npm install @cybavo/react-native-wallet-service --save
+```
+
+### Link native dependencies
+
+From react-native 0.60 autolinking will take care of the link step.  
+```
+$ react-native link @cybavo/react-native-wallet-service
+```
+
 #### Android
 
 - Add the CYBAVO maven repository to the repositories section in your `android/build.gradle` file: 
