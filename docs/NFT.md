@@ -18,7 +18,6 @@ If that kind of `Currency` already exists, there's no need to add it again.
 /// @param contractAddress Token address for tokens, i.e. an ERC-20 token wallet maps to an Ethereum wallet
 /// @param pinSecret PIN secret retrieved via PinCodeInputView
 /// @return Promise<AddContractCurrenciesResult>
-///         resolve: Contains WalletId
 ///
 function addContractCurrency(
           currency: number,
