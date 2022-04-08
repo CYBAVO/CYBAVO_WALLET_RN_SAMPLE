@@ -56,7 +56,7 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
 1. Clone the source code from GitHub
 2. Install the dependencies
    ```
-   yarn install
+   $ yarn install
    ```
 3. Polyfill NodeJS modules for React-Native  
    ```
@@ -153,4 +153,4 @@ Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User
 Please refer to "Google Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
 # More Details
 
-see this : [**SDK Guideline**](docs/sdk_guideline.md)
+See this : [**SDK Guideline**](docs/sdk_guideline.md)
