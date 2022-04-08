@@ -48,9 +48,9 @@ type Wallet = {
 
 - `isPrivate` means the wallet is on the private chain
 - Thus, it will map to a public currency on the public chain.  
-  - related infos: `mapToPublicCurrency`, `mapToPublicTokenAddress`, `mapToPublicName`
+  - Related infos: `mapToPublicCurrency`, `mapToPublicTokenAddress`, `mapToPublicName`
 - `depositAddresses` provides the addresses on the public chain. When you deposit currencies / tokens to these addresses, you will receive tokens in the related private chain wallet.
-  - multiple `depositAddresses` means one private chain wallet might provide multiple addresses for depositing.
+  - Multiple `depositAddresses` means one private chain wallet might provide multiple addresses for depositing.
   - ex: CPSC-USDT on private chain is mapped to USDT-ERC20 and USDT-TRC20 on the public chains, so you will get multiple addresses in this field.
   - `memo` in model `DepositAddress` is necessary when depositing tokens from public chain to private chain.
 
