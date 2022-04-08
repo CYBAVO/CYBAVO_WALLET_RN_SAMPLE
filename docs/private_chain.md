@@ -23,24 +23,24 @@
 
 ### Wallet
 
-```java
-public final class Wallet {
+```ts
+type Wallet = {
 
-    public long walletId; // Wallet ID
+    walletId: number; // Wallet ID
 
-    public boolean isPrivate; // Is private chain (CPSC)
+    isPrivate: boolean; // Is private chain (CPSC)
 
-    public long mapToPublicCurrency; // Public chain's currency
+    mapToPublicCurrency: number; // Public chain's currency
 
-    public String mapToPublicTokenAddress; // Public chain's tokenAddress
+    mapToPublicTokenAddress: string; // Public chain's tokenAddress
 
-    public String mapToPublicName; // Public chain's currency_name
+    mapToPublicName: string; // Public chain's currency_name
 
-    public String walletCode; // Address(referral code) for transaction in private chain
+    walletCode: string; // Address(referral code) for transaction in private chain
 
-    public DepositAddress[] depositAddresses; // Deposit info, public chain to private chain
+    depositAddresses: Array<DepositAddress>; // Deposit info, public chain to private chain
 
-    public boolean isPrivateDisabled; // Is disabled private currency
+    isPrivateDisabled: boolean; // Is disabled private currency
     
     ...
 }
@@ -56,18 +56,18 @@ public final class Wallet {
 
 ### Currency
 
-```java
-public final class Currency {
+```ts
+type Currency = {
 
-    final public boolean isPrivate; // Is private chain (CPSC)
+    isPrivate: boolean; // Is private chain (CPSC)
 
-    final public long mapToPublicType; // Public chain's currency type
+    mapToPublicType: number; // Public chain's currency type
 
-    final public String mapToPublicTokenAddress; // Public chain's token address
+    mapToPublicTokenAddress: string; // Public chain's token address
 
-    final public String mapToPublicName; // Public chain's currency name
+    mapToPublicName: string; // Public chain's currency name
 
-    final public boolean canCreateFinanceWallet; // Can create finance wallet
+    canCreateFinanceWallet: boolean; // Can create finance wallet
 
     ...
 }
@@ -75,32 +75,32 @@ public final class Currency {
 
 - `isPrivate` means the currency is on the private chain
 - Thus, it will map to a public currency on the public chain.  
-  - related infos: `mapToPublicType`, `mapToPublicTokenAddress`, `mapToPublicName`, `canCreateFinanceWallet`
+  - Related infos: `mapToPublicType`, `mapToPublicTokenAddress`, `mapToPublicName`, `canCreateFinanceWallet`
 
 - How to create a private chain wallet with the currency?
   - Basically, it's the same way as we mentioned in [createWallet](wallets.md#createwallet), the only difference is the filtering condition of currency and wallet.
-  - In the chart below, `Available Currencies` should be `isPrivate == true && (canCreateFinanceWallet == true || TextUtils.isEmpty(tokenAddress))`
+  - In the chart below, `Available Currencies` should be `isPrivate == true && (canCreateFinanceWallet == true || !tokenAddress)`
   ![img](images/sdk_guideline/create_wallet.jpg)
 
 ### UserState
 
-```java
-public final class UserState {
+```ts
+type UserState = {
 
-    public String userReferralCode; // User referral code
+    userReferralCode: string; // User referral code
 
-    public String linkUserReferralCode; // Link user referral code (referral by this code, only one per user)
+    linkUserReferralCode: string; // Link user referral code (referral by this code, only one per user)
 
     ...
 }
 ```
 
 - Referral Code has two use cases:
-    1. referral system
-    2. substitute readable address for making transactions in the private chain
+    1. Referral system
+    2. Substitute readable address for making transactions in the private chain
 - `userReferralCode` represent the user's referral code
 - `linkUserReferralCode` represent the referrer's referral code
-- call `Auth.getInstance().registerReferralCode()` to register a referrer.
+- Call `Auth.registerReferralCode` to register a referrer.
 
 ## Transactions
 
@@ -122,10 +122,10 @@ i.e. `getTransactionFee()` will return the same amount of { high, medium, low } 
 - The { receive amount = transfer amount - transaction fee }
 - The receive amount cannot less than `withdrawMin`
 
-```java
-public final  class GetTransactionFeeResult {
+```ts
+type GetTransactionFeeResult = {
     
-    public String withdrawMin; // Minimum transfer amount for private
+    withdrawMin: string; // Minimum transfer amount for private
     
     ...
 }
@@ -133,46 +133,50 @@ public final  class GetTransactionFeeResult {
 
 #### Perform Withdraw
 
-- Call `callAbiFunctionTransaction()` to perform the transaction with specific parameters:
+- Call `callAbiFunctionTransaction` to perform the transaction with specific parameters:
 
-```java
-DepositAddress depositAddress = wallet.depositAddress[0] //select a deposit address
-Object[] args = new Object[]{toAddress,
-                   transferAmount, //ex. "123.123456"
-                   memo, // optional, ex. "123456" 
-                   Long.toString(depositAddress.mapToPublicCurrency), //ex. "60"
-                   depositAddress.mapToPublicTokenAddress}; 
+```javascript
+  let depositAddress = wallet.depositAddress[0]; //select a deposit address
+  let args = [
+      toAddress,
+      transferAmount, //ex. "123.123456"
+      memo, // optional, ex. "123456"
+      `${depositAddress.mapToPublicCurrency}`, //ex. "60"
+      depositAddress.mapToPublicTokenAddress,
+    ];
 
-Wallets.getInstance().callAbiFunctionTransaction(walletId, 
-                    "burn", // name: fixed to "burn"
-                    wallet.tokenAddress, 
-                    null, // abiJson: fixed to null
-                    args, 
-                    "0", //transactionFee: our backend will take care of this 
-                    pinSecret: pinSecret, callback);
+  await Wallets.callAbiFunctionTransaction(
+          walletId,
+          'burn', // name: fixed to "burn"
+          wallet.tokenAddress,
+          null, // abiJson: fixed to null
+          args,
+          '0', //transactionFee: our backend will take care of this
+          pinSecret
+        );
 ```
 
 ### 3. Inner Transfer
 
 - There's no transaction fee for inner transfer.
-- Call `createTransaction()` to perform the transaction with specific parameters:
+- Call `createTransaction` to perform the transaction with specific parameters:
 
-```java
-final Map<String, Object> extras = new HashMap<>();
-extras.put("kind", "code"); //means it's a inner transfer transaction
-
-Wallets.getInstance().createTransaction(walletId,
-                    toAddress, //other user's userReferralCode, ex. "8X372G"
-                    transferAmount, //ex. "123.123456"
-                    "0", // transactionFee: fixed to "0"
-                    description,
-                    pinSecret,
-                    extras, callback);
+```javascript
+let extras = { kind: 'code' }; //means it's a inner transfer transaction
+    await Wallets.createTransaction(
+      walletId,
+      toAddress, //other user's userReferralCode, ex. "8X372G"
+      transferAmount, //ex. "123.123456"
+      '0', // transactionFee: fixed to "0"
+      description,
+      pinSecret,
+      extras
+    );
 ```
 
 ## Transaction History
 
 - Basically, it's the same way as we mentioned in [transaction.md](transaction.md).  
- The only different thing is the parameter `crosschain` of `getHistory()`:
-  - Pass `crosschain: 1`, it returns transactions of [Deposit to Private Chain](#deposit-to-private-chain) and [Withdraw to Public Chain](#withdraw-to-public-chain)
-  - Pass `crosschain: 0`, it returns transactions of [Inner Transfer](#inner-transfer).
+ The only different thing is the parameter `crossChain` of `getHistory`:
+  - Pass `crossChain: 1`, it returns transactions of [Deposit to Private Chain](#deposit-to-private-chain) and [Withdraw to Public Chain](#withdraw-to-public-chain)
+  - Pass `crossChain: 0`, it returns transactions of [Inner Transfer](#inner-transfer).
