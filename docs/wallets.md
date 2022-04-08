@@ -31,7 +31,7 @@ function getCurrencies(): Promise<GetCurrenciesResult>;
 function getWallets(): Promise<GetWalletsResult>;
 ```
 
-- Response: List of `Wallet`
+- Response: list of `Wallet`
 
   ```ts
   type Wallet = {
@@ -121,17 +121,17 @@ function getBalances(addresses: Array<{
   - `tokenBalance` is for mapped wallet (`tokenAddress` has value). ex: ERC-20 wallet
   - `availableBalance` provides how much available balance do you have,
 
-    for example :
-    1. when you have 1 ETH and you do the tx with 0.2 ETH to send out
-    2. the balance will still be 1 ETH until the tx was packed up on blockchain, but the available balance will reduce to 0.8 ETH
-    3. that is the customer can only operate the remaining 0.8 ETH
+    For example :
+    1. When you have 1 ETH and you do the tx with 0.2 ETH to send out.
+    2. The balance will still be 1 ETH until the tx was packed up on blockchain, but the available balance will reduce to 0.8 ETH.
+    3. That is the customer can only operate the remaining 0.8 ETH.
 
-  - if ERC-721 (NFT), use `tokens`
-  - if ERC-1155 (NFT), use `tokenIdAmounts`
+  - If ERC-721 (NFT), use `tokens`
+  - If ERC-1155 (NFT), use `tokenIdAmounts`
 
 ### getWallet with ID
 
-- used for single wallet refreshing when receiving push-notification
+- Used for single wallet refreshing when receiving push-notification
 
 ![img](images/sdk_guideline/single_wallet_refreshing.jpg)
 
