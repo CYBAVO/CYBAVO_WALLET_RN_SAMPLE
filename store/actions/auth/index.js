@@ -39,6 +39,7 @@ import * as RNLocalize from 'react-native-localize';
 import AsyncStorage from '@react-native-community/async-storage';
 import { fetchUserState, USER_UPDATE_USER_STATE } from '../user';
 import { CURRENCIES_ERROR, CURRENCIES_UPDATE_CURRENCIES } from '../currency';
+import {checkKycSetting} from '../kyc';
 
 const { ErrorCodes } = WalletSdk;
 
@@ -135,6 +136,7 @@ function updateSignInState(signInState) {
         NavigationService.navigate(routeName);
         dispatch(setPushDeviceToken());
         dispatch(registerPubkey());
+        dispatch(checkKycSetting());
       } catch (error) {
         console.warn('Wallets.getCurrencies failed', error);
         dispatch({ type: CURRENCIES_ERROR, error });

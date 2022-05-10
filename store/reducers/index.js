@@ -13,6 +13,7 @@ import apihistory from './apihistory';
 import fee from './fee';
 import clock from './clock';
 import tokenUri from './tokenUri';
+import kyc from './kyc';
 const root = combineReducers({
   notifications,
   auth,
@@ -27,6 +28,7 @@ const root = combineReducers({
   fee,
   clock,
   tokenUri,
+  kyc,
 });
 
 export default root;

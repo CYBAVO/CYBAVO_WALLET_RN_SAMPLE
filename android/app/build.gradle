@@ -227,6 +227,7 @@ dependencies {
     compile "com.squareup.okhttp3:okhttp:4.2.1"
     compile "com.squareup.okhttp3:logging-interceptor:4.2.1"
     compile "com.squareup.okhttp3:okhttp-urlconnection:4.2.1"
+//    implementation "com.sumsub.sns:idensic-mobile-sdk:1.19.2"
 }
 println  "CYBAVO wallet version:${versionMajor}.${versionMinor}.${gitVersion.version}_${gitVersion.branchName}"
 

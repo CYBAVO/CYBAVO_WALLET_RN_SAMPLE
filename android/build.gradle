@@ -7,6 +7,7 @@ buildscript {
         compileSdkVersion = 30
         targetSdkVersion = 30
         firebaseMessagingVersion = "21.1.0"
+        facebookSdkVersion = "9.0.0"
     }
     repositories {
         google()
@@ -14,7 +15,7 @@ buildscript {
         maven { url 'https://maven.fabric.io/public' }
     }
     dependencies {
-        classpath('com.android.tools.build:gradle:3.5.0')
+        classpath('com.android.tools.build:gradle:4.0.1')
         classpath('com.google.gms:google-services:4.3.3') // Google Services plugin
         classpath 'io.fabric.tools:gradle:1.29.0'
 
@@ -26,7 +27,8 @@ buildscript {
 allprojects {
     repositories {
         mavenLocal()
-        
+
+        maven { url "https://maven.sumsub.com/repository/maven-public/" }
         maven {
             url 'https://dl.google.com/dl/android/maven2'
         }

@@ -4,7 +4,11 @@
  *
  * All rights reserved.
  */
-import { BALANCE_ENQUEUE, BALANCE_UPDATE_BALANCES } from '../actions/balance';
+import {
+  BALANCE_ENQUEUE,
+  BALANCE_ERROR,
+  BALANCE_UPDATE_BALANCES,
+} from '../actions/balance';
 import { COMMON_RESET } from '../actions/common';
 import { getWalletKey } from '../../Helpers';
 
@@ -16,6 +20,32 @@ function balance(state = defaultState, action) {
   switch (action.type) {
     case COMMON_RESET: {
       return defaultState;
+    }
+    case BALANCE_ERROR: {
+      const { batch, error } = action;
+      let allB = {};
+      for (let item of batch) {
+        const { currency, tokenAddress, address } = item;
+        const key = getWalletKey(currency, tokenAddress, address);
+        const b = state.balances[key] || {
+          currency,
+          tokenAddress,
+          address,
+        };
+        allB[key] = {
+          ...b,
+          loading: false,
+          failed: true,
+        };
+      }
+      let nextState = {
+        ...state,
+        balances: {
+          ...state.balances,
+          ...allB,
+        },
+      };
+      return nextState;
     }
     case BALANCE_ENQUEUE: {
       const { currency, tokenAddress, address, loading } = action;

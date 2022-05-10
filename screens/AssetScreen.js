@@ -202,9 +202,9 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   });
 
   const enableWalletconnect = useSelector(state => {
-    console.debug(
-      `enableWalletconnect:${state.user.userState.enableWalletconnect}`
-    );
+    // console.debug(
+    //   `enableWalletconnect:${state.user.userState.enableWalletconnect}`
+    // );
     return state.user.userState.enableWalletconnect;
   });
 

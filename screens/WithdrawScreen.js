@@ -444,6 +444,12 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     return true;
   };
   const _checkAmountNumerical = async (value, selectedFee) => {
+    if (wallet.tokenVersion == 721) {
+      return true;
+    }
+    if (wallet.tokenVersion == 1155) {
+      return true;
+    }
     if (isNaN(value)) {
       setAmountError(I18n.t('error_input_nan', { label: I18n.t('amount') }));
       return false;

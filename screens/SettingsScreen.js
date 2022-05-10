@@ -22,7 +22,12 @@ import {
   SERVICE_EMAIL_CYBAVO,
 } from '../Constants';
 import { WalletSdk, Auth, Wallets } from '@cybavo/react-native-wallet-service';
-import { BIO_SETTING_USE_SMS, fetchUserState, signOut } from '../store/actions';
+import {
+  BIO_SETTING_USE_SMS,
+  checkKycSetting,
+  fetchUserState,
+  signOut, updateKycUserExist,
+} from '../store/actions';
 import Styles from '../styles/Styles';
 import { Theme } from '../styles/MainTheme';
 import { Button } from 'native-base';
@@ -31,6 +36,7 @@ import I18n, {
   IndexLanguageMap,
   LanguageIndexMap,
   setLanguage,
+  Country,
 } from '../i18n/i18n';
 import InputPinCodeModal from './InputPinCodeModal';
 import { withTheme, Text, ActivityIndicator } from 'react-native-paper';
@@ -47,11 +53,17 @@ import {
   getWalletKeyByWallet,
   inDevList,
   sendLogFilesByEmail,
+  sleep,
+  toast,
+  toastError,
 } from '../Helpers';
 import BottomActionMenu from '../components/BottomActionMenu';
 import NavigationService from '../NavigationService';
 import AssetPicker from '../components/AssetPicker';
 import BackgroundImage from '../components/BackgroundImage';
+import { alpha2ToAlpha3 } from '../utils/i18niso';
+import { launchSNSMobileSDK } from '../utils/KycHelper';
+import { FileLogger } from 'react-native-file-logger';
 const {
   sdkInfo: { VERSION_NAME, VERSION_CODE, BUILD_TYPE },
 } = WalletSdk;
@@ -63,21 +75,24 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   const [errorMsg, setErrorMsg] = useState(I18n.t('pin_secret_not_found'));
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
+  const kycUserExist = useSelector(state => state.kyc.userExist);
+  const hasKycSetting = useSelector(state => state.kyc.hasSetting);
   const userState = useSelector(state => state.user.userState);
   const identity = useSelector(state => state.auth.identity);
   const [languageIndex, setLanguageIndex] = useState(0);
+  const testKyc = inDevList();
 
   const reportable = useSelector(state => {
-    return state.walletconnect.reportable;
+    return state.walletconnect.reportable || state.kyc.hasSetting;
   });
   const hasConnection = useSelector(state => {
     return Object.keys(state.walletconnect.connecting).length > 0;
   });
 
   const enableWalletconnect = useSelector(state => {
-    console.debug(
-      `enableWalletconnect:${state.user.userState.enableWalletconnect}`
-    );
+    // console.debug(
+    //   `enableWalletconnect:${state.user.userState.enableWalletconnect}`
+    // );
     return state.user.userState.enableWalletconnect;
   });
 
@@ -109,6 +124,66 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
     return hasApiHistory;
   });
 
+  const _startKyc = () => {
+    setLoading(true);
+    if (kycUserExist) {
+      FileLogger.debug(`>>EEE_kycUserExist_getKycAccessToken`);
+      console.log(`EEE_kycUserExist_getKycAccessToken`);
+      _getKycAccessToken(true);
+      return;
+    }
+    let a3 = alpha2ToAlpha3(Country, 'TWN');
+    FileLogger.debug(`>>createKyc: ${Country}, ${a3}`);
+    Auth.createKyc(a3)
+      .then(r => {
+        dispatch(updateKycUserExist(true));
+        FileLogger.debug(`>>EEE_createKyc_getKycAccessToken`);
+        console.log(`EEE_createKyc_getKycAccessToken`);
+        _getKycAccessToken(false);
+      })
+      .catch(error => {
+        dispatch(updateKycUserExist(true));
+        FileLogger.debug(`>>EEE_createKycFailed_getKycAccessToken`);
+        console.log(`EEE_createKycFailed_getKycAccessToken`);
+        _getKycAccessToken(true);
+      });
+  };
+
+  const _getKycAccessToken = createKycFail => {
+    Auth.getKycAccessToken()
+      .then(r => {
+        console.log(`getKycAccessToken:${r.apiUrl}, ${r.token} ${r.flowName}`);
+        let localArr = ['en', 'zh-tw', 'zh'];
+        launchSNSMobileSDK(
+          r.apiUrl,
+          r.token,
+          r.flowName,
+          log => {},
+          localArr[languageIndex]
+        );
+        setLoading(false);
+      })
+      .catch(error => {
+        if (createKycFail) {
+          FileLogger.debug(`>>EEE_getKycAccessTokenFailed_resetKycUserExist`);
+          console.log(`EEE_getKycAccessTokenFailed_resetKycUserExist`);
+          dispatch(updateKycUserExist(false));
+        }
+        FileLogger.debug(`>>_startKyc failed: ${error.message}`);
+        console.log('_startKyc failed', error);
+        setResult({
+          type: TYPE_FAIL,
+          error: I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          }),
+          title: I18n.t('error_msg_703'),
+          buttonClick: () => {
+            setResult(null);
+          },
+        });
+        setLoading(false);
+      });
+  };
   const _goChangePinCode = () => {
     setInputPinCode(true);
   };
@@ -240,6 +315,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
             onRefresh={() => {
               setRefreshing(true);
               dispatch(fetchUserState());
+              dispatch(checkKycSetting());
               setRefreshing(false);
             }}
           />
@@ -297,7 +373,6 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
             {identity.provider}
           </Text>
         </View>
-
         {enableWalletconnect && (
           <View style={[styles.listItem, { justifyContent: 'space-between' }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -352,6 +427,43 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
               </Text>
             </Button>
           </View>
+        )}
+        {hasKycSetting && (
+          <Text
+            style={[
+              Styles.secLabel,
+              { marginTop: 15 },
+              Theme.fonts.default.regular,
+            ]}>
+            {I18n.t('verification')}
+          </Text>
+        )}
+        {hasKycSetting && (
+          <TouchableOpacity
+            onPress={() => {
+              _startKyc();
+            }}
+            style={[
+              styles.listItemHorizontal,
+              { justifyContent: 'space-between' },
+            ]}>
+            <Text style={[Styles.input, Theme.fonts.default.regular]}>
+              {I18n.t('kyc_bt')}
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <Text
+                style={[
+                  Styles.inputDesc,
+                  { flex: 0, fontSize: 14 },
+                  Theme.fonts.default.regular,
+                ]}>
+                {''}
+              </Text>
+              <Image
+                source={require('../assets/image/ic_arrow_right_gray.png')}
+              />
+            </View>
+          </TouchableOpacity>
         )}
         <Text
           style={[
@@ -464,7 +576,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
           <TouchableOpacity
             onPress={() => {
               sendLogFilesByEmail(
-                SERVICE_EMAIL_CYBAVO,
+                SERVICE_EMAIL,
                 `${I18n.t('report_issue')} - ${I18n.t('app_name')}`
               ),
                 I18n.t('issue_description_template');
@@ -481,6 +593,33 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
             <Image
               source={require('../assets/image/ic_arrow_right_gray.png')}
             />
+          </TouchableOpacity>
+        )}
+        {testKyc && (
+          <TouchableOpacity
+            onPress={() => {
+              navigate('KycTest');
+            }}
+            style={[
+              styles.listItemHorizontal,
+              { justifyContent: 'space-between' },
+            ]}>
+            <Text style={[Styles.input, Theme.fonts.default.regular]}>
+              {'KYC test'}
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <Text
+                style={[
+                  Styles.inputDesc,
+                  { flex: 0, fontSize: 14 },
+                  Theme.fonts.default.regular,
+                ]}>
+                {''}
+              </Text>
+              <Image
+                source={require('../assets/image/ic_arrow_right_gray.png')}
+              />
+            </View>
           </TouchableOpacity>
         )}
         <View style={styles.listItemVertical}>
