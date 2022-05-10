@@ -1,11 +1,7 @@
 # KYC with Sumsub
 
 > For KYC requirement, Wallet SDK has integrated with [Sumsub](https://sumsub.com/) and provides corresponding API to launch [Sumsub MSDK](https://developers.sumsub.com/msdk/#getting-started).
->
-> In later sections, we'll illustrate how to 
-get an [access token]()establish wallet client and use those APIs to respond to [session request](https://docs.walletconnect.com/tech-spec#session-request) and JSON-RPC call requests which are defined in [JSON-RPC API Methods](https://docs.walletconnect.com/json-rpc-api-methods/ethereum).  
->
-> For further technical specification, see [this](https://docs.walletconnect.org/tech-spec).
+
 
 - Bookmark:
   - [Preparation](#preparation)
