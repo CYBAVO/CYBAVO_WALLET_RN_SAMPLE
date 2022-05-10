@@ -85,7 +85,7 @@
         plutil -insert "NSPhotoLibraryUsageDescription" -string "Let us pick a photo" ios/${PWD##*/}/Info.plist
         ```
 ## Create an Applicant
-- Use `Auth.createKyc()` to create an applicant on KYC for the current sign-in user.
+- Use `Auth.createKyc()` to create an applicant on Sumsub for the current sign-in user.
 - Wallet SDK will use user's `Unique token` as `External user ID`, therefore you can utlize those to mapping.
 - Please note that an applicant will be created with `Sumsub Level Name` (see [this](https://developers.sumsub.com/api-reference/#creating-an-applicant)), if change `Sumsub Flow Name` to others which belongs to a different level name, launch MSDK may fail.
 - In Sumsub sandbox environment, it seems that applicants being deleted is possible, which also will cause launch MSDK failed.
