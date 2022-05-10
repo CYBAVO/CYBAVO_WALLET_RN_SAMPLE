@@ -1,6 +1,6 @@
 # KYC with Sumsub
 
-> For KYC requirement, Wallet SDK has integrated with [Sumsub](https://sumsub.com/) and provides corresponding API to launch [Sumsub MSDK](https://developers.sumsub.com/msdk/#getting-started).
+> For KYC requirement, Wallet SDK has integrated with [Sumsub](https://sumsub.com/) and provides corresponding API for launching [Sumsub MSDK](https://developers.sumsub.com/msdk/#getting-started) and sharing data.
 
 
 - Bookmark:
