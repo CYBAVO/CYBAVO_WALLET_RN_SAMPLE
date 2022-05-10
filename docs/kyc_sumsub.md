@@ -37,8 +37,8 @@
         ///
         function checkKycSetting(): Promise<CheckKycSettingResult>;
         ```
-3. Install [Sumsub MSDK](https://developers.sumsub.com/msdk/plugins/react-native.html#react-native-module)  
-    ⚠️ Please use version `1.19.4` or above.
+3. [Sumsub MSDK installation](https://developers.sumsub.com/msdk/plugins/react-native.html#react-native-module)    
+    ⚠️ Version `1.19.4` or later is recommended.
 
     ```
     yarn add @sumsub/react-native-mobilesdk-module
@@ -50,7 +50,7 @@
         buildscript {
             dependencies {
                 //...
-                // make sure use version 4.0.1 or above
+                // use version 4.0.1 or later for 1.19.4
                 classpath('com.android.tools.build:gradle:4.0.1') 
             }
         }
@@ -65,7 +65,7 @@
         Check the version in your `gradle-wrapper.properties` file:  
 
         ```properties
-        # make sure use gradle-6.1.1-all or above
+        # use gradle-6.1.1-all or later for 1.19.4
         distributionUrl=https\://services.gradle.org/distributions/gradle-6.1.1-all.zip
         ```
     - [iOS](https://developers.sumsub.com/msdk/plugins/react-native.html#ios)  
@@ -107,7 +107,7 @@
 ## Access Token and Launching Sumsub MSDK
 - Use `Auth.getKycAccessToken()` and use the result to launch MSDK
 - User must has called `createKyc` before this step, which means have an applicant on Sumsub dashboard.
-- For more detail, see [this](https://developers.sumsub.com/msdk/plugins/react-native.html#setup).
+- Please visit [Sumsub Developer Hub](https://developers.sumsub.com/msdk/plugins/react-native.html#setup) for detailed MSDK instruction .
 
     ```javascript
     import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
