@@ -6,7 +6,8 @@
 - Bookmark:
   - [Preparation](#preparation)
   - [Create an Applicant](#create-an-applicant)
-  - [Access Token and Launch Sumsub MSDK](#access-token-and-launch-sumsub-msdk)
+  - [Access Token and Launching Sumsub MSDK](#access-token-and-launching-sumsub-msdk)
+  - [Sharing Applicants between Partner Services]()
 
 ## Preparation
 
@@ -85,7 +86,7 @@
         plutil -insert "NSPhotoLibraryUsageDescription" -string "Let us pick a photo" ios/${PWD##*/}/Info.plist
         ```
 ## Create an Applicant
-- Use `Auth.createKyc()` to create an applicant on Sumsub for the current sign-in user.
+- Use `Auth.createKyc()` to create an applicant on Sumsub for the current user.
 - Wallet SDK will use the user's `Unique token` as `External user ID`, therefore you can utilize those to mapping.
 - Please note that an applicant will be created with `Sumsub Level Name` (see [this](https://developers.sumsub.com/api-reference/#creating-an-applicant)), if change `Sumsub Flow Name` to others which belongs to a different level name, launch MSDK may fail.
 - In Sumsub sandbox environment, it seems that applicants being deleted is possible, which also will cause launch MSDK failed.
@@ -103,7 +104,7 @@
         country: string,
     ): Promise<CreateKycResult>;
     ```
-## Access Token and Launch Sumsub MSDK
+## Access Token and Launching Sumsub MSDK
 - Use `Auth.getKycAccessToken()` and use the result to launch MSDK
 - User must has called `createKyc` before this step, which means have an applicant on Sumsub dashboard.
 - For more detail, see [this](https://developers.sumsub.com/msdk/plugins/react-native.html#setup).
@@ -159,4 +160,16 @@
             });
 
     }
+    ```
+## Sharing Applicants between Partner Services
+- Sumsub also provides sharing which allows different services share applicant's KYC data via `share token`. Please visit their [API Reference](https://developers.sumsub.com/api-reference/#sharing-applicants-between-partner-services) for detailed introduction and instructions for `share token` use. 
+- Use `Auth.getKycShareToken()` to get `share token` for the current user.
+
+    ```ts
+    ///
+    /// Get user's share token for KYC
+    /// 
+    /// @return Promise<GetKycShareTokenResult> 
+    ///
+    function getKycShareToken(): Promise<GetKycShareTokenResult>;
     ```
