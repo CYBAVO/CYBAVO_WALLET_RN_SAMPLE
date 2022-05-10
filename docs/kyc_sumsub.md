@@ -109,6 +109,9 @@
 - For more detail, see [this](https://developers.sumsub.com/msdk/plugins/react-native.html#setup).
 
     ```javascript
+    import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
+    import { Auth } from '@cybavo/react-native-wallet-service';
+    
     Auth.getKycAccessToken()
                 .then(r => {
                     launchSNSMobileSDK(
