@@ -61,9 +61,10 @@
             }
         }
         ```
-        Check the version in your  `gradle-wrapper.properties` file:  
+        Check the version in your `gradle-wrapper.properties` file:  
 
         ```properties
+        # make sure use gradle-6.1.1-all or above
         distributionUrl=https\://services.gradle.org/distributions/gradle-6.1.1-all.zip
         ```
     - [iOS](https://developers.sumsub.com/msdk/plugins/react-native.html#ios)  
