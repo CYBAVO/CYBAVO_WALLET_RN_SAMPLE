@@ -120,7 +120,7 @@
                 })
                 .catch(error => {});
     
-    function launchSNSMobileSDK(apiUrl, accessToken, flowName,local = 'en') {
+    function launchSNSMobileSDK(apiUrl, accessToken, flowName, locale = 'en') {
         let snsMobileSDK = SNSMobileSDK.init(accessToken, () => {
             // this is a token expiration handler, will be called if the provided token is invalid or got expired
             // call your backend to fetch a new access token (this is just an example)
@@ -140,7 +140,7 @@
             },
         })
         .withDebug(true)
-        .withLocale(local)
+        .withLocale(locale)
         .withSupportEmail(SERVICE_EMAIL)
         .build();
 
