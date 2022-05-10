@@ -151,7 +151,7 @@
                 console.log(log);
             })
             .catch(err => {
-                let log = `SumSub SDK Error: ${JSON.stringify(err)}`;\
+                let log = `SumSub SDK Error: ${JSON.stringify(err)}`;
                 console.log(log);
             });
 
