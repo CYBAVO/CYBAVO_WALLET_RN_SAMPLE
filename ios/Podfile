@@ -2,6 +2,7 @@ use_frameworks!
 platform :ios, '11.0'
 source 'https://github.com/CocoaPods/Specs.git'
 source 'https://bitbucket.org/cybavo/Specs_512.git'
+source 'https://github.com/SumSubstance/Specs.git'
 
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
 permissions_path = '../node_modules/react-native-permissions/ios'

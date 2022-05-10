@@ -686,5 +686,7 @@
   "error_custom_fee_is_zero": "自訂手續費不可為0",
   "see_more": "顯示更多",
   "see_less": "顯示較少",
-  "aml_title": "這是有風險的地址!"
+  "aml_title": "這是有風險的地址!",
+  "verification": "驗證",
+  "kyc_bt": "帳戶驗證"
 }

@@ -684,5 +684,7 @@
   "error_custom_fee_is_zero": "自订手续费不可为0",
   "see_more": "显示更多",
   "see_less": "显示较少",
-  "aml_title": "这是有风险的地址!"
+  "aml_title": "这是有风险的地址!",
+  "verification": "验证",
+  "kyc_bt": "帐户验证"
 }

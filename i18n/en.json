@@ -1177,5 +1177,7 @@
   "error_custom_fee_is_zero": "Custom fee cannot be zero",
   "see_more": "See More",
   "see_less": "See Less",
-  "aml_title": "This is a risky address!"
+  "aml_title": "This is a risky address!",
+  "verification": "Verification",
+  "kyc_bt": "Verify your account"
 }

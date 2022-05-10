@@ -39,6 +39,7 @@ import AddContractCurrencyScreen from './screens/AddContractCurrencyScreen';
 import WalletNftDetailScreen from './screens/WalletNftDetailScreen';
 import WarningScreen from './screens/WarningScreen';
 import GlobalModalScreen from './screens/GlobalModalScreen';
+import KycTestScreen from './screens/KycTestScreen';
 
 const MainTab = createBottomTabNavigator(
   {
@@ -155,6 +156,7 @@ const MainStack = createStackNavigator(
     VerifySecurityQuestion: VerifySecurityQuestionScreen,
     ForgotPinCode: ForgotPinCodeScreen,
     SetLocale: SetLocaleScreen,
+    KycTest: KycTestScreen,
     ConnectionList: { screen: ConnectionListScreen },
     ApiHistoryDetail: { screen: ApiHistoryDetailScreen },
     SetBio: SetBioScreen,

@@ -15,6 +15,7 @@ import {
 
 export const BALANCE_ENQUEUE = 'BALANCE_ENQUEUE';
 export const BALANCE_UPDATE_BALANCES = 'BALANCE_UPDATE_BALANCES';
+export const BALANCE_ERROR = 'BALANCE_ERROR';
 
 const BALANCE_THROTTLE = 10 * 1000; // 10 sec
 const BALANCE_ENQUEUE_DELAY = 500; // 0.5 sec
@@ -173,7 +174,8 @@ function fetchBalancesBatch() {
       dispatch({ type: BALANCE_UPDATE_BALANCES, balances });
       dispatch(fetchTokenUriFromBalanceIfNeed(balances));
     } catch (error) {
-      console.log('Wallets.getBalances failed', batch, error);
+      console.log('Wallets.getBalances failed', error, JSON.stringify(batch));
+      dispatch({ type: BALANCE_ERROR, batch, error });
     }
   };
 }
