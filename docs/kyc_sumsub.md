@@ -38,6 +38,7 @@
         ```
 3. Install [Sumsub MSDK](https://developers.sumsub.com/msdk/plugins/react-native.html#react-native-module)  
     ⚠️ Please use version `1.19.4` or above.
+
     ```
     yarn add @sumsub/react-native-mobilesdk-module
     ```
@@ -105,6 +106,7 @@
 - Use `Auth.getKycAccessToken()` and use the result to launch MSDK
 - User must has called `createKyc` before this step, which means have an applicant on Sumsub dashboard.
 - For more detail, see [this](https://developers.sumsub.com/msdk/plugins/react-native.html#setup).
+
     ```javascript
     Auth.getKycAccessToken()
                 .then(r => {
