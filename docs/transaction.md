@@ -153,7 +153,7 @@ function getAddressesTags(
 /// @param pinSecret: PIN secret retrieved via {PinCodeInputView}
 /// @param extraAttributes Extra attributes for specific currencies, pass null if unspecified.
 ///      - Supported extras:
-///         1. memo (string) - Memo for XRP, XML, EOS, BNB
+///         1. memo (string) - Memo for XRP, XLM, EOS, BNB
 ///         2. eos_transaction_type (EosResourceTransactionType) - Resource transaction type for EOS, such as buy RAM, delegate CPU
 ///         3. num_bytes (number) - Bytes of RAM/NET for EOS RAM delegation/undelegation transactions. The minimal amounts are 1024 bytes
 ///         4. input_data (string) - Hex string of input data. Must also set gas_limit when have this attributes
