@@ -148,13 +148,16 @@ $ react-native link @cybavo/react-native-wallet-service
 ///     5. Twitter - "Twitter"
 ///     6. WeChat - "WeChat"
 ///
+/// @param extras Extra attributes for specific provider, pass null if unspecified.
+///     1. id_token_secret (string) - Secret for Twitter
 /// @return Promise<SignInResult>
-///         resolve: ➡️ ready to getUserState()
+///         resolve: ➡️ Ready to getUserState()
 ///         reject: if (error.code == ErrorCodes.ErrRegistrationRequired) ➡️ go to the Sign-up flow
 ///
 function signIn(
             token: string,
-            identityProvider: string
+            identityProvider: string,
+            extras: object
         ): Promise<SignInResult>;
 ```
 
@@ -164,11 +167,14 @@ function signIn(
 
 ```ts
 /// sign-up with Wallet SDK Auth
-/// @param token: refer to signIn()
-/// @param identityProvider: refer to signIn()
+/// @param token: Refer to signIn()
+/// @param identityProvider: Refer to signIn()
+/// @param extras Extra attributes for specific provider, pass null if unspecified.
+///     1. id_token_secret (string) - Secret for Twitter
+///     2. user_name (string) - User name, required for Apple auth
 /// @return Promise<SignUpResult>
-///         resolve: ➡️ ready to signIn()
-///         reject: handle according ErrorCodes
+///         resolve: ➡️ Ready to signIn()
+///         reject: Handle according ErrorCodes
 ///
 function signUp(
             token: string,
