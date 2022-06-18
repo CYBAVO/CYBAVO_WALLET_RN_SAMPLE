@@ -184,6 +184,7 @@
     /// The response is based on Sumsub API's definition, see
     /// https://developers.sumsub.com/api-reference/#getting-applicant-status-sdk
     ///
-    /// @param callback Asynchronized callback
-    public abstract void getApplicantStatus(Callback<GetApplicantStatusResult> callback) ;
+    /// @return Promise<GetApplicantStatusResult> 
+    ///
+    function getApplicantStatus(): Promise<GetApplicantStatusResult>;
     ```
