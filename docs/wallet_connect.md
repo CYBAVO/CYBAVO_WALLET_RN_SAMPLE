@@ -313,6 +313,31 @@ let callRequestListener = (peerId, error, payload) => {
                 filters?: object
             ): Promise<GetApiHistoryResult>;
     ```
+- WalletSDK also provides `getWalletConnectSignedTx` and `getWalletConnectUnsignedData` for further needs.
+
+    ```ts
+    /// Get signed TX for walletConnectSendSignedTransaction()
+    ///
+    /// @param walletId wallet ID
+    /// @param accessId accessId from API history, result of getWalletConnectApiHistory()
+    /// @return Promise<GetWalletConnectSignedTxResult>
+    ///
+    function getWalletConnectSignedTx(
+        walletId: number,
+        accessId: string,
+    ): Promise<GetWalletConnectSignedTxResult>;
+
+    /// Get unsigned data for walletConnectSignTypedData() and walletConnectSignTransaction()
+    /// 
+    /// @param walletId wallet ID
+    /// @param accessId accessId from API history, result of getWalletConnectApiHistory()
+    /// @return Promise<GetWalletConnectUnsignedDataResult>
+    ///
+    function getWalletConnectUnsignedData(
+        walletId: number,
+        accessId: string,
+    ): Promise<GetWalletConnectUnsignedDataResult>;
+    ```
 
 ## Cancel a Transaction
 

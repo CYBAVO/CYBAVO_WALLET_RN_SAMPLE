@@ -103,6 +103,32 @@ type UserState = {
 - `userReferralCode` represent the user's referral code
 - `linkUserReferralCode` represent the referrer's referral code
 - Call `Auth.registerReferralCode` to register a referrer.
+- You can search user by calling `Auth.searchUser()`, the keyword can be `realName` (partial match) or `referralCode` (fully match)
+  ```javascript
+    try {
+      let result = await Auth.searchUser('UserX');
+      for (let i = 0; i < result.infos.length; i++) {
+        console.log(`#${i}, Name:${result.infos[i].realName}, Code: ${result.infos[i].referralCode}`);
+      }
+    } catch (error) {
+      //keyword length cannot less then 3,
+      //otherwise the API will receive ErrKeywordForSearchTooShort
+      console.log('search failed', error);
+    }
+  ```
+- You can update `realName` by calling `Auth.updateRealName()`
+  ```javascript
+  try {
+      await Auth.updateRealName('UserY');
+      //getUserState after updateRealName
+      const { userState } = await Auth.getUserState();
+      console.log(`newRealName: ${userState.realName}`);
+    } catch (error) {
+      //realName length cannot less then 3,
+      //otherwise the API will receive ErrKeywordForSearchTooShort
+      console.log('updateRealName failed', error);
+    }
+  ```
 
 ## Transactions
 

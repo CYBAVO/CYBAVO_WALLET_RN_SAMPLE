@@ -159,9 +159,12 @@ function getAddressesTags(
 ///         4. input_data (string) - Hex string of input data. Must also set gas_limit when have this attributes
 ///         5. gas_limit (number) - Must specify this if there were input_data
 ///         6. skip_email_notification (Boolean) -Determined whether or not to skip sending notification mail after create a transaction
-///         7. token_id (string) -token ID for ERC-1155
-///         8. kind (string) -kind for private chain, code: private to private; out: private to public
+///         7. token_id (string) - token ID for ERC-1155
+///         8. kind (string) - kind for private chain, code: private to private; out: private to public
 ///         9. to_address_tag (Array<string>) -AML tag, get from getAddressesTags() API
+///        10. custom_nonce (number) - Specific nonce
+///        11. custom_gas_limit (number) - Specific gas limit
+
 ///      - Note:
 ///         - When eos_transaction_type is EosResourceTransactionType.SELL_RAM, EosResourceTransactionType.UNDELEGATE_CPU or EosResourceTransactionType.UNDELEGATE_NET, the receiver should be address of Wallet fromWalletId
 ///         - ex: {"memo": "abcd", "eos_transaction_type": EosResourceTransactionType.SELL_RAM, "skip_email_notification": false, "kind": "code"}
