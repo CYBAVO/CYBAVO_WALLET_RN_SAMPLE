@@ -177,7 +177,7 @@ type GetTransactionFeeResult = {
           walletId,
           'burn', // name: fixed to "burn"
           wallet.tokenAddress,
-          null, // abiJson: fixed to null
+          '', // abiJson: fixed to ''
           args,
           '0', //transactionFee: our backend will take care of this
           pinSecret

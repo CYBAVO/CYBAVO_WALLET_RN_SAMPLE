@@ -164,10 +164,11 @@ function getAddressesTags(
 ///         9. to_address_tag (Array<string>) -AML tag, get from getAddressesTags() API
 ///        10. custom_nonce (number) - Specific nonce
 ///        11. custom_gas_limit (number) - Specific gas limit
-
-///      - Note:
+///        12. sol_token_id (string) - token ID of SOL NFT, if get from getSolNftTokens() API, the token ID would be TokenMeta.tokenAddress
+///      - Note 1:
 ///         - When eos_transaction_type is EosResourceTransactionType.SELL_RAM, EosResourceTransactionType.UNDELEGATE_CPU or EosResourceTransactionType.UNDELEGATE_NET, the receiver should be address of Wallet fromWalletId
 ///         - ex: {"memo": "abcd", "eos_transaction_type": EosResourceTransactionType.SELL_RAM, "skip_email_notification": false, "kind": "code"}
+///      - Note 2: Pass sol_token_id for SOL NFT transaction, and the amount must be "1", otherwise, it will return ErrInvalidParameter error
 ///  @return Promise<CreateTransactionResult>
 ///
 function createTransaction(
@@ -314,6 +315,123 @@ The user needs to create another Tx with higher Tx fee and the same nonce to rep
         - `if (Original-Tx.replaced == true)` ➜ Cancel / Accelerate success
         - `if (Replacement-Tx.replaced == true)` ➜ Cancel / Accelerate failed
 
-## Others
+## Interact with Smart Contract
 
-- For ABI function APIs: `callAbiFunctionTransaction()`, `callAbiFunctionRead()`, see [Sample](https://github.com/CYBAVO/react-native_wallet_sdk_sample/blob/ef60268619ead205c25c708af0dbc119f2497a3e/screens/WithdrawScreen.js)
+Wallet SDK provides APIs to call [ABI](https://docs.soliditylang.org/en/develop/abi-spec.html) functions for general read and write operation.   
+- For read operation, like `balanceOf`, use `callAbiFunctionRead()`. The parameter is depends on the ABI function required.  
+
+  For example, here's the json of the ABI function we want to call:
+    ```javascript
+    //Part of ABI_JSON
+    {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "_owner",
+            "type": "address"
+          },
+          {
+            "name": "_testInt",
+            "type": "uint256"
+          },
+          {
+            "name": "_testStr",
+            "type": "string"
+          }
+        ],
+        "name": "balanceOfCB",
+        "outputs": [
+          {
+            "name": "balance",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ``` 
+    According to its definition, we would compose an API call like this:
+    ```javascript
+    try {
+      const result = await Wallets.callAbiFunctionRead(
+        walletId,
+        'balanceOfCB',// name, function name of ABI
+        '0xef3aa4115b071a9a7cd43f1896e3129f296c5a5f',// contractAddress, contract address of ABI
+        abiJson,// abiJson, ABI contract json
+        ['0x281F397c5a5a6E9BE42255b01EfDf8b42F0Cd179', 123, 'test']// args, argument array of ABI function
+      );
+      console.log('callAbiFunctionRead success', result.output);
+    } catch (error) {
+      console.warn('callAbiFunctionRead failed', error);
+    }
+    ```
+    Aside from `walletId`, all the parameters are varied according to the ABI function.  
+    
+    See [this](https://github.com/CYBAVO/react-native_wallet_sdk_sample/blob/master/screens/WithdrawScreen.js#L213-L229) for complete example.  
+- For write operaion, like `transferFrom`, use `callAbiFunctionTransaction()`. The parameter is also depends on the ABI function required.  
+
+  For example, here's the json of the ABI function we want to call:
+    ```javascript
+    //Part of ABI_JSON
+    {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_to",
+            "type": "address"
+          },
+          {
+            "name": "_value",
+            "type": "uint256"
+          },
+          {
+            "name": "_testInt",
+            "type": "uint256"
+          },
+          {
+            "name": "_testStr",
+            "type": "string"
+          }
+        ],
+        "name": "transferCB",
+        "outputs": [
+          {
+            "name": "success",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ```
+    According to its definition, we would compose an API call like this:
+    ```javascript
+    try {
+      const result = await Wallets.callAbiFunctionTransaction(
+        walletId,
+        'transferCB',// name, function name of ABI
+        '0xef3aa4115b071a9a7cd43f1896e3129f296c5a5f',// contractAddress, contract address of ABI
+        abiJson,// abiJson, ABI contract json
+        ['0x490d510c1A8b74749949cFE5cA06D0C6BD7119E2', 1, 100, 'unittest'],// args, argument array of ABI function
+        transactionFee.amount,// transactionFee, see getTransactionFee() and amount property of Fee type
+        pinSecret
+      );
+
+      console.log(
+        'callAbiFunctionTransaction success',
+        result.txid,
+        result.signedTx
+      );
+    } catch (error) {
+      console.warn('callAbiFunctionTransaction failed', error);
+    }
+    ```
+    Different from `callAbiFunctionRead()`, `callAbiFunctionTransaction()` requires 2 more parameters: `transactionFee` and `PinSecret` for transaction.  
+    
+    The parameter `name`, `contractAddress`, `abiJson` and `args` are varied according to the ABI function.  
+    
+    See [this](https://github.com/CYBAVO/react-native_wallet_sdk_sample/blob/master/screens/WithdrawScreen.js#L187-L209) for complete example.  
+    
+    See [Withdraw to Public Chain](https://github.com/CYBAVO/CYBAVO_WALLET_RN_SAMPLE/blob/master/docs/private_chain.md#2-withdraw-to-public-chain) for another specific usage in private chain.
