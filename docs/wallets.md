@@ -84,9 +84,9 @@ function getCurrencyPrices(wallets: Array<{
 
 ```ts
 /// Get number balances on a batch of addresses
-/// @param addresses: Map of addresses to query. ex: {Wallet.walletId: Wallet}
+/// @param addresses: Array of addresses to query, the key of Map will be same with [[GetBalancesResult.balances]]
 /// @return Promise<GetBalancesResult>
-///         resolve: ➡️ Contains Map of Balances. ex: {Wallet.walletId: Balance}
+///         resolve: ➡️ Contains Map of Balances. the key will be same with parameters passed into [[getBalances]]
 ///
 function getBalances(addresses: Array<{
           /** currency, refer to [[getCurrencies]] API */
