@@ -212,8 +212,8 @@ Wallets.createTransactionSms(
 Other parameters are same as usual.
 ```javascript
 Wallets.createTransactionBio(
-        promptMessage, // ex. "Authorize transactions with biometrics"
-        cancelButtonText, // ex. "Cancel"
+        promptMessage, // ex. 'Authorize transactions with biometrics'
+        cancelButtonText, // ex. 'Cancel'
         fromWalletId, toAddress, amount, transactionFee, description, pinSecret, extras)
   .then(result => { ... })
   .catch(error => { ... });
