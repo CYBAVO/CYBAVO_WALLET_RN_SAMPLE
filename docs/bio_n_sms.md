@@ -204,17 +204,17 @@ Wallets.createTransactionSms(
       smsCode, // Input by user
       mWalletId, toAddress, amount, transactionFee, description, pinSecret, extras)
   .then(result => { ... })
-  .catch(error => {... });
+  .catch(error => { ... });
 ```
 
 ### Biometrics version usage
-1. Invoke biometrics version funtion with `activity`, `promptMessage`, `cancelButtonText`.  
+1. Invoke biometrics version funtion with `promptMessage`, `cancelButtonText`.  
 Other parameters are same as usual.
 ```javascript
 Wallets.createTransactionBio(
         promptMessage, // ex. "Authorize transactions with biometrics"
         cancelButtonText, // ex. "Cancel"
         fromWalletId, toAddress, amount, transactionFee, description, pinSecret, extras)
-  .then(result => {})
-  .catch(error => {});
+  .then(result => { ... })
+  .catch(error => { ... });
 ```

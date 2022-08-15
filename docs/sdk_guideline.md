@@ -17,7 +17,7 @@ It provides both high-level and low-level APIs for nearly all **CYBAVO Wallet AP
   - Advanced
     - NFT ➜ [NFT.md](NFT.md)
     - WalletConnect ➜ [wallet_connect.md](wallet_connect.md)
-    - Private Chain ➜ [private_chain.md](private_chain.md)
+    - CYBAVO Private Chain ➜ [private_chain.md](private_chain.md)
     - KYC with Sumsub ➜ [kyc_sumsub.md](kyc_sumsub.md)
 
 ## SDK Guideline
@@ -119,11 +119,11 @@ $ react-native link @cybavo/react-native-wallet-service
 
 ![ref](images/sdk_guideline/signin_signup.jpg)
 
-## Third-Party login
+## Third-Party Login
 
   Supported services : Apple / Google / Facebook / LINE / Twitter / WeChat
 
-## Sign-in flow
+## Sign-in Flow
 
 - 3rd party login ➡️ `Auth.signIn` ➡️ get success ➡️ wait for `onSignInStateChanged` update
   
@@ -161,7 +161,7 @@ function signIn(
         ): Promise<SignInResult>;
 ```
 
-## Sign-up flow
+## Sign-up Flow
 
 - `Auth.signUp` ➡️ get success ➡️ `Auth.signIn`
 
@@ -215,7 +215,7 @@ enum SignInState {
   ```
 - For Security Enhancement in the [flowchart](#sign-in--sign-up-flowchart), `NEED_VERIFY_OTP` and `NEED_REGISTER_PHONE` SignInState, please see [Security Enhancement](bio_n_sms.md)
 
-- Call `getSignInState` whenever you need current `SignInState`
+- Call `getSignInState` whenever you need current `SignInState`.
 
   ```ts
   function getSignInState(): Promise<SignInState>;
