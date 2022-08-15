@@ -119,13 +119,13 @@ Related APIs are listed in [APIs which Required Biometrics Verification](#apis-w
 - Complete the setup before using [APIs which Required Biometrics Verification](#apis-which-required-biometrics-verification).
 1. Check if the user needs biometrics / SMS verification
 2. Call `updateDeviceInfo()`, this step is telling server if the device able to use biometrics or not.
-    ```java
+    ```javascript
     // Update device's biometrics type, WalletSDK will decide the type
-    Wallets.getInstance().updateDeviceInfo(context, callback);
+    await Wallets.updateDeviceInfo();
 
     // Update device's biometrics type with specific type
     // Passing BiometricsType.NONE means you'll use SMS verification instead of biometrics.
-    Wallets.getInstance().updateDeviceInfo(BiometricsType.NONE, callback);
+    await Wallets.updateDeviceInfoWithType(Wallets.BiometricsType.NONE);
     ```
 3. Call `getBiometricsType()` to get supported biometric type
 4. `if (BiometryType != BiometricsType.NONE)` ➜ call `registerPubkey`
