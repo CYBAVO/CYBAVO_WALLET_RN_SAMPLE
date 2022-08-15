@@ -199,17 +199,17 @@ type GetTransactionFeeResult = {
 - You can use `estimateTransaction()` to get the platfom fee:
 ```javascript
 Wallets.estimateTransaction(
-    wallet.currency,
-    wallet.tokenAddress,
-    amount, // ex.  '100'
-    '0', // transactionFee: fixed to '0'
-    wallet.walletId,
-  ''
-).then(result => {
-      //check result.platformFee
-}).catch(error => {
-      console.warn(error);
-});
+      wallet.currency,
+      wallet.tokenAddress,
+      amount, // ex.  '100'
+      '0', // transactionFee: fixed to '0'
+      wallet.walletId,
+      ''
+  ).then(result => {
+        //check result.platformFee
+  }).catch(error => {
+        console.warn(error);
+  });
 ```
 #### Create Transaction
 - Call `createTransaction` to perform the transaction with specific parameters:
