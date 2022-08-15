@@ -1,6 +1,5 @@
-# Private Chain
+# CYBAVO Private Chain (CPC)
 
-- Private chain a.k.a. CYBAVO Private Smart Chain (CPSC)
 - Scenario for:
   - Financial Products
   - Financial Management Services
@@ -16,7 +15,9 @@
   - [Model - Wallet](#wallet)
   - [Model - Currency](#currency)
   - [Model - UserState](#userstate)
-  - [Transactions (Deposit to Private Chain, Withdraw to Public Chain, Inner Transfer)](#transactions)
+  - [Transactions - Deposit to Private Chain](#1-deposit-to-private-chain)
+  - [Transactions - Withdraw to Public Chain](#2-withdraw-to-public-chain)
+  - [Transactions - Inner Transfer](#3-inner-transfer)
   - [Transaction History](#transaction-history)
 
 ## Models
@@ -28,7 +29,7 @@ type Wallet = {
 
     walletId: number; // Wallet ID
 
-    isPrivate: boolean; // Is private chain (CPSC)
+    isPrivate: boolean; // Is private chain (CPC)
 
     mapToPublicCurrency: number; // Public chain's currency
 
@@ -59,7 +60,7 @@ type Wallet = {
 ```ts
 type Currency = {
 
-    isPrivate: boolean; // Is private chain (CPSC)
+    isPrivate: boolean; // Is private chain (CPC)
 
     mapToPublicType: number; // Public chain's currency type
 
@@ -186,7 +187,31 @@ type GetTransactionFeeResult = {
 
 ### 3. Inner Transfer
 
-- There's no transaction fee for inner transfer.
+#### Private Chain Platform Fee
+- On the **admin panel** ➜ **CYBAVO Smart Chain** ➜ **Chain Settings**, choose a currency which supports platform fee, click **Manage** button ➜ **Chain Wallet info**, you can found **Transfer Fee Rate** and **Transfer Fee Min**.  
+
+  <img src="images/sdk_guideline/private_chain_platform_fee.png" alt="drawing" width="600"/>
+- All the transfer operation on private chain will be charged platform fee, including inner transfer and transaction for finance product, not including deposit to private chain and withdraw to public chain. 
+- Platform fee calculation:
+  1. Platform Fee = Transfer Amount * **Transfer Fee Rate**
+  2. If the result of step 1 is less then **Transfer Fee Min**, use **Transfer Fee Min**.
+  3. If the currency not supported platform fee, the `platformFee` will be '0'.
+- You can use `estimateTransaction()` to get the platfom fee:
+```javascript
+Wallets.estimateTransaction(
+      wallet.currency,
+      wallet.tokenAddress,
+      amount, // ex. '100'
+      '0', // transactionFee: fixed to '0'
+      wallet.walletId,
+      ''
+  ).then(result => {
+        //check result.platformFee
+  }).catch(error => {
+        console.warn(error);
+  });
+```
+#### Create Transaction
 - Call `createTransaction` to perform the transaction with specific parameters:
 
 ```javascript

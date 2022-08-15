@@ -11,13 +11,13 @@ It provides both high-level and low-level APIs for nearly all **CYBAVO Wallet AP
   - [PIN Code](#pin-code)
   - Wallets ➜ [wallets.md](wallets.md)
   - Transaction ➜ [transaction.md](transaction.md)
-  - Biometrics & SMS ➜ [bio_n_sms.md](bio_n_sms.md)
+  - Security Enhancement ➜ [bio_n_sms.md](bio_n_sms.md)
   - [Push Notification](#push-notification)
   - [Others](#others)
   - Advanced
     - NFT ➜ [NFT.md](NFT.md)
     - WalletConnect ➜ [wallet_connect.md](wallet_connect.md)
-    - Private Chain ➜ [private_chain.md](private_chain.md)
+    - CYBAVO Private Chain ➜ [private_chain.md](private_chain.md)
     - KYC with Sumsub ➜ [kyc_sumsub.md](kyc_sumsub.md)
 
 ## SDK Guideline
@@ -119,11 +119,11 @@ $ react-native link @cybavo/react-native-wallet-service
 
 ![ref](images/sdk_guideline/signin_signup.jpg)
 
-## Third-Party login
+## Third-Party Login
 
   Supported services : Apple / Google / Facebook / LINE / Twitter / WeChat
 
-## Sign-in flow
+## Sign-in Flow
 
 - 3rd party login ➡️ `Auth.signIn` ➡️ get success ➡️ wait for `onSignInStateChanged` update
   
@@ -161,7 +161,7 @@ function signIn(
         ): Promise<SignInResult>;
 ```
 
-## Sign-up flow
+## Sign-up Flow
 
 - `Auth.signUp` ➡️ get success ➡️ `Auth.signIn`
 
@@ -213,45 +213,9 @@ enum SignInState {
   ```javascript
   Auth.addListener(Auth.Events.onSignInStateChanged, signInState => {});
   ```
+- For Security Enhancement in the [flowchart](#sign-in--sign-up-flowchart), `NEED_VERIFY_OTP` and `NEED_REGISTER_PHONE` SignInState, please see [Security Enhancement](bio_n_sms.md)
 
-- If you activate the Security Enhancement in the console.  
-
-  <img src="images/sdk_guideline/screenshot_security_enhancement.png" alt="drawing" width="400"/>  
-
-  You might get `NEED_REGISTER_PHONE` or `NEED_VERIFY_OTP` as your `SignInState`.  
-  ➡️ Do `registerPhoneNumber` and `verifyOtp` before the next step.
-
-- RegisterPhoneNumber
-
-  ```ts
-  /// register phone number
-  /// @param countryCode: country code, ex. 886
-  /// @param phone: phone number, ex. 900123456
-  /// @return Promise<RegisterPhoneNumberResult>
-  ///         resolve: ➡️ get actionToken
-  ///
-  function registerPhoneNumber(
-            countryCode: string,
-            phone: string,
-            duration: number,
-         ): Promise<RegisterPhoneNumberResult>;
-  ```
-
-- VerifyOTP
-
-  ```ts
-  /// verify OTP
-  /// @param actionToken: actionToken returned by registerPhoneNumber / getSmsCode
-  /// @param code: SMS code that registered phone received
-  /// @return Promise<VerifyOtpResult>
-  ///
-  function verifyOtp(
-          actionToken: string,
-          code: string
-      ): Promise<VerifyOtpResult>;
-  ```
-
-- Call `getSignInState` anytime when you need current `SignInState`
+- Call `getSignInState` whenever you need current `SignInState`.
 
   ```ts
   function getSignInState(): Promise<SignInState>;

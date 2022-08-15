@@ -65,7 +65,7 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    ```
 4. Unmark `require('crypto')` in `shim.js`
 5. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont.  
-For example, Set `MAIN_ENDPOINT` = https://mvault.cybavo.com/v1/mw/ for test environemnt
+For example, Set `MAIN_ENDPOINT` = https://mvault.sandbox.cybavo.com/v1/mw/ for test environemnt
 ## Android
 
 1. Edit or create `android/local.properties` to config Maven repository URL / credentials provided by CYBAVO
