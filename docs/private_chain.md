@@ -201,7 +201,7 @@ type GetTransactionFeeResult = {
 Wallets.estimateTransaction(
       wallet.currency,
       wallet.tokenAddress,
-      amount, // ex.  '100'
+      amount, // ex. '100'
       '0', // transactionFee: fixed to '0'
       wallet.walletId,
       ''
