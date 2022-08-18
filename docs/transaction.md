@@ -158,17 +158,16 @@ function getAddressesTags(
 ///         3. num_bytes (number) - Bytes of RAM/NET for EOS RAM delegation/undelegation transactions. The minimal amounts are 1024 bytes
 ///         4. input_data (string) - Hex string of input data. Must also set gas_limit when have this attributes
 ///         5. gas_limit (number) - Must specify this if there were input_data
-///         6. skip_email_notification (Boolean) -Determined whether or not to skip sending notification mail after create a transaction
+///         6. skip_email_notification (boolean) -Determined whether or not to skip sending notification mail after create a transaction
 ///         7. token_id (string) - token ID for ERC-1155
 ///         8. kind (string) - kind for private chain, code: private to private; out: private to public
 ///         9. to_address_tag (Array<string>) -AML tag, get from getAddressesTags() API
 ///        10. custom_nonce (number) - Specific nonce
 ///        11. custom_gas_limit (number) - Specific gas limit
 ///        12. sol_token_id (string) - token ID of SOL NFT, if get from getSolNftTokens() API, the token ID would be TokenMeta.tokenAddress
-///      - Note 1:
+///        13. force_send (boolean) - For SOL transaction, true means create ATA account for receiver
+///      - Note:
 ///         - When eos_transaction_type is EosResourceTransactionType.SELL_RAM, EosResourceTransactionType.UNDELEGATE_CPU or EosResourceTransactionType.UNDELEGATE_NET, the receiver should be address of Wallet fromWalletId
-///         - ex: {"memo": "abcd", "eos_transaction_type": EosResourceTransactionType.SELL_RAM, "skip_email_notification": false, "kind": "code"}
-///      - Note 2: Pass sol_token_id for SOL NFT transaction, and the amount must be "1", otherwise, it will return ErrInvalidParameter error
 ///  @return Promise<CreateTransactionResult>
 ///
 function createTransaction(
