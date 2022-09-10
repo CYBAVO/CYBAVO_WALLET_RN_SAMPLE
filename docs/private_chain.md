@@ -260,7 +260,7 @@ let extras = { kind: 'code' }; //means it's a inner transfer transaction
 |  Contract Address  | `uuid`  | |
 |  StartAt  | `startTimestamp`  | |
 |  Title:zh-tw <br>Title:zh-cn<br>Title:zh-en | `title.tw`<br>`title.cn`<br>`title.en`  |- Display one of these as product name according to device locale.|
-|  Max Users<br>UserWarningCountPrcent  | `maxUsers`<br>`userPercent`  |- `maxUsers` <= `userCount`, means sold out.<br>- `maxUsers` * `userPercent` >= `userCount`, means available<br>- `maxUsers` * `userPercent` < `userCount`, means about full.|
+|  Max Users<br>UserWarningCountPrcent  | `maxUsers`<br>`userPercent`  |- `maxUsers` <= `userCount`, means sold out.<br>- `maxUsers` * `userPercent` >= `userCount`, means available.<br>- `maxUsers` * `userPercent` < `userCount`, means about full.|
 |  Show Rate  | `rate`  |- Display it as annual interest rate.<br>-`ratePercent` is `double` version of annual interest rate.|
 |  Campaign  | `GetFinancialProductsResult.campaign`  |- If Campaign is checked, this product will also exist in `GetFinancialProductsResult.campaign`.|
 |  MinDeposit<br>MaxDeposit  | `minDeposit`<br>`maxDeposit`  |- Display the deposit amount limit range.<br>ex. Min 0.5 HW-ETH - 1000 HW-ETH. |
@@ -404,10 +404,8 @@ Wallets.getFinancialHistoryByKind(kind, page)
             let product = result.products[history.productUuid];
             // Use FinancialHistory.isCan || FinancialProduct.isCan
             let isCanWithdraw = history.isCanWithdraw || product.isCanWithdraw;
-            let isCanEarlyWithdraw =
-              history.isCanEarlyWithdraw || product.isCanEarlyWithdraw;
-            let isCanWithdrawReward =
-              history.isCanWithdrawReward || product.isCanWithdrawReward;
+            let isCanEarlyWithdraw = history.isCanEarlyWithdraw || product.isCanEarlyWithdraw;
+            let isCanWithdrawReward = history.isCanWithdrawReward || product.isCanWithdrawReward;
 
             /**
               ex. Currency: HW-XRP, Subscribe item: Demand Deposits (Hourly Interest), Deposit amount: 0.522019%
@@ -455,10 +453,8 @@ WWallets.getFinancialHistoryByProduct(financialProduct.uuid, page)
             let product = result.products[history.productUuid];
             // Use FinancialHistory.isCan || FinancialProduct.isCan
             let isCanWithdraw = history.isCanWithdraw || product.isCanWithdraw;
-            let isCanEarlyWithdraw =
-              history.isCanEarlyWithdraw || product.isCanEarlyWithdraw;
-            let isCanWithdrawReward =
-              history.isCanWithdrawReward || product.isCanWithdrawReward;
+            let isCanEarlyWithdraw = history.isCanEarlyWithdraw || product.isCanEarlyWithdraw;
+            let isCanWithdrawReward = history.isCanWithdrawReward || product.isCanWithdrawReward;
             /**
              ex. Currency: HW-XRP, Subscribe item: Time deposit (10 days), Deposit amount: 0.521955%
               Start date: 2022-09-09 23:37:39, Value date:
