@@ -552,12 +552,12 @@ const getEnum = (theEnum, value) => {
  
 |  ABI Method Name<br>`args[0]`   | `kind` /<br>Perform  to  | Note | `args` |
 |  :----:  | :----  | :----  | :---- |
-|  [approve](#approve-activate)  | `FixedDeposit`<br>`DemandDeposit` / <br>FinancialProduct | - Approve to activate the product.<br>- Required and cannot perform other operations if `FinancialProduct.isNeedApprove` is true | ['approve', product.uuid] |
-|  [deposit](#deposit)  | `FixedDeposit`<br>`DemandDeposit` / <br>FinancialProduct  | - Deposit to the product.<br>- Performable when `FinancialProduct.isCanDeposit` is true| ['deposit',<br>product.uuid,<br>amount, <br>''] |
-|  [withdraw](#withdraw---fixeddeposit)  | `FixedDeposit` / <br>Order which linked to FinancialHistory| - Withdraw all principal and interest to given financial wallet.<br>- amount is fixed to '0' for all.<br>- Cannot withdraw if current time is earlier then `FinancialHistory.userWaitToWithdraw`.<br>- Performable when `isCanWithdraw` is true<br>- `isCanWithdraw = history.isCanWithdraw \|\| history.isCanWithdraw`| ['withdraw', product.uuid,<br>'0',<br>history.orderId] |
-|  [withdraw](#withdraw---demanddeposit)  | `DemandDeposit` / <br>FinancialProduct | - Withdraw a certain amount of principal to given financial wallet.<br>- Cannot withdraw if current time is earlier then `FinancialProduct.userWaitToWithdraw`.<br>- Performable when `FinancialProduct.isCanWithdraw` is true| ['withdraw', product.uuid,<br>amount,<br>''] |
+|  [approve](#approve-activate)  | `FixedDeposit`<br>`DemandDeposit` / <br>FinancialProduct | - Approve to activate the product.<br>- Required and cannot perform other operations if `isNeedApprove` is true<br>- `isNeedApprove = history.isNeedApprove \|\| product.isNeedApprove` | ['approve', product.uuid] |
+|  [deposit](#deposit)  | `FixedDeposit`<br>`DemandDeposit` / <br>FinancialProduct  | - Deposit to the product.<br>- Performable when `isCanDeposit` is true<br>- `isCanDeposit = history.isCanDeposit \|\| product.isCanDeposit`| ['deposit',<br>product.uuid,<br>amount, <br>''] |
+|  [withdraw](#withdraw---fixeddeposit)  | `FixedDeposit` / <br>Order which linked to FinancialHistory| - Withdraw all principal and interest to given financial wallet.<br>- amount is fixed to '0' for all.<br>- Cannot withdraw if current time is earlier then `FinancialHistory.userWaitToWithdraw`.<br>- Performable when `isCanWithdraw` is true<br>- `isCanWithdraw = history.isCanWithdraw \|\| product.isCanWithdraw`| ['withdraw', product.uuid,<br>'0',<br>history.orderId] |
+|  [withdraw](#withdraw---demanddeposit)  | `DemandDeposit` / <br>FinancialProduct | - Withdraw a certain amount of principal to given financial wallet.<br>- Cannot withdraw if current time is earlier then `FinancialProduct.userWaitToWithdraw`.<br>- Performable when `isCanWithdraw` is true<br>- `isCanWithdraw = history.isCanWithdraw \|\| product.isCanWithdraw`| ['withdraw', product.uuid,<br>amount,<br>''] |
 |  [earlyWithdraw](#earlywithdraw)  | `FixedDeposit` / <br>Order which linked to FinancialHistory | - Withdraw all principal and interest to given financial wallet.<br>- Withdraw by product / order.<br>- Interest will be deducted, see [Financial Order](#financial-order).<br>- amount is fixed to '0' for all.<br>- Cannot withdraw if current time is earlier then `FinancialHistory.userWaitToWithdraw`.<br>- Performable when `isCanEarlyWithdraw` is true<br>- `isCanEarlyWithdraw = history.isCanEarlyWithdraw \|\| product.isCanEarlyWithdraw`| ['earlyWithdraw',<br>product.uuid,<br>'0', <br>history.orderId] |
-|  [withdrawReward](#withdrawreward)  | `DemandDeposit` / <br>FinancialProduct | - Withdraw all interest to given financial wallet.<br>- amount is fixed to '0' for all.<br>- Cannot withdraw if current time is earlier then `FinancialProduct.userWaitToWithdraw`.<br>- Performable when `FinancialProduct.isCanWithdrawReward` is true| ['withdrawReward', product.uuid,<br>'0',<br>''] |
+|  [withdrawReward](#withdrawreward)  | `DemandDeposit` / <br>FinancialProduct | - Withdraw all interest to given financial wallet.<br>- amount is fixed to '0' for all.<br>- Cannot withdraw if current time is earlier then `FinancialProduct.userWaitToWithdraw`.<br>- Performable when `isCanWithdrawReward` is true<br>- `isCanWithdrawReward = history.isCanWithdrawReward \|\| product.isCanWithdrawReward`| ['withdrawReward', product.uuid,<br>'0',<br>''] |
 |  [withdrawBonus](#withdrawbonus)  | - / FinancialBonus | - Withdraw bonus to given financial wallet.<br>- Performable when `FinancialBonus.isAlreadyWithdrawn` is false| ['withdrawBonus', bonus.uuid,<br>'0'] |
 
 Below code snippet shows a pattern to use `callAbiFunctionTransaction()` for those operations.
@@ -622,8 +622,9 @@ console.debug(`kind: ${getEnum(Wallets.TransactionExplain.Kind,transaction.expla
 
 #### Approve Activate
  ```js
-if (!product.isNeedApprove) {
-      return;
+let isNeedApprove = history.isNeedApprove || product.isNeedApprove;
+if (!isNeedApprove) {
+    return;
 }
 
 let wallet = findWallet(privateWallets, product.currency, product.tokenAddress);
@@ -653,7 +654,8 @@ ex.  Min 0.5 HW-ETH - 1000 HW-ETH
 - For `FixedDeposit`, you can display estimate reward when editing amount.  
 estimate reward = product.ratePercent * amount 
 ```js
-if (!product.isCanDeposit) {
+let isCanDeposit = history.isCanDeposit || product.isCanDeposit;
+if (!isCanDeposit) {
     return;
 }
 
@@ -708,7 +710,8 @@ await Wallets.callAbiFunctionTransaction(
  [↑ Transaction Operations ↑](#transaction-operations)
 #### Withdraw - DemandDeposit
 ```js
-if (!product.isCanWithdraw) {
+let isCanWithdraw = history.isCanWithdraw || product.isCanWithdraw;
+if (!isCanWithdraw) {
     return;
 }
 let secInFuture = getSecInFuture(product.userWaitToWithdraw);
@@ -767,7 +770,8 @@ await Wallets.callAbiFunctionTransaction(
  [↑ Transaction Operations ↑](#transaction-operations)
 #### withdrawReward
 ```js
-if (!product.isCanWithdrawReward) {
+let isCanWithdrawReward = history.isCanWithdrawReward || product.isCanWithdrawReward;
+if (!isCanWithdrawReward) {
     return;
 }
 let secInFuture = getSecInFuture(product.userWaitToWithdraw);
