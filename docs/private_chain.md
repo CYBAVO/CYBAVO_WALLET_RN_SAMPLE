@@ -246,9 +246,9 @@ let extras = { kind: 'code' }; //means it's a inner transfer transaction
 
 ### SDK Version Requirement
 - ⚠️ Please use following version or later:
-  - React Native - `@cybavo/react-native-wallet-service@1.2.253`
+  - React Native - `@cybavo/react-native-wallet-service@1.2.255`
   - Android - `com.cybavo.wallet:wallet-sdk-lib:1.2.4463`
-  - iOS - `CYBAVOWallet (1.2.450)`
+  - iOS - `CYBAVOWallet (1.2.451)`
 ### Financial Product  
 - The following image and table shows the mapping of product settings on the admin panel and FinancialProduct fields. 
 
