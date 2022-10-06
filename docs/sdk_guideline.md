@@ -70,12 +70,24 @@ $ react-native link @cybavo/react-native-wallet-service
    cybavo.maven.password=$MAVEN_REPO_PASSWORD
    ```
 #### iOS
-- CocoaPods `1.1.0+` is required to build `CYBAVOWallet 1.2.0+`  
+- CocoaPods `1.9.3+` is required to build `CYBAVOWallet 1.2.451+`   
+- Suggest using Xcode 14 
 - Add as follows at the top of `ios/Podfile`:
 
     ```sh
     source 'https://github.com/CocoaPods/Specs.git'
     source 'https://bitbucket.org/cybavo/Specs_512.git'
+
+    post_install do |installer|
+      installer.pods_project.build_configurations.each do |config|
+        config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
+      end
+      installer.pods_project.targets.each do |target|
+        target.build_configurations.each do |config|
+          config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+        end
+      end
+    end
     ```
 
 - Then run:  
