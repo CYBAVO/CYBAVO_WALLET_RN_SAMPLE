@@ -77,17 +77,6 @@ $ react-native link @cybavo/react-native-wallet-service
     ```sh
     source 'https://github.com/CocoaPods/Specs.git'
     source 'https://bitbucket.org/cybavo/Specs_512.git'
-
-    post_install do |installer|
-      installer.pods_project.build_configurations.each do |config|
-        config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
-      end
-      installer.pods_project.targets.each do |target|
-        target.build_configurations.each do |config|
-          config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
-        end
-      end
-    end
     ```
 
 - Then run:  
@@ -95,7 +84,32 @@ $ react-native link @cybavo/react-native-wallet-service
     ```shell
     $ pod install
     ```
+##### ⚠️ Troubleshooting
+- If you meet build errors like this:
+  ```
+  error build: Undefined symbol: _$s11CryptoSwift3GCMC4ModeO8combinedyA2EmFWC
+  error build: Undefined symbol: _$s11CryptoSwift7PaddingO02noC0yA2CmFWC
+  error build: Undefined symbol: _$s12ObjectMapper12BaseMappableP7mapping3mapyAA3MapC_tFTq
+  error build: Undefined symbol: _$s9Alamofire10HTTPMethodO4postyA2CmFWC
+  error build: Undefined symbol: _$s9Alamofire11URLEncodingV11DestinationO11queryStringyA2EmFWC
+  error build: Undefined symbol: _$s9Alamofire14SessionManagerC7request_6method10parameters8encoding7headersAA11DataRequestCAA14URLConvertible_p_AA10HTTPMethodOSDySSypGSgAA17ParameterEncoding_pSDyS2SGSgtFTj
+  ```
+  This is related to cocoapods issue, please put following `post_install` hook in your Podfile.
+  ```sh
+  post_install do |installer|
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+      end
+    end
+  end
+  ```
+  Then run the command below and rebuild:  
 
+  ```shell
+  pod deintegrate
+  pod install
+  ```
 
 ### Initialization
 
