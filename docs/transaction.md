@@ -222,22 +222,22 @@ function getHistory(
     - Has more: `result.start` + `result.transactions.length` < `result.total`
 - Response: list of `Transaction`
 
-    ```ts
-    type Transaction = {
-        /* transaction ID. */
-        txid: string;
+  ```ts
+  type Transaction = {
+      /* transaction ID. */
+      txid: string;
 
-        pending: boolean;
+      pending: boolean;
 
-        success: boolean;
-        /* Is transaction dropped by the blockchain. */
-        dropped: boolean;
-        /* Is transaction replaced by another transaction. */
-        replaced: boolean;
-    
-        ...
-    }
-    ```
+      success: boolean;
+      /* Is transaction dropped by the blockchain. */
+      dropped: boolean;
+      /* Is transaction replaced by another transaction. */
+      replaced: boolean;
+  
+      ...
+  }
+  ```
 
     <img src="images/sdk_guideline/transaction_state.jpg" alt="drawing" width="600"/>
 
@@ -249,7 +249,7 @@ function getHistory(
   - Android SDK - `com.cybavo.wallet:wallet-sdk-lib:1.2.4579`
   - iOS SDK - `CYBAVOWallet (1.2.490)`
 - You can also use `getUserHistory()` to retrive all transaction histories of the user.
-```js
+```ts
 /// Get transaction history of the user
 /// @param start Query start offset
 /// @param count Query count returned
@@ -340,15 +340,14 @@ The user needs to create another Tx with higher Tx fee and the same nonce to rep
   type Transaction = {
 
       txid: string;
-      
-      replaceable: boolean;// Is transaction replaceable
-
-      replaced: boolean; // Is transaction replaced by another transaction
-
-      replaceTxid: string; // TXID of replacement of this transaction if {@link #replaced} == true
-
-      nonce: number; // Nonce of transaction, only valid on ETH, same nonce means replacements
-      
+      /* Is transaction replaceable. */
+      replaceable: boolean;
+      /* Is transaction replaced by another transaction. */
+      replaced: boolean; 
+      /* TXID of replacement of this transaction if replaced == true */
+      replaceTxid: string; 
+      /* Nonce of transaction, only valid on ETH, same nonce means replacements. */
+      nonce: number; 
       ...
   }
   ```
