@@ -62,12 +62,12 @@ function getCurrencyTraits(
 
     ```ts
     type GetCurrencyTraitsResult = {
-
-        ranularity: string; // EPI-777: withdraw must be multiples of granularity
-
-        existentialDeposit: string; // The minimum balance after transaction (ALGO, DOT, KSM)
-
-        minimumAccountBalance: string; // The minimum balance after transaction (XLM, FLOW)
+        /* EPI-777: withdraw must be multiples of granularity. */
+        ranularity: string; 
+        /*The minimum balance after transaction (ALGO, DOT, KSM). */
+        existentialDeposit: string; 
+        /* The minimum balance after transaction (XLM, FLOW) */
+        minimumAccountBalance: string; 
     }
     ```
 
@@ -104,14 +104,14 @@ function estimateTransaction(
 
     ```ts
     type EstimateTransactionResult = {
-
-        tranasctionAmout: string; // Estimated total amount to transaction
-
-        platformFee: string; // Estimated platform fee of transaction
-
-        blockchainFee: string; // Estimated blockchain fee of transaction
-
-        withdrawMin: string; // Minimum transfer amount for private chain
+        /* Estimated total amount to transaction. */
+        tranasctionAmout: string;
+        /* Estimated platform fee of transaction. */
+        platformFee: string;
+        /* Estimated blockchain fee of transaction. */
+        blockchainFee: string;
+        /* Minimum transfer amount for private chain. */
+        withdrawMin: string; 
     }
     ```
 
@@ -183,9 +183,11 @@ function createTransaction(
 
 ## Transaction Detail
 
+- There are two APIs for retriving transaction histories: `getHistory()` and `getUserHistory()`.
+
 ### getHistory
 
-- Call this API to get the transaction history.
+- You can use `getHistory()` to get transaction histories of a certern wallet.
 
 ```ts
 /// Get transaction history from
@@ -222,16 +224,16 @@ function getHistory(
 
     ```ts
     type Transaction = {
-
-        txid: string; // transaction ID
+        /* transaction ID. */
+        txid: string;
 
         pending: boolean;
 
         success: boolean;
-
-        dropped: boolean; // Is transaction dropped by the blockchain
-
-        replaced: boolean; // Is transaction replaced by another transaction
+        /* Is transaction dropped by the blockchain. */
+        dropped: boolean;
+        /* Is transaction replaced by another transaction. */
+        replaced: boolean;
     
         ...
     }
@@ -241,6 +243,67 @@ function getHistory(
 
 - If the Tx's final state is `Success` or `Pending`, you could call `getTransactionInfo` to check the information about this Tx on the blockchain.
 
+### getUserHistory
+- ⚠️ `getUserHistory()` and `Transaction.Type` are only available on the SDK version which listed below or later.  
+  - React Native - `@cybavo/react-native-wallet-service@1.2.276`
+  - Android SDK - `com.cybavo.wallet:wallet-sdk-lib:1.2.4579`
+  - iOS SDK - `CYBAVOWallet (1.2.490)`
+- You can also use `getUserHistory()` to retrive all transaction histories of the user.
+```js
+/// Get transaction history of the user
+/// @param start Query start offset
+/// @param count Query count returned
+/// @param crosschain For private chain transaction history filtering. 0: history for private chain transfer; 1: history for crossing private and public chain
+/// @param Filter parameters:
+///     - type {Transaction.Type}, {Transaction.Type[]} - Transaction type
+///     - pending {boolean} - Pending state of transactions
+///     - success {boolean} - Success state of transactions
+///     - start_time {number} - Start of time period to query, in Unix timestamp
+///     - end_time {number} - End of time period to query, in Unix timestamp
+///     - currency: {number} - Currency of the transaction
+///     - token_address: {string} - Token contract address of the transaction
+/// @return Promise<GetHistoryResult>
+///
+function getUserHistory(
+          start: number,
+          count: number,
+          filters?: object
+       ): Promise<GetHistoryResult>;
+```
+
+- Since the result may include transactions from public chain, private chain and different currency. For the returned `Transaction`, there are three fields you can refer to.
+
+```ts
+type Transaction = {
+    /* Currency of the transaction. */
+    currency: number;
+    /* Token contract address of the transaction. */
+    tokenAddress: string;
+    /**
+        Type of the transaction.
+        Only available in the result of getUserHistory()
+        Please refer to Transaction.Type for the definition.
+    */
+    type: Trnasaction.Type;
+    ...
+}
+```
+### Enum - Transaction.Type
+
+- Enum Constant Summary
+
+| Enum Constant  | Value | Description |
+| ----  | ----  | ---- |
+|	Unknown	|	0	| 	Default value when no data available.	|
+|	MainDeposit	|	1	| Deposit on public chain.		| 
+|	MainWithdraw	|	2	| Withdraw on public chain.		| 
+|	PrivDeposit	|	3	| Deposit on private chain, including inner transfer and deposit to private chain (mint).		| 
+|	PrivWithdraw	|	4	| Withdraw on private chain, including inner transfer and withdraw to public chain (burn).		| 
+|	PrivOuterDeposit	|	5	| When deposit from public chain to private chain, the history of public chain.		| 
+|	PrivOuterWithdraw	|	6	| When withdraw from private chain to public chain, the history of private chain.		| 
+|	PrivProductDeposit	|	7	| Deposit financial product.		| 
+|	PrivProductWithdraw	|	8	| Withdraw, earlyWithdraw financial product.		| 
+|	PrivProductReward	|	9	| WithdrawReward financial product.		| 
 ### getTransactionInfo
 
 - Check the information about the Tx on the blockchain.
