@@ -64,7 +64,7 @@ function getCurrencyTraits(
     type GetCurrencyTraitsResult = {
         /* EPI-777: withdraw must be multiples of granularity. */
         ranularity: string; 
-        /*The minimum balance after transaction (ALGO, DOT, KSM). */
+        /* The minimum balance after transaction (ALGO, DOT, KSM). */
         existentialDeposit: string; 
         /* The minimum balance after transaction (XLM, FLOW) */
         minimumAccountBalance: string; 
