@@ -79,22 +79,8 @@ $ react-native link @cybavo/react-native-wallet-service
     source 'https://bitbucket.org/cybavo/Specs_512.git'
     ```
 
-- Then run:  
+- ⚠️ From `CYBAVOWallet 1.2.497`, please put following `post_install` hook in the Podfile.
 
-    ```shell
-    $ pod install
-    ```
-##### ⚠️ Troubleshooting
-- If you meet build errors like this:
-  ```
-  error build: Undefined symbol: _$s11CryptoSwift3GCMC4ModeO8combinedyA2EmFWC
-  error build: Undefined symbol: _$s11CryptoSwift7PaddingO02noC0yA2CmFWC
-  error build: Undefined symbol: _$s12ObjectMapper12BaseMappableP7mapping3mapyAA3MapC_tFTq
-  error build: Undefined symbol: _$s9Alamofire10HTTPMethodO4postyA2CmFWC
-  error build: Undefined symbol: _$s9Alamofire11URLEncodingV11DestinationO11queryStringyA2EmFWC
-  error build: Undefined symbol: _$s9Alamofire14SessionManagerC7request_6method10parameters8encoding7headersAA11DataRequestCAA14URLConvertible_p_AA10HTTPMethodOSDySSypGSgAA17ParameterEncoding_pSDyS2SGSgtFTj
-  ```
-  This is related to cocoapods issue, please put following `post_install` hook in your Podfile.
   ```sh
   post_install do |installer|
     installer.pods_project.targets.each do |target|
@@ -104,13 +90,12 @@ $ react-native link @cybavo/react-native-wallet-service
     end
   end
   ```
-  Then run the command below and rebuild:  
+  
+- Then run:  
 
-  ```shell
-  pod deintegrate
-  pod install
-  ```
-
+    ```shell
+    $ pod install
+    ```
 ### Initialization
 
 - Initialize Wallet SDK before using it.
