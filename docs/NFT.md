@@ -8,7 +8,7 @@
   - [Transaction Detail](#transaction-detail)
   - [Specific Usage](#specific-usage)
     - [Solana NFT Tokens](#solana-nft-tokens)
-    - [Withdraw Solana NFT Tokens](#withdrawing-solana-nft-tokens)
+    - [Withdrawing Solana NFT Tokens](#withdrawing-solana-nft-tokens)
 
 ## NFT Wallet Creation
 
@@ -115,7 +115,7 @@ type Balance = {
 - When `createTransaction`
   - For [EIP-721](https://eips.ethereum.org/EIPS/eip-721) , set parameter `amount = tokenId`
   - For [EIP-1155](https://eips.ethereum.org/EIPS/eip-1155) , set parameter `amount = tokenIdAmount` and `extras['token_id'] = tokenId`
-  - For Solana, see [Withdraw Solana NFT Tokens](#withdrawing-solana-nft-tokens)
+  - For Solana, see [Withdrawing Solana NFT Tokens](#withdrawing-solana-nft-tokens)
 
 ## Transaction Detail
 
