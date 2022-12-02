@@ -170,3 +170,4 @@ try{
   console.warn('createTransaction failed', error);
 }
 ```
+- For Solana NFT transactions, the `Transaction.tokenId` is the token address, for fungible asset transaction, this field will be empty.
