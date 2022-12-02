@@ -6,6 +6,9 @@
   - [Deposit](#deposit)
   - [Withdraw](#withdraw)
   - [Transaction Detail](#transaction-detail)
+  - [Specific Usage](#specific-usage)
+    - [Solana NFT Tokens](#solana-nft-tokens)
+    - [Withdraw Solana NFT Tokens](#withdrawing-solana-nft-tokens)
 
 ## NFT Wallet Creation
 
@@ -64,8 +67,9 @@ type Balance = {
 }
 ```
 
-- If ERC-721 (NFT), use `tokens`
-- If ERC-1155 (NFT), use `tokenIdAmounts`
+- For ERC-721 (NFT), use `tokens`
+- For ERC-1155 (NFT), use `tokenIdAmounts`
+- For Solana, see [Solana NFT Tokens](#solana-nft-tokens)
 
 - In order to present images, call `getMultipleTokenUri` to get token urls.
   
@@ -111,7 +115,58 @@ type Balance = {
 - When `createTransaction`
   - For [EIP-721](https://eips.ethereum.org/EIPS/eip-721) , set parameter `amount = tokenId`
   - For [EIP-1155](https://eips.ethereum.org/EIPS/eip-1155) , set parameter `amount = tokenIdAmount` and `extras['token_id'] = tokenId`
+  - For Solana, see [Withdraw Solana NFT Tokens](#withdrawing-solana-nft-tokens)
 
 ## Transaction Detail
 
 - The steps are similar to normal transactions. Refer to [getHistory](transaction.md#gethistory)
+
+## Specific Usage
+There are specific API usages for some scenarios which related to NFT, you can find them in this section.
+
+### Solana NFT Tokens
+For retriving Solana NFT tokens, please use `getSolNftTokens()`.
+```js
+Wallets.getSolNftTokens(wallet.walletId)
+    .then(result => {
+      for (let tokenMeta of result.tokens) {
+        // ex. tokenAddress: E3LybqvWfLus2KWyrYKYieLVeT6ENpE4znqkMZ9CTrPH, balance: 17, supply: 100, tokenStandard: Unknown
+        console.log(
+          `tokenAddress: ${tokenMeta.tokenAddress}, 
+           balance: ${tokenMeta.balance}, 
+           supply:${tokenMeta.supply}, 
+           tokenStandard: ${getTokenStandard(tokenMeta.tokenStandard)}`
+        );
+      }
+    })
+    .catch(error => {
+      console.warn('Wallets.getSolNftTokens failed', error);
+    });
+
+function getTokenStandard(value) {
+  return Object.keys(Wallets.TokenStandard).find(
+    key => Wallets.TokenStandard[key] === value
+  );
+}
+```
+### Withdrawing Solana NFT Tokens
+For withdrawing Solana NFT tokens, put the selected `TokenMeta.tokenAddress` in extras `sol_token_id` then pass to `createTransaction()`.
+```js
+let extras = {
+  sol_token_id: selectedToken.tokenAddress
+};
+
+try{
+  result = await Wallets.createTransaction(
+        wallet.walletId,
+        receiver,
+        amount,
+        transactionFee.amount,
+        description,
+        pinSecret,
+        extras
+      );
+} catch (error){
+  console.warn('createTransaction failed', error);
+}
+```
