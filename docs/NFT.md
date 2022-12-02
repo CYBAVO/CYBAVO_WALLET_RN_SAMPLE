@@ -122,10 +122,10 @@ type Balance = {
 - The steps are similar to normal transactions. Refer to [getHistory](transaction.md#gethistory)
 
 ## Specific Usage
-There are specific API usages for some scenarios which related to NFT, you can find them in this section.
+- There are specific API usages for some scenarios which related to NFT, you can find them in this section.
 
 ### Solana NFT Tokens
-For retriving Solana NFT tokens, please use `getSolNftTokens()`.
+- For retriving Solana NFT tokens, please use `getSolNftTokens()`.
 ```js
 Wallets.getSolNftTokens(wallet.walletId)
     .then(result => {
@@ -150,7 +150,7 @@ function getTokenStandard(value) {
 }
 ```
 ### Withdrawing Solana NFT Tokens
-For withdrawing Solana NFT tokens, put the selected `TokenMeta.tokenAddress` in extras `sol_token_id` then pass to `createTransaction()`.
+- For withdrawing Solana NFT tokens, put the selected `TokenMeta.tokenAddress` in extras `sol_token_id` then pass to `createTransaction()`.
 ```js
 let extras = {
   sol_token_id: selectedToken.tokenAddress
