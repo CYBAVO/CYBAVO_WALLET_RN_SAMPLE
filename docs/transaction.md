@@ -6,7 +6,7 @@
   - [Transaction Detail](#transaction-detail)
   - [Transaction Replacement](#transaction-replacement)
   - [Interact with Smart Contract](#interact-with-smart-contract)
-  - [Specific Usage](#spcific-usage)
+  - [Specific Usage](#specific-usage)
     - [Solana SignMessage](#solana-signmessage)
     - [Solana Token, ATA](#solana-token-ata)
 
@@ -501,7 +501,7 @@ Wallet SDK provides APIs to call [ABI](https://docs.soliditylang.org/en/develop/
     
     See [Withdraw to Public Chain](https://github.com/CYBAVO/CYBAVO_WALLET_RN_SAMPLE/blob/master/docs/private_chain.md#2-withdraw-to-public-chain) for another specific usage in private chain.
 
-## Spcific Usage
+## Specific Usage
 There are specific API usages for some scenarios which related to transaction, you can find them in this section.
 ### Solana SignMessage
 Since `signMessage()` of Solana can be used to sign a raw transaction, in order to help the caller be more cautious before signing, it required to get an action token then pass to `signMessage()` to verify.
