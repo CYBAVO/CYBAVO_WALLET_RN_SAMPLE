@@ -5,7 +5,11 @@
   - [Withdraw](#withdraw)
   - [Transaction Detail](#transaction-detail)
   - [Transaction Replacement](#transaction-replacement)
-  - [Others](#others)
+  - [Interact with Smart Contract](#interact-with-smart-contract)
+  - [Specific Usage](#specific-usage)
+    - [Solana SignMessage](#solana-signmessage)
+    - [Solana ATA](#solana-ata)
+
 
 ## Deposit
 
@@ -496,3 +500,72 @@ Wallet SDK provides APIs to call [ABI](https://docs.soliditylang.org/en/develop/
     See [this](https://github.com/CYBAVO/react-native_wallet_sdk_sample/blob/master/screens/WithdrawScreen.js#L187-L209) for complete example.  
     
     See [Withdraw to Public Chain](https://github.com/CYBAVO/CYBAVO_WALLET_RN_SAMPLE/blob/master/docs/private_chain.md#2-withdraw-to-public-chain) for another specific usage in private chain.
+
+## Specific Usage
+There are specific API usages for some scenarios which related to transaction, you can find them in this section.
+### Solana SignMessage
+Since `signMessage()` of Solana can be used to sign a raw transaction, in order to help the caller be more cautious before signing, it required to get an action token then pass to `signMessage()` to verify.
+```js
+/**
+ * 1. Get action token for signMessage, 
+ * the "message" of getSignMessageActionToken() and signMessage() should be the same.
+ */
+Wallets.getSignMessageActionToken(message)
+    .then(r => {
+      // 2. Put it in extras and pass to signMessage().
+      _signMessage(message, pinSecret, wallet, {
+        confirmed_action_token: r.actionToken,
+      });
+    })
+    .catch(error => {
+      console.warn('getSignMessageActionToken failed', error);
+    });
+
+const _signMessage = (message, pinSecret, wallet, extras) => {
+    Wallets.signMessage(wallet.walletId, pinSecret, message, extras)
+      .then(r => {
+        console.log('signedMessage', r.signedMessage);
+      })
+      .catch(error => {
+        console.warn('getSignMessageActionToken failed', error);
+      });
+};
+```
+### Solana ATA
+You can create Solana ATA (associated token account) through `createTransaction()` with extras or `setSolTokenAccountTransaction()`.
+- Call `createTransaction()` with `force_send` in extras:
+```js
+let extras = {};
+// For SOL transaction, "force_send" true means create ATA account for receiver.
+if (wallet.currency === Coin.SOL && wallet.tokenAddress) {
+  extras.force_send = true;
+}
+
+try{
+  result = await Wallets.createTransaction(
+        wallet.walletId,
+        receiver,
+        amount,
+        transactionFee.amount,
+        description,
+        pinSecret,
+        extras
+      );
+} catch (error){
+  console.warn('createTransaction failed', error);
+}
+```
+- Call `setSolTokenAccountTransaction()` directly:
+```java
+/**
+* Note 1: The SOL token wallet must have SOL for transaction fee, otherwise, the API will return empty TXID.
+* Note 2: If the SOL token wallet have created token account, the API will also return empty TXID.
+* */
+Wallets.setSolTokenAccountTransaction(wallet.walletId, pinSecret)
+    .then(r => {
+      console.log('TXID:', r.txid);
+    })
+    .catch(error => {
+      console.warn('setSolTokenAccountTransaction failed', error);
+    });
+```
