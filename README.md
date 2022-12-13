@@ -64,8 +64,13 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    $ rn-nodeify --install --hack
    ```
 4. Unmark `require('crypto')` in `shim.js`
-5. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoont.  
-For example, Set `MAIN_ENDPOINT` = https://mvault.sandbox.cybavo.com/v1/mw/ for test environemnt
+5. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoint.  
+    - Test environment:
+        - On-Premises: set `MAIN_ENDPOINT` = https://mvault.sandbox.cybavo.com/v1/mw/
+        - SaaS: set `MAIN_ENDPOINT` = https://mvault.sandbox.cybavo.com/v1/mw/
+    - Production environment:
+        - On-Premises: set `MAIN_ENDPOINT` = https://`<Your management portal URL>`/v1/mw/
+        - SaaS: set `MAIN_ENDPOINT` = https://appvault.cybavo.com/v1/mw/
 ## Android
 
 1. Edit or create `android/local.properties` to config Maven repository URL / credentials provided by CYBAVO
@@ -129,7 +134,7 @@ Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User
     ```
 2. Register your app on CYBAVO WALLET MANAGEMENT system web ➜ Administration ➜ System settings, input `bundle id`, follow the instruction to retrieve an `API Code`.  
 Please refer to "Setup in iOS" section in CYBAVO Wallet SDK Admin Panel User Manual.
-3. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in yout `API Code` 
+3. Edit `BuildConfig.json` ➜ `MAIN_API_CODE_IOS` to fill in your `API Code` 
 4. Place your `GoogleService-Info.plist` file downloaded from Firebase to `ios/` [(LearnMore)](https://github.com/react-native-community/react-native-google-signin/blob/master/docs/get-config-file.md)
 5. Edit `BuildConfig.json` ➜ `GOOGLE_SIGN_IN_WEB_CLI_ID` to your `Google sign-in client ID`.  
 Please refer to "Google Login - Setup with Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
@@ -149,7 +154,7 @@ Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User
 > You can get more Single Sign-on (SSO) settings in CYBAVO Wallet SDK Admin Panel User Manual. 
 
 ## Push notification
-- If you want to provide push notification feature, setup project to integrate [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging) (FCM) service, refer to [official document](https://firebase.google.com/docs/cloud-messaging/android/client) for details.  
+- If you want to provide push notification features, setup project to integrate [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging) (FCM) service, refer to [official document](https://firebase.google.com/docs/cloud-messaging/android/client) for details.  
 Please refer to "Google Firebase" section in CYBAVO Wallet SDK Admin Panel User Manual.
 # More Details
 
