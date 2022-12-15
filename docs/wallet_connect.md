@@ -97,7 +97,7 @@ let callRequestListener = (peerId, error, payload) => {
     ![img](images/sdk_guideline/wc_sign.jpg)
   - Use `walletConnectSignMessage` to sign a message. ➜ Approve request with `signedMessage`
   - Suggestion: set `extras['is_hex'] = true` to avoid encode / decode issues which lead to invalid signatures.
-  - For extra `legacy` and `confirmed_action_token`, please check [Get Action Token for Sign Message](transaction.md#get-action-token-for-sign-message) for more detail.
+  - For extras `legacy` and `confirmed_action_token`, please check [Get Action Token for Sign Message](transaction.md#get-action-token-for-sign-message) for more detail.
 
     ```javascript
     // If legacy is true, confirmed_action_token is required for EVM compatible currency
