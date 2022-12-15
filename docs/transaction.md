@@ -534,7 +534,7 @@ const _signMessage = (message, pinSecret, wallet, extras) => {
         console.log('signedMessage', r.signedMessage);
       })
       .catch(error => {
-        console.warn('getSignMessageActionToken failed', error);
+        console.warn('signMessage failed', error);
       });
 };
 ```
@@ -563,7 +563,7 @@ const _walletConnectSignMessage = (message, pinSecret, wallet, extras) => {
         console.log('signedMessage', r.signedMessage);
       })
       .catch(error => {
-        console.warn('getSignMessageActionToken failed', error);
+        console.warn('walletConnectSignMessage failed', error);
       });
 };
 ```
