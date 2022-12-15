@@ -97,9 +97,11 @@ let callRequestListener = (peerId, error, payload) => {
     ![img](images/sdk_guideline/wc_sign.jpg)
   - Use `walletConnectSignMessage` to sign a message. ➜ Approve request with `signedMessage`
   - Suggestion: set `extras['is_hex'] = true` to avoid encode / decode issues which lead to invalid signatures.
+  - For extra `legacy` and `confirmed_action_token`, please check [Get Action Token for Sign Message](transaction.md#get-action-token-for-sign-message) for more detail.
 
     ```javascript
-    let extras = { eip155: eip155, is_hex: isHex, legacy: legacySign };
+    // If legacy is true, confirmed_action_token is required for EVM compatible currency
+    let extras = { eip155: eip155, is_hex: isHex, legacy: legacySign, confirmed_action_token: actionToken };
     let message = payload.params[0];
     let result = await Wallets.walletConnectSignMessage(
             walletId,
@@ -124,7 +126,11 @@ let callRequestListener = (peerId, error, payload) => {
     ///       - Supported extras:
     ///           - eip155 (boolean) = true - Use EIP 155 format to sign message
     ///           - is_hex (boolean) = true - Send Hex as message
-    ///           - legacy (boolean) = true - Use legacy sign and suggest send hex as message(is_hex set true)
+    ///           - legacy (boolean) = true - Use legacy sign and suggest send hex as message(is_hex set true), please also check confirmed_action_token for EVM compatible currency
+    ///           - confirmed_action_token (string) - It's required for these 2 cases:
+    ///             - SOL
+    ///             - EVM compatible currency and legacy is true
+    ///             Get the action token from getSignMessageActionToken(), otherwise, the API will return Error.Code.ErrActionTokenInvalid error codemessage(is_hex set true)
     /// @return Promise<SignedMessageResult>
     ///
     function walletConnectSignMessage(
@@ -134,8 +140,7 @@ let callRequestListener = (peerId, error, payload) => {
                 extras: object
             ): Promise<SignedMessageResult>;
     ```
-
-    - Use different functions for biometrics & SMS Verification: see [this](bio_n_sms.md#biometrics--sms-verification-for-transaction-and-sign-operation)
+  - Use different functions for biometrics & SMS Verification: see [this](bio_n_sms.md#biometrics--sms-verification-for-transaction-and-sign-operation)
 
 - ### [eth_sign](https://docs.walletconnect.com/json-rpc-api-methods/ethereum#eth_sign)
 
