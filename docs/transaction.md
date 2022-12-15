@@ -546,7 +546,7 @@ const _signMessage = (message, pinSecret, wallet, extras) => {
  */
 Wallets.getSignMessageActionToken(message)
     .then(r => {
-      _signMessage(message, pinSecret, wallet, {
+      _walletConnectSignMessage(message, pinSecret, wallet, {
         // Put "legacy" true means legacy sign.
         legacy: true,
         // 2. Put it in extras and pass to walletConnectSignMessage().
@@ -557,7 +557,7 @@ Wallets.getSignMessageActionToken(message)
       console.warn('getSignMessageActionToken failed', error);
     });
 
-const _signMessage = (message, pinSecret, wallet, extras) => {
+const _walletConnectSignMessage = (message, pinSecret, wallet, extras) => {
     Wallets.walletConnectSignMessage(wallet.walletId, pinSecret, message, extras)
       .then(r => {
         console.log('signedMessage', r.signedMessage);
