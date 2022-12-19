@@ -7,7 +7,7 @@
   - [Transaction Replacement](#transaction-replacement)
   - [Interact with Smart Contract](#interact-with-smart-contract)
   - [Specific Usage](#specific-usage)
-    - [Solana SignMessage](#solana-signmessage)
+    - [Get Action Token for Sign Message](#get-action-token-for-sign-message)
     - [Solana ATA](#solana-ata)
 
 
@@ -503,17 +503,24 @@ Wallet SDK provides APIs to call [ABI](https://docs.soliditylang.org/en/develop/
 
 ## Specific Usage
 There are specific API usages for some scenarios which related to transaction, you can find them in this section.
-### Solana SignMessage
-Since `signMessage()` of Solana can be used to sign a raw transaction, in order to help the caller be more cautious before signing, it required to get an action token then pass to `signMessage()` to verify.
+### Get Action Token for Sign Message
+In below two cases, `signMessage()` and `walletConnectSignMessage()` can also be used to sign a raw transaction: 
+- Solana Sign Message
+- Legacy Sign Message for EVM Compatible Currency  
+
+In order to help the caller be more cautious before signing, it is required to get an action token then pass to sign message API to verify.  
+- The sample code snippet for `signMessage()`:
 ```js
 /**
- * 1. Get action token for signMessage, 
+ * 1. Get action token for signMessage(), 
  * the "message" of getSignMessageActionToken() and signMessage() should be the same.
  */
 Wallets.getSignMessageActionToken(message)
     .then(r => {
-      // 2. Put it in extras and pass to signMessage().
       _signMessage(message, pinSecret, wallet, {
+        // Put "legacy" true means legacy sign.
+        legacy: true,
+        // 2. Put it in extras and pass to signMessage().
         confirmed_action_token: r.actionToken,
       });
     })
@@ -527,7 +534,36 @@ const _signMessage = (message, pinSecret, wallet, extras) => {
         console.log('signedMessage', r.signedMessage);
       })
       .catch(error => {
-        console.warn('getSignMessageActionToken failed', error);
+        console.warn('signMessage failed', error);
+      });
+};
+```
+- The sample code snippet for `walletConnectSignMessage()`, it is very similar to `signMessage()`:
+```js
+/**
+ * 1. Get action token for walletConnectSignMessage(), 
+ * the "message" of getSignMessageActionToken() and walletConnectSignMessage() should be the same.
+ */
+Wallets.getSignMessageActionToken(message)
+    .then(r => {
+      _walletConnectSignMessage(message, pinSecret, wallet, {
+        // Put "legacy" true means legacy sign.
+        legacy: true,
+        // 2. Put it in extras and pass to walletConnectSignMessage().
+        confirmed_action_token: r.actionToken,
+      });
+    })
+    .catch(error => {
+      console.warn('getSignMessageActionToken failed', error);
+    });
+
+const _walletConnectSignMessage = (message, pinSecret, wallet, extras) => {
+    Wallets.walletConnectSignMessage(wallet.walletId, pinSecret, message, extras)
+      .then(r => {
+        console.log('signedMessage', r.signedMessage);
+      })
+      .catch(error => {
+        console.warn('walletConnectSignMessage failed', error);
       });
 };
 ```
