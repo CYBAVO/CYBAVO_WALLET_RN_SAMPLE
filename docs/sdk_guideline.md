@@ -521,9 +521,9 @@ namespace WalletSdk {
 
  } catch (error) {
       if (ErrorCodes.ErrRegistrationRequired === error.code) {
-        // registration required
+        // Registration required.
       } else{
-        // sign in failed
+        // Sign in failed.
       }
  }
 ```
