@@ -508,7 +508,8 @@ If there's a detailed error message returned by WalletSDK, it would be put in `e
 ```ts
 namespace WalletSdk {
 
-  namespace ErrorCodes { … } // some error codes we defined
+  namespace ErrorCodes { … } // Some error codes we defined.
+
   ...
 }
 ```
