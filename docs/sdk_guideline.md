@@ -486,6 +486,20 @@ There are 2 types of push notification: Transacion and Announcement.
 ---
 
 # Others
+## Error Handling - Detailed Error Message
+
+If there's a detailed error message returned by WalletSDK, it would be put in `error.userInfo.detailMessage`.
+- Usage
+```javascript
+ try {
+
+   const resp = await Wallet.commonSignRawTx(walletId, rawTx, pinSecret); 
+
+ } catch (error) {
+      console.log(`${error.code}, ${error.message}, 
+          ${error.userInfo? error.userInfo.detailMessage: ''}`);
+ }
+ ```
 
 ## Error Handling - WalletSdk.ErrorCodes
 
