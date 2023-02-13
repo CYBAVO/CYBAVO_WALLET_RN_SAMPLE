@@ -1,4 +1,4 @@
-# WalletConnect
+# WalletConnect v1.0
 
 > WalletConnect is an open protocol which makes Dapps able to interact with wallets on different platforms. 
 >
