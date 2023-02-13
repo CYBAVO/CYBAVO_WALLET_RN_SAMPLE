@@ -9,6 +9,7 @@
 
 - Bookmark:
   - [Prequest](#prequest)
+  - [Troubleshooting](#troubleshooting)
   - [Overview](#overview)
   - [SignClient Initialization](#signclient-initialization)
   - [Multi-Chain Support](#multi-chain-support)
@@ -39,8 +40,19 @@
 - Get project ID from [WalletConnect Cloud](https://cloud.walletconnect.com/).  This is required for using Walletconnect v2.0.
 ![img](images/sdk_guideline/wc_v2_project_id.png)
 ## Troubleshooting
-&emsp;Here we list the issue that might occur during development for reference.    
-- [atob in base64: "Can't find variable" or "doesn't exist"](https://github.com/ethers-io/ethers.js/issues/3460)
+&emsp;Here we list the issue that might occur during development and the solution for reference.    
+- [atob in base64: "Can't find variable" or "doesn't exist"](https://github.com/ethers-io/ethers.js/issues/3460#issuecomment-1288202217)    
+Insert below code snippet into the `node_modules/@ethersproject/base64/lib/browser-base64.js` file.
+    ```js
+    var Buffer = require('buffer/').Buffer;
+    function atob(str) {
+        return Buffer.from(str, 'base64').toString('binary');
+    }
+    function btoa(str) {
+        return Buffer.from(str, 'binary').toString('base64');
+    }
+    ```
+    
 
 ## Overview
 &emsp;WalletConnect v2.0 has introduced concepts and usages that are [different from WalletConnect v1.0](https://docs.walletconnect.com/2.0/advanced/migrating-from-v1.0), which include initialization, session lifetime, pairing and multi-chain support. 
@@ -167,7 +179,7 @@ V2Manager.initAccountWalletMap(wallets);
     }
     ``` 
 2. &emsp;Next, you may receive a session proposal in `onSessionProposal()`. The proposal namespace contains the list of chains, methods and events that are required from the Dapp.    
-&emsp;For example, user choose Ethereum Goerli, Polygon Mumbai and Solana Devnet to connect, the received proposal lists 2 namespaces under `requiredNamespaces`: `eip155` and `solana`, and the selected chains are listed in each namespace's `chains`: `"eip155:5"`, `"eip155:80001"`and `"solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K"`.
+&emsp;For example, user choose Ethereum Goerli, Polygon Mumbai and Solana Devnet to connect, the received proposal lists 2 namespaces under `requiredNamespaces`: `eip155` and `solana`, and the selected chains are listed in each namespace's `chains`: `"eip155:5"`, `"eip155:80001"` and `"solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K"`.
 
 <details open>
   <summary>Example Session Proposal</summary>
@@ -294,19 +306,19 @@ V2Manager.initAccountWalletMap(wallets);
     {
         "eip155": {
             "methods": [
-            "eth_sendTransaction",
-            "eth_signTransaction",
-            "eth_sign",
-            "personal_sign",
-            "eth_signTypedData"
+                "eth_sendTransaction",
+                "eth_signTransaction",
+                "eth_sign",
+                "personal_sign",
+                "eth_signTypedData"
             ],
             "chainWalletsMap": {
                 "eip155:5": [goerliWallet1, goerliWallet2],
                 "eip155:80001": [polygonWallet1, polygonWallet2]
             },
             "events": [
-            "chainChanged",
-            "accountsChanged"
+                "chainChanged",
+                "accountsChanged"
             ]
         },
         "solana": {
@@ -366,7 +378,7 @@ let pairings = V2Manager.signClient.pairings.values;
 
 ```js
 V2Manager.disconnect(topic);
-V2Manager.disconnectAllSessionPairing(topic);
+V2Manager.disconnectAllSessionPairing();
 ```
 &emsp; Following are examples of sessions and pairings.
 <details>
@@ -950,7 +962,7 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
                 walletId,
                 signedTx
               );
-        // Return TXID as approve response to the dapp
+        // Return TXID as approve response to the dapp.
         await V2Manager.approveSessionRequest(requestEvent, sendResult.txid, log => {
             console.log(log);
         });
@@ -1017,18 +1029,18 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
                 tx,
                 transactionFee,
                 pinSecret,
-                true, //Use autoNonce, WalletSDK will fill the nonce. 
+                true, // Use autoNonce, WalletSDK will fill the nonce. 
                 value => {
                     console.debug('onLog', value);
                 },
                 gasLimit
             );
-            // 2. Send signed transaction
+            // 2. Send signed transaction.
             let sendResult = await Wallets.walletConnectSendSignedTransaction(
                             walletId,
                             result.signedTx
                     );
-            // Return TXID as approve response to the dapp
+            // Return TXID as approve response to the dapp.
             await V2Manager.approveSessionRequest(requestEvent, sendResult.txid, log => {
                 console.log(log);
             });
