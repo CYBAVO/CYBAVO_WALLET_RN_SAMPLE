@@ -99,9 +99,9 @@ try {
         icons: ['https://walletconnect.com/walletconnect-logo.png'],
         name: 'Test Wallet',
       };
-      // 1. Initialize SignClient.
+      /** 1. Initialize SignClient. */
       await V2Manager.initSignClient("<YOUR_PROJECT_ID>", clientMeta);
-      // 2. Setup callbacks
+      /** 2. Setup callbacks. */
       V2Manager.onSessionProposal = proposal => {
         // Handle session proposal.
       };
@@ -111,6 +111,13 @@ try {
       V2Manager.onSessionDelete = data => {
         // Triggered when session is deleted.
       };
+      V2Manager.onSessionUpdate = { topic, namespaces } => {
+        // Handle new namespace.
+      };
+      // To receive dapp's ping.
+      V2Manager.onSessionPin = data => {};
+      // To receive session event emitted by dapp.
+      V2Manager.onSessionEvent = data => {};
 } catch (error) {
     console.log(error);
 }
@@ -289,8 +296,8 @@ V2Manager.initAccountWalletMap(wallets);
   ```
 </details>
 
-3. &emsp; You may want to classify available wallets according to the session proposal, `getNamespaceWithChainWalletsMap()` can help to do the hassle, which returns `proposal.requiredNamespaces` part with `chainWalletsMap` in each namespace.    
-&emsp; Then you can display available wallets by each required chain according to `chainWalletsMap`. 
+3. &emsp; You may want to classify available wallets according to the session proposal, `getNamespaceWithChainWalletsMap()` can help to do the hassle.    
+&emsp; It returns `proposal.requiredNamespaces` part with `chainWalletsMap` in each namespace, then you can display available wallets by each required chain according to `chainWalletsMap`. 
     ```js
     V2Manager.onSessionProposal = proposal => {
             // Wallets can be all wallet list or retrieved from getWalletsByCaip2ChainIds()
@@ -627,10 +634,10 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
     const requestSession = V2Manager.signClient.session.get(topic);
 
     // 1. Wallet not found handling.
-    if (wallet == null){
+    if (!wallet){
         wallet = V2Manager.findWalletByAccount(params.chainId, address, allWallets)
     }
-    if (wallet == null){
+    if (!wallet){
         try {
             await V2Manager.rejectSessionRequest(requestEvent, log => {
                 console.log(log);
