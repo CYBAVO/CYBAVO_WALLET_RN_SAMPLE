@@ -243,7 +243,7 @@ V2Manager.initAccountWalletMap(wallets);
 </details>
 
 
-&emsp; To approve the proposal, the response needs to contain `accounts` -- wallet address with CAIP-2 chain ID -- for every required chain. Otherwise, an exception may be thrown during `approveSessionProposal()`. For detailed validation cases please check [this](https://docs.walletconnect.com/2.0/specs/clients/sign/session-namespaces#controller-side-validation-of-incoming-proposal-namespaces-wallet).
+&emsp; To approve the proposal, the response needs to contain `accounts` -- CAIP-2 chain ID with wallet address -- for every required chain. Otherwise, an exception may be thrown during `approveSessionProposal()`. For detailed validation cases please check [this](https://docs.walletconnect.com/2.0/specs/clients/sign/session-namespaces#controller-side-validation-of-incoming-proposal-namespaces-wallet).
 
 &emsp; In the example below, the user selected 2 Ethereum Goerli, 1 Polygon Mumbai and 2 Solana Devnet wallets.
 <details open>
@@ -289,7 +289,8 @@ V2Manager.initAccountWalletMap(wallets);
   ```
 </details>
 
-3. &emsp; You may want to classify available wallets according to the session proposal, `getNamespaceWithChainWalletsMap()` can help to do the hassle.
+3. &emsp; You may want to classify available wallets according to the session proposal, `getNamespaceWithChainWalletsMap()` can help to do the hassle, which returns `proposal.requiredNamespaces` part with `chainWalletsMap` in each namespace.    
+&emsp; Then you can display available wallets by each required chain according to `chainWalletsMap`. 
     ```js
     V2Manager.onSessionProposal = proposal => {
             // Wallets can be all wallet list or retrieved from getWalletsByCaip2ChainIds()
@@ -312,6 +313,7 @@ V2Manager.initAccountWalletMap(wallets);
                 "personal_sign",
                 "eth_signTypedData"
             ],
+            // The map of required chain and available wallets. 
             "chainWalletsMap": {
                 "eip155:5": [goerliWallet1, goerliWallet2],
                 "eip155:80001": [polygonWallet1, polygonWallet2]
@@ -326,6 +328,7 @@ V2Manager.initAccountWalletMap(wallets);
                 "solana_signTransaction",
                 "solana_signMessage"
             ],
+            // The map of required chain and available wallets.
             "chainWalletsMap": {
                 "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K": [solanaWallet1, solanaWallet2]
             },
