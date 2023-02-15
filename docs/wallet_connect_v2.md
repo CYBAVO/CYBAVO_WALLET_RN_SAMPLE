@@ -30,9 +30,9 @@
 ## Prequest
 - [React Native](https://www.npmjs.com/package/react-native) 0.64+ is required for running [@walletconnect/sign-client](https://www.npmjs.com/package/@walletconnect/sign-client) on Android Hermes. 
 - WalletSDK minimum version:
-    - React Native - `@cybavo/react-native-wallet-service@1.2._`
-    - Android - `com.cybavo.wallet:wallet-sdk-lib:1.2._`
-    - iOS - `CYBAVOWallet (1.2._)`
+    - React Native - `@cybavo/react-native-wallet-service@1.2.298`
+    - Android - `com.cybavo.wallet:wallet-sdk-lib:1.2.4940`
+    - iOS - `CYBAVOWallet (1.2.505)`
 -  (Optional) Install `@walletconnect/utils` to use utils, e.g. `parseUri`.   
     ```
     yarn add @walletconnect/utils
@@ -100,7 +100,8 @@ try {
         name: 'Test Wallet',
       };
       /** 1. Initialize SignClient. */
-      await V2Manager.initSignClient("<YOUR_PROJECT_ID>", clientMeta);
+      let opts = { projectId: "<YOUR_PROJECT_ID>", logger: 'debug' };
+      await V2Manager.initSignClient(opts, clientMeta);
       /** 2. Setup callbacks. */
       V2Manager.onSessionProposal = proposal => {
         // Handle session proposal.
