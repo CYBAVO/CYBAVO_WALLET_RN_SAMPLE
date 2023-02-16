@@ -67,22 +67,22 @@ Insert below code snippet into the `node_modules/@ethersproject/base64/lib/brows
 3. Call `getWallets()` and `walletconnectGetSupportedChain()` to retrieve wallet list and supported chain map for later steps.
 4. Call `initAccountWalletMap()` with wallet list. This move would help walletSDK find the specific wallet for you when receiving a session proposal.
 #### Session Proposal
-4. Get a [WalletConnect v2.0 URI](https://docs.walletconnect.com/2.0/specs/clients/core/pairing/pairing-uri) from a Dapp and call `pair()` with it.
-5. Receive session proposal in `onSessionProposal()`.
+5. Get a [WalletConnect v2.0 URI](https://docs.walletconnect.com/2.0/specs/clients/core/pairing/pairing-uri) from a Dapp and call `pair()` with it.
+6. Receive session proposal in `onSessionProposal()`.
     - Provide multi-select UI for users to select wallets according to required chains which are listed in the proposal and the supported chain map retrieved earlier.
-6. Call `approveSessionProposal()` with selected wallets
+7. Call `approveSessionProposal()` with selected wallets.
     - Active session and pairing are generated after the session proposal is approved successfully.
     - WalletSDK would update the `accountWalletMap` with selected wallets at this step.
 #### Session Request
-7. When a session request is coming, WalletSDK would parse it first then trigger `onSessonRequest()` with the request, wallet address and the wallet, which could be null if WalletSDK cannot find one in the `accountWalletMap`.
-    - With the request and the wallet, the app may handle the request according to the method.
-8. Call `approveSessionRequest()` with a result or reject the request by `rejectSessionRequest()`.
+8. When a session request is coming, WalletSDK would parse it first then trigger `onSessonRequest()` with the request, wallet address and the wallet. The wallet could be null if WalletSDK cannot find one in the `accountWalletMap`.
+    - With the request and the wallet, the next step is to handle the request according to the method.
+9. Call `approveSessionRequest()` with a result or reject the request by `rejectSessionRequest()`.
 #### Disconnect
-9. Disconnect all the sessions and pairings whenever user is not signed-in, e.g. sign out or session expired. 
+10. Disconnect all the sessions and pairings whenever user is not signed-in, e.g. sign out or session expired. 
     
 ## [SignClient Initialization](https://docs.walletconnect.com/2.0/javascript/sign/wallet-usage#initializing-the-client)
 
-&emsp;SignClient is the client of WalletConnect Sign, whereas `V2Manager` wrapped SignClient and provided related APIs for easier uses. After performed `initSignClient()`, `V2Manager` would hold the initialized SignClient instance which can be accessed by `V2Manager.signClient`.
+&emsp;SignClient is the client of WalletConnect Sign, whereas `V2Manager` wrapped SignClien, [Core](https://docs.walletconnect.com/2.0/javascript/guides/shared-core), [Web3Wallet](https://docs.walletconnect.com/2.0/javascript/web3wallet/wallet-usage) and provided related APIs for easier uses. After performed `initSignClient()`, `V2Manager` would hold the initialized SignClient instance which can be accessed by `V2Manager.signClient`.
 
 
 ```js
@@ -156,7 +156,7 @@ V2Manager.initAccountWalletMap(wallets);
     ...
   }
   ```
-&emsp;WalletSDK supports `eip155` and `solana` for now, which means `caip2ChainId` and `chainName` are only available for EVM compatible and Solana wallets and currencies.
+&emsp;⚠️ WalletSDK supports `eip155` and `solana` for now, which means `caip2ChainId` and `chainName` are only available for EVM compatible and Solana wallets and currencies.
 
 ## [Session Proposal](https://docs.walletconnect.com/2.0/javascript/sign/wallet-usage#pairing-with-uri)
 
@@ -186,8 +186,8 @@ V2Manager.initAccountWalletMap(wallets);
         }
     }
     ``` 
-2. &emsp;Next, you may receive a session proposal in `onSessionProposal()`. The proposal namespace contains the list of chains, methods and events that are required from the Dapp.    
-&emsp;For example, user choose Ethereum Goerli, Polygon Mumbai and Solana Devnet to connect, the received proposal lists 2 namespaces under `requiredNamespaces`: `eip155` and `solana`, and the selected chains are listed in each namespace's `chains`: `"eip155:5"`, `"eip155:80001"` and `"solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K"`.
+2. &emsp;Next, you may receive a session proposal in `onSessionProposal()`. Each namespace in proposal's requiredNamespaces contains the list of chains, methods and events that are required from the Dapp.    
+&emsp;For example, user choose "Ethereum Goerli", "Polygon Mumbai" and "Solana Devnet" to connect, the received proposal lists 2 namespaces under `requiredNamespaces`: `eip155` and `solana`, and the selected chains are listed in each namespace's `chains`: `"eip155:5"`, `"eip155:80001"` and `"solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K"`.
 
 <details open>
   <summary>Example Session Proposal</summary>
@@ -251,9 +251,9 @@ V2Manager.initAccountWalletMap(wallets);
 </details>
 
 
-&emsp; To approve the proposal, the response needs to contain `accounts` -- CAIP-2 chain ID with wallet address -- for every required chain. Otherwise, an exception may be thrown during `approveSessionProposal()`. For detailed validation cases please check [this](https://docs.walletconnect.com/2.0/specs/clients/sign/session-namespaces#controller-side-validation-of-incoming-proposal-namespaces-wallet).
+&emsp; To approve the proposal, the response needs to contain `accounts` -- the list of CAIP-2 chain ID with wallet address -- for every required chain. Otherwise, an exception may be thrown during `approveSessionProposal()`. For detailed validation cases please check [this](https://docs.walletconnect.com/2.0/specs/clients/sign/session-namespaces#controller-side-validation-of-incoming-proposal-namespaces-wallet).
 
-&emsp; In the example below, the user selected 2 Ethereum Goerli, 1 Polygon Mumbai and 2 Solana Devnet wallets.
+&emsp; In the example below, the user selected 2 "Ethereum Goerli", 1 "Polygon Mumbai" and 2 "Solana Devnet" wallets.
 <details open>
   <summary>Example Session Proposal Approval Response</summary>
   
@@ -297,7 +297,7 @@ V2Manager.initAccountWalletMap(wallets);
   ```
 </details>
 
-3. &emsp; You may want to classify available wallets according to the session proposal, `getNamespaceWithChainWalletsMap()` can help to do the hassle.    
+3. &emsp; You may want to classify available wallets according to the session proposal, `getNamespaceWithChainWalletsMap()` is available to do the hassle.    
 &emsp; It returns `proposal.requiredNamespaces` part with `chainWalletsMap` in each namespace, then you can display available wallets by each required chain according to `chainWalletsMap`. 
     ```js
     V2Manager.onSessionProposal = proposal => {
@@ -306,7 +306,7 @@ V2Manager.initAccountWalletMap(wallets);
             // Display wallet selection UI according to chainWalletsMap
         };
     ```
-    ⚠️ If there is no available wallet for a chain, the value of retured `chainWalletsMap[chain]` would be an empty array, and the UI should let the user know this proposal cannot be approved.
+    ⚠️ If there is no available wallet for a chain, the value of returned `chainWalletsMap[chain]` would be an empty array, and the UI should let the user know this proposal is unable to be approved.
     <details open>
     <summary>Example Result of getNamespaceWithChainWalletsMap()</summary>
     
@@ -350,11 +350,11 @@ V2Manager.initAccountWalletMap(wallets);
 
     ```js
     try {
-      let result = await Wallets.walletConnectGetSupportedChain();
-      let chainInfo = result.chainMap[chain];
-      let isSupported = chainInfo != null;
+        let result = await Wallets.walletConnectGetSupportedChain();
+        let chainInfo = result.chainMap[chain];
+        let isSupported = chainInfo != null;
     } catch (error) {
-      console.warn('Wallets.walletConnectGetSupportedChain failed', error);
+        console.warn('Wallets.walletConnectGetSupportedChain failed', error);
     }
     ```
 4. Approve session proposal with proposal and selected `chainWalletsMap`.
@@ -366,11 +366,11 @@ V2Manager.initAccountWalletMap(wallets);
     };
 
     try {
-      await V2Manager.approveSessionProposal(proposal, chainWalletMap, log => {
-        console.log(log);
-      });
+        await V2Manager.approveSessionProposal(proposal, chainWalletMap, log => {
+            console.log(log);
+        });
     } catch (error) {
-      console.log(error);
+        console.log(error);
     }
     ```
     
@@ -858,7 +858,7 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
     ```
     ```ts
     /// Sign typed data(eth_signTypedData) for WalletConnect.
-    /// This call will be logged as ApiHistoryItem with API name: eth_signtypeddata.
+    /// This call will be logged as ApiHistoryItem with API name: eth_signTypedData.
     /// @param walletId wallet ID
     /// @param typedData typed data json string
     /// @param pinSecret PIN secret retrieved via PinCodeInputView
@@ -920,7 +920,7 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
                 tx,
                 transactionFee,
                 pinSecret,
-                true, //Use autoNonce, Wallet SDK will fill the nonce. 
+                true, // Use autoNonce, WalletSDK will fill the nonce. 
                 value => {
                     console.debug('onLog', value);
                 },
@@ -982,7 +982,7 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
     }
     ```
     ```ts
-    /// Create transaction by signed transaction(eth_sendTransaction) via WalletConnect,
+    /// Create transaction by signed transaction(eth_sendTransaction) for WalletConnect,
     /// This call will be logged as ApiHistoryItem with API name: eth_sendRawTransaction
     ///
     /// @param walletId: ID of wallet
