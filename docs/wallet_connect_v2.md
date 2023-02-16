@@ -1211,23 +1211,23 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
 
 ## Cancel a Transaction
 
-    ```ts
-    type ApiHistoryItem = {
+```ts
+type ApiHistoryItem = {
 
-        apiName: string; // API Name
+    apiName: string; // API Name
 
-        accessId: string; // Access ID for eth_sendRawTransaction
+    accessId: string; // Access ID for eth_sendRawTransaction
 
-        status: number; // ApiHistoryItem status { WAITING, FAILED, DONE, DROPPED }
+    status: number; // ApiHistoryItem status { WAITING, FAILED, DONE, DROPPED }
 
-        nonce?: number; // Used nonce
+    nonce?: number; // Used nonce
 
-        gasPrice: string; // Gas price
+    gasPrice: string; // Gas price
 
-        gasLimit: string; // Gas limit
+    gasLimit: string; // Gas limit
 
-        ...
-    }
+    ...
+}
     ```
 
 - How to determine if a transaction can be canceled or not?
