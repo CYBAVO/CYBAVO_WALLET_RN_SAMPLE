@@ -1228,7 +1228,7 @@ type ApiHistoryItem = {
 
     ...
 }
-    ```
+```
 
 - How to determine if a transaction can be canceled or not?
     1. `apiName == 'eth_sendRawTransaction'`
