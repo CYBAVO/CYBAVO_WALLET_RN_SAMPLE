@@ -1162,9 +1162,10 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
     ```ts
     /// Get WalletConnect API history from
     /// 1. walletConnectSignTypedData(number, string, number | PinSecretBearer | string)
-    /// 2. walletConnectSignTransaction(number, string, number | PinSecretBearer | string)
-    /// 3. walletConnectSignMessage(number, string, number | PinSecretBearer | string, object)
-    /// 4. walletConnectSendSignedTransaction(number, string)
+    /// 2. walletConnectSignTransaction(number,  object | string, number | PinSecretBearer | string)
+    /// 3. walletConnectSignTransactionCommon(number, object | string, number | PinSecretBearer | string)
+    /// 4. walletConnectSignMessage(number, string, number | PinSecretBearer | string, object)
+    /// 5. walletConnectSendSignedTransaction(number, string)
     ///
     /// @param walletId wallet ID
     /// @param start Query start offset
@@ -1210,14 +1211,12 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
 
 ## Cancel a Transaction
 
-- In list of `ApiHistoryItem`
-
     ```ts
     type ApiHistoryItem = {
 
         apiName: string; // API Name
 
-        accessId: string; // access ID for eth_sendRawTransaction
+        accessId: string; // Access ID for eth_sendRawTransaction
 
         status: number; // ApiHistoryItem status { WAITING, FAILED, DONE, DROPPED }
 
@@ -1238,22 +1237,22 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
 
 - How to cancel a transaction?
     1. Decide a new transaction fee.
-    2. Call `cancelWalletConnectTransaction` to cancel a WalletConnect Transaction
+    2. Call `cancelWalletConnectTransaction()` to cancel a WalletConnect transaction.
 
 - How to decide the new transaction fee?
-    1. Call `getTransactionFee` to get the current Tx fee.
+    1. Call `getTransactionFee()` to get the current Tx fee.
     2. Decide a new Tx fee
-        - if (Tx fee > original Tx fee) ➜ Use the new Tx fee
-        - if (Tx fee <= original Tx fee) ➜ Decide a higher Tx fee by your rules
+        - if (Tx fee > original Tx fee) ➜ Use the new Tx fee.
+        - if (Tx fee <= original Tx fee) ➜ Decide a higher Tx fee by your rules.
             - Suggestion: in our experience, (original Tx fee) * 1.1 might be an easy way to calculate a new price for doing this operation.
-    3. Same as [Transaction_Replacement](transaction.md#transaction-replacement)
+    3. Same as [Transaction Replacement](transaction.md#transaction-replacement)
 
-- How to see the cancel history?
-    1. In list of `ApiHistoryItem`
-        - Filter `apiName == 'eth_sendRawTransaction'` ➜ original Tx operation
-        - Filter `apiName == 'eth_cancelTransaction'` ➜ cancel Tx operation
-        - Use `nonce` to map same pair of operations
-    2. In same pair of operations:
-        - When cancel operation's `status == Wallets.ApiHistoryItem.Status.DONE` means cancel operation success.
-        - When origin Tx operation's `status == Wallets.ApiHistoryItem.Status.DONE` means cancel operation failed. The original Tx was succeeded.
+- How to search the cancel history?
+    1. In a list of `ApiHistoryItem`
+        - Filter `apiName == 'eth_sendRawTransaction'` ➜ original Tx operation.
+        - Filter `apiName == 'eth_cancelTransaction'` ➜ cancel Tx operation.
+        - Use `nonce` to map the same pair of operations.
+    2. In the same pair of operations:
+        - When the cancel operation's `status == Wallets.ApiHistoryItem.Status.DONE`, it means the cancel operation success.
+        - When origin Tx operation's `status == Wallets.ApiHistoryItem.Status.DONE`, it means the cancel operation failed, and the original Tx is succeeded.
     3. Refer to [Transaction Replacement History](transaction.md#transaction-replacement-history)
