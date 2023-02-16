@@ -30,7 +30,7 @@
 ## Prequest
 - [React Native](https://www.npmjs.com/package/react-native) 0.64+ is required for running [@walletconnect/sign-client](https://www.npmjs.com/package/@walletconnect/sign-client) on Android Hermes. 
 - WalletSDK minimum version:
-    - React Native - `@cybavo/react-native-wallet-service@1.2.298`
+    - React Native - `@cybavo/react-native-wallet-service@1.2.300`
     - Android - `com.cybavo.wallet:wallet-sdk-lib:1.2.4940`
     - iOS - `CYBAVOWallet (1.2.505)`
 -  (Optional) Install `@walletconnect/utils` to use utils, e.g. `parseUri`.   
