@@ -1,8 +1,8 @@
 # WalletConnect
 
->&emsp;WalletConnect is the decentralized Web3 messaging layer and a standard to connect blockchain wallets to dapps. They have developed different groups of API for different uses. Sign API is the one that will be covered in this document.
+>&emsp;WalletConnect is the decentralized Web3 messaging layer and a standard to connect blockchain wallets to Dapps. They have developed different groups of API for different uses. Sign API is the one that will be covered in this document.
 >
-> &emsp;WalletConnect Sign is a remote protocol designed for secure peer-to-peer communication between dApps (web3 applications) and wallets. WalletSDK has integrated [WalletConnect Sign v2.0](https://docs.walletconnect.com/2.0/javascript/guides/react-native) to support wallet apps connecting with Dapps, and provided corresponding APIs which help you to get the results to return to Dapp.  
+> &emsp;WalletConnect Sign is a remote protocol designed for secure peer-to-peer communication between Dapps (web3 applications) and wallets. WalletSDK has integrated [WalletConnect Sign v2.0](https://docs.walletconnect.com/2.0/javascript/guides/react-native) to support wallet apps connecting with Dapps, and provided corresponding APIs which help you to get the results to return to Dapp.  
 >
 > &emsp;In later sections, we'll illustrate how to establish the WalletConnect Sign client and how to use APIs to respond to session proposals and the JSON-RPC session requests we support.  
 
@@ -38,7 +38,8 @@
     yarn add @walletconnect/utils
     ```
 - Get project ID from [WalletConnect Cloud](https://cloud.walletconnect.com/).  This is required for using Walletconnect v2.0.
-![img](images/sdk_guideline/wc_v2_project_id.png)
+
+    ![img](images/sdk_guideline/wc_v2_project_id.png)
 ## Troubleshooting
 &emsp;Here we list the issue that might occur during development and the solution for reference.    
 - [atob in base64: "Can't find variable" or "doesn't exist"](https://github.com/ethers-io/ethers.js/issues/3460#issuecomment-1288202217)    
@@ -57,7 +58,8 @@ Insert below code snippet into the `node_modules/@ethersproject/base64/lib/brows
 ## Overview
 &emsp;WalletConnect v2.0 has introduced concepts and usages that are [different from WalletConnect v1.0](https://docs.walletconnect.com/2.0/advanced/migrating-from-v1.0), which include initialization, session lifetime, pairing and multi-chain support. 
 
-&emsp;The flowchart and the following description may give you an idea about when the app receives session proposals and session requests.    
+&emsp;The flowchart and the following description may give you an idea about when the app receives session proposals and session requests.  
+
 ![img](images/sdk_guideline/wc_v2_overview.png)
 
 #### Initialization
@@ -82,7 +84,7 @@ Insert below code snippet into the `node_modules/@ethersproject/base64/lib/brows
     
 ## [SignClient Initialization](https://docs.walletconnect.com/2.0/javascript/sign/wallet-usage#initializing-the-client)
 
-&emsp;SignClient is the client of WalletConnect Sign, whereas `V2Manager` wrapped SignClien, [Core](https://docs.walletconnect.com/2.0/javascript/guides/shared-core), [Web3Wallet](https://docs.walletconnect.com/2.0/javascript/web3wallet/wallet-usage) and provided related APIs for easier uses. After performed `initSignClient()`, `V2Manager` would hold the initialized SignClient instance which can be accessed by `V2Manager.signClient`.
+&emsp;SignClient is the client of WalletConnect Sign, whereas `V2Manager` wrapped SignClien, [Core](https://docs.walletconnect.com/2.0/javascript/guides/shared-core), [Web3Wallet](https://docs.walletconnect.com/2.0/javascript/web3wallet/wallet-usage) and provided related APIs for easier uses. After performed `initSignClient()`, `V2Manager` would hold the initialized SignClient, Core and Web3Wallet instance which can be accessed by `V2Manager.signClient`, `V2Manager.core` and `V2Manager.web3Wallet`.
 
 
 ```js
@@ -91,6 +93,7 @@ const { V2Manager, WalletConnectHelper } = WalletConnectSdk;
 
 try {
       if (V2Manager.signClient) {
+        // Initialized already.
         return;
       }
       let clientMeta = {
@@ -99,7 +102,7 @@ try {
         icons: ['https://walletconnect.com/walletconnect-logo.png'],
         name: 'Test Wallet',
       };
-      /** 1. Initialize SignClient. */
+      /** 1. Initialize SignClient, Core and Web3Wallet. */
       let opts = { projectId: "<YOUR_PROJECT_ID>", logger: 'debug' };
       await V2Manager.initSignClient(opts, clientMeta);
       /** 2. Setup callbacks. */
@@ -115,9 +118,9 @@ try {
       V2Manager.onSessionUpdate = { topic, namespaces } => {
         // Handle new namespace.
       };
-      // To receive dapp's ping.
+      // To receive Dapp's ping.
       V2Manager.onSessionPin = data => {};
-      // To receive session event emitted by dapp.
+      // To receive session event emitted by Dapp.
       V2Manager.onSessionEvent = data => {};
 } catch (error) {
     console.log(error);
@@ -973,7 +976,7 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
                 walletId,
                 signedTx
               );
-        // Return TXID as approve response to the dapp.
+        // Return TXID as approve response to the Dapp.
         await V2Manager.approveSessionRequest(requestEvent, sendResult.txid, log => {
             console.log(log);
         });
@@ -1051,7 +1054,7 @@ V2Manager.onSessionRequest = (requestEvent, address, wallet) => {
                             walletId,
                             result.signedTx
                     );
-            // Return TXID as approve response to the dapp.
+            // Return TXID as approve response to the Dapp.
             await V2Manager.approveSessionRequest(requestEvent, sendResult.txid, log => {
                 console.log(log);
             });
