@@ -820,4 +820,4 @@ The error codes are defined in namespace `WalletSdk.ErrorCodes` as constant stri
 - We will provide the production `endPoint` & `apiCode` when you are ready.
 Feel free to play around with the WalletSDK in the sandbox environment.
 
-[↑ go to the top ↑](#cybavo-wallet-app-sdk-for-andorid---guideline)
+[↑ go to the top ↑](#sdk-guideline)
