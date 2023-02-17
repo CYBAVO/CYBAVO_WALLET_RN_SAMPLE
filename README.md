@@ -71,6 +71,7 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
     - Production environment:
         - On-Premises: set `MAIN_ENDPOINT` = https://`<Your management portal URL>`/v1/mw/
         - SaaS: set `MAIN_ENDPOINT` = https://appvault.cybavo.com/v1/mw/ 
+6. Edit `BuildConfig.json` ➜ `WC_PROJECT_ID` to your [WalletConnect Clout project ID](docs/wallet_connect_v2.md#prequest).  
 ## Android
 
 1. Edit or create `android/local.properties` to config Maven repository URL / credentials provided by CYBAVO
@@ -108,8 +109,7 @@ Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_FACEBOOK_APP_ID` to f
 Please refer to "Facebook Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.
 9. **_Skip this if not using Line sign-in_**  
 Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_LINE_CHANNEL_ID` to fill in your `LINE channel scheme`.  
-Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual. 
-10. Edit `BuildConfig.json` ➜ `WC_PROJECT_ID` to your [WalletConnect Clout project ID](docs/wallet_connect_v2.md#prequest).   
+Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.  
     
 > You can get more Single Sign-on (SSO) settings in CYBAVO Wallet SDK Admin Panel User Manual. 
 ## iOS
