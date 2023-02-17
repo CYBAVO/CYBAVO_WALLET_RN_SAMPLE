@@ -44,6 +44,5 @@ export function fetchFee(currency) {
       console.warn('Wallets.getTransactionFee failed', error);
       dispatch({ type: FEE_ERROR, currency, error });
     }
-    dispatch({ type: FEE_LOADING, currency, loading: false });
   };
 }

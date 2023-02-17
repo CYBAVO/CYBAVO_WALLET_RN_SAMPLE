@@ -5,6 +5,7 @@
  * All rights reserved.
  */
 import {
+  KEY_USER_TX,
   TRANSACTIONS_ENQUEUE,
   TRANSACTIONS_UPDATE_TRANSACTIONS,
 } from '../actions/transactions';
@@ -221,6 +222,7 @@ function transactions(state = defaultState, action) {
       const updatedAt = Date.now();
       let key = getWalletKey(currency, tokenAddress, address);
       if (
+        start == 0 ||
         state.transactions[key] == null ||
         state.transactions[key].data == null
       ) {
@@ -244,11 +246,13 @@ function transactions(state = defaultState, action) {
         transactions[i] = {
           ...transactions[i],
           currencySymbol,
-          tokenAddress, // for identify wallet by transaction
-          out: transactions[i].fromAddress === address, //Android  need this
         };
         let txKey = getTransactionKey(key, transactions[i]);
-        if (transactions[i].nonce <= 0 || transactions[i].platformFee) {
+        if (
+          currency === KEY_USER_TX ||
+          transactions[i].nonce <= 0 ||
+          transactions[i].platformFee
+        ) {
           //no nonce group
           state.transactions[key].data[txKey] = transactions[i];
           state.transactions[key].latestTx = getLastTxByWallet(

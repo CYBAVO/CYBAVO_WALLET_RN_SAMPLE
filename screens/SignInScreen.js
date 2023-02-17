@@ -15,7 +15,12 @@ import { Container, Text } from 'native-base';
 import { WebView } from 'react-native-webview';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
-import { AUTH_UPDATE_ANIMATE, AUTH_UPDATE_DEV, signIn } from '../store/actions';
+import {
+  AUTH_UPDATE_ANIMATE,
+  AUTH_UPDATE_DEV,
+  CONFIG_QR_CODE,
+  signIn,
+} from '../store/actions';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import { ROUND_BUTTON_HEIGHT, ROUND_BUTTON_ICON_SIZE } from '../Constants';
 import { SERVICE_ENDPOINT } from '../BuildConfig.json';
@@ -27,7 +32,14 @@ import RoundButton2 from '../components/RoundButton2';
 import { TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET } from '../BuildConfig';
 const { height, width } = Dimensions.get('window');
 import { SvgXml } from 'react-native-svg';
-
+import { Snackbar } from 'react-native-paper';
+import {
+  ErrInvalidApiCode,
+  WalletSdk,
+} from '@cybavo/react-native-wallet-service';
+import AsyncStorage from '@react-native-community/async-storage';
+import ResultModal, { TYPE_FAIL } from '../components/ResultModal';
+const { ErrorCodes } = WalletSdk;
 const SignInScreen: () => React$Node = ({ theme }) => {
   const skipAnimate = useSelector(state => state.auth.skipAnimate);
   const webviewRef = useRef(null);
@@ -37,8 +49,10 @@ const SignInScreen: () => React$Node = ({ theme }) => {
   const signInState = useSelector(state => state.auth.signInState);
   const [animOpacity, setAnimOpacity] = useState(new Animated.Value(0));
   const [translateY, setTranslateY] = useState(new Animated.Value(0));
+  const [result, setResult] = useState(null);
   const iconInitMarginTop = height * 0.35;
   const iconAfterMarginTop = -iconInitMarginTop * 0.55;
+  const [configQrCode, setConfigQrCode] = useState(null);
   const dispatch = useDispatch();
   const startTranslateY = () => {
     Animated.timing(translateY, {
@@ -60,10 +74,51 @@ const SignInScreen: () => React$Node = ({ theme }) => {
   };
   useEffect(() => {
     if (error) {
-      toastError(error);
+      if (
+        configQrCode != null &&
+        (ErrorCodes.ErrInvalidApiCode === error.code ||
+          error.code === 'EUNSPECIFIED')
+      ) {
+        setResult({
+          type: TYPE_FAIL,
+          error:
+            I18n.t(`error_msg_${error.code}`, {
+              defaultValue: error.message,
+            }) + `\n${I18n.t('suggest_remove_config_qr')}`,
+          failButtonText: I18n.t('remove_bt'),
+          secondaryConfig: {
+            color: theme.colors.primary,
+            text: I18n.t('cancel'),
+            onClick: () => {
+              setResult(null);
+            },
+          },
+          title: I18n.t('failed'),
+          buttonClick: () => {
+            AsyncStorage.removeItem(CONFIG_QR_CODE)
+              .then(() => {
+                setConfigQrCode(null);
+              })
+              .catch(error => {
+                console.debug('remove config Qr err:' + error);
+              });
+            setResult(null);
+          },
+        });
+      } else {
+        toastError(error);
+      }
     }
-    startTranslateY();
   }, [error]);
+
+  useEffect(() => {
+    startTranslateY();
+    AsyncStorage.getItem(CONFIG_QR_CODE, async (error, r) => {
+      if (r) {
+        setConfigQrCode(r);
+      }
+    });
+  }, []);
 
   return (
     <Container
@@ -235,6 +290,18 @@ const SignInScreen: () => React$Node = ({ theme }) => {
             alignSelf: 'center',
             top: height / 2,
           }}
+        />
+      )}
+      {result && (
+        <ResultModal
+          visible={!!result}
+          title={result.title}
+          failButtonText={result.failButtonText}
+          type={result.type}
+          message={result.message}
+          errorMsg={result.error}
+          onButtonClick={result.buttonClick}
+          secondaryConfig={result.secondaryConfig}
         />
       )}
     </Container>

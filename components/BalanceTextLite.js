@@ -14,8 +14,12 @@ const BalanceTextLite: () => React$Node = ({
   balanceItem = {},
   isErc1155,
   tokenIdIndex,
+  solTokens,
 }) => {
   const _effectiveBalance = () => {
+    if (solTokens) {
+      return solTokens.length;
+    }
     if (isErc1155) {
       if (tokenIdIndex == null) {
         return balanceItem.tokenIdAmounts.length || '0';
@@ -30,7 +34,7 @@ const BalanceTextLite: () => React$Node = ({
   };
   return (
     <React.Fragment>
-      {balanceItem && !balanceItem.loading && (
+      {((balanceItem && !balanceItem.loading) || solTokens) && (
         <Text note style={textStyle}>
           {_effectiveBalance()}
         </Text>

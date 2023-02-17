@@ -67,8 +67,6 @@ import {
   getFeeUnit,
 } from '../Helpers';
 import RoundButton2 from '../components/RoundButton2';
-import { signIn } from '../store/actions/auth';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import TopDownHint from '../components/TopDownHint';
 import { useClipboard } from '@react-native-community/hooks';
 import ReplaceTransactionModal, {
@@ -84,13 +82,14 @@ import ResultModal, {
 import { CANCELLED } from '../store/reducers/transactions';
 import ActivityLogList from '../components/ActivityLogList';
 import { SvgXml } from 'react-native-svg';
-import InputPinSmsModal from './InputPinSmsModal';
 import NavigationService from '../NavigationService';
 import { BIO_SETTING_USE_SMS, updateBioSetting } from '../store/actions';
+import { useSafeArea } from 'react-native-safe-area-context';
 
 const HEADER_EXPANDED_HEIGHT = 168;
 const HEADER_COLLAPSED_HEIGHT = 56;
 const TransactionDetailScreen: () => React$Node = ({ theme }) => {
+  const insets = useSafeArea();
   const [scrollY] = useState(new Animated.Value(0));
   const [transparent, setTransparent] = useState(true);
   const [fee, setFee] = useState({});
@@ -392,17 +391,24 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
       }}
     />
   );
-
+  const isNft =
+    wallet.isNft || (wallet.currency === Coin.SOL && transaction.tokenId);
   const decorationLine =
     transaction.replaceStatus === CANCELLED ? 'line-through' : 'none';
 
   let tokenId =
-    wallet.tokenVersion == 721
+    wallet.currency === Coin.SOL && !!transaction.tokenId
+      ? transaction.tokenId
+      : wallet.tokenVersion === 721
       ? transaction.amount
-      : wallet.tokenVersion == 1155
+      : wallet.tokenVersion === 1155
       ? transaction.tokenId
       : null;
-  let amount = wallet.tokenVersion == 1155 ? transaction.amount : null;
+  let amount =
+    wallet.tokenVersion === 1155 ||
+    (wallet.currency === Coin.SOL && !!transaction.tokenId)
+      ? transaction.amount
+      : null;
   return (
     <Container style={Styles.bottomContainer}>
       {Platform.OS == 'android' && (
@@ -413,16 +419,19 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
             left: 0,
             elevation: 1,
             opacity: scrollY.interpolate({
-              inputRange: [0, 90],
+              inputRange: [0, 148],
               outputRange: [0, 1],
               extrapolate: 'clamp',
             }),
           }}>
-          <SafeAreaView
+          <View
             style={{
               height: HEADER_COLLAPSED_HEIGHT + 20,
               width: width,
               backgroundColor: theme.colors.background,
+              paddingTop: insets.top,
+              paddingLeft: insets.left,
+              paddingRight: insets.right,
             }}
           />
         </Animated.View>
@@ -431,7 +440,9 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
       <Headerbar
         transparent={transparent}
         title={
-          transaction.out ? I18n.t('send_detail') : I18n.t('receive_detail')
+          transaction.direction === Wallets.Transaction.Direction.OUT
+            ? I18n.t('send_detail')
+            : I18n.t('receive_detail')
         }
         onBack={() => goBack()}
         style={{
@@ -472,32 +483,38 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
         <BackgroundImage
           containerStyle={Styles.detailBackgroundImage}
           imageStyle={Styles.detailCardPattern}
-          imageSource={wallet.isNft ? null : CardPatternImg}
+          imageSource={isNft ? null : CardPatternImg}
           startColor={
-            (wallet.isNft
+            (isNft
               ? nftStartColors[wallet.colorIndex]
               : startColors[wallet.currencySymbol]) || startColors.UNKNOWN
           }
           endColor={
-            (wallet.isNft
+            (isNft
               ? nftEndColors[wallet.colorIndex]
               : endColors[wallet.currencySymbol]) || endColors.UNKNOWN
           }
           start={{ x: 0, y: 0 }}
-          end={wallet.isNft ? { x: 0, y: 1 } : { x: 1, y: 0 }}>
+          end={isNft ? { x: 0, y: 1 } : { x: 1, y: 0 }}>
           <Animated.View
             style={{
               opacity: scrollY.interpolate({
-                inputRange: [0, 20],
+                inputRange: [0, 44],
                 outputRange: [1, 0],
                 extrapolate: 'clamp',
               }),
             }}>
-            <SafeAreaView
-              style={{ marginTop: HEADER_COLLAPSED_HEIGHT, width: width }}
+            <View
+              style={{
+                marginTop: HEADER_COLLAPSED_HEIGHT,
+                width: width,
+                paddingTop: insets.top,
+                paddingLeft: insets.left,
+                paddingRight: insets.right,
+              }}
             />
-            <View style={Styles.numContainer}>
-              {wallet.isNft ? (
+            <View style={[Styles.numContainer, { marginTop: 24 }]}>
+              {isNft ? (
                 <Image
                   resizeMode="stretch"
                   source={nftIcons[wallet.iconIndex]}
@@ -522,7 +539,7 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
                 textStyle={[Styles.currencyTextMain, Theme.fonts.default.heavy]}
               />
             </View>
-            {transaction.out ? (
+            {transaction.direction === Wallets.Transaction.Direction.OUT ? (
               <Text
                 style={[
                   Theme.fonts.default.heavyBold,
@@ -662,7 +679,7 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
               </Text>
             </View>
           )}
-          {(amount || !wallet.isNft) && (
+          {(amount || !isNft) && (
             <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
               {I18n.t('transfer_amount')}
             </Text>
@@ -676,7 +693,7 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
               </Text>
             </View>
           )}
-          {!wallet.isNft && !hasValue(exchangeAmount) && (
+          {!isNft && !hasValue(exchangeAmount) && (
             <View style={Styles.bottomBoarderContainer}>
               <Text
                 selectable
@@ -685,7 +702,7 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
               </Text>
             </View>
           )}
-          {!wallet.isNft && hasValue(exchangeAmount) && (
+          {!isNft && hasValue(exchangeAmount) && (
             <View
               style={[
                 Styles.bottomBoarderContainer,
@@ -716,12 +733,12 @@ const TransactionDetailScreen: () => React$Node = ({ theme }) => {
               </Text>
             </View>
           )}
-          {hasValue(transaction.transactionFee) && (
+          {transaction.transactionFee && transaction.transactionFee != '0' && (
             <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
               {I18n.t('transaction_fee')}
             </Text>
           )}
-          {hasValue(transaction.transactionFee) && (
+          {transaction.transactionFee && transaction.transactionFee != '0' && (
             <View
               style={[
                 Styles.bottomBoarderContainer,

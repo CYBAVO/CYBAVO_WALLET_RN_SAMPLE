@@ -25,7 +25,6 @@ import {
   replaceConfig,
   ROUND_BUTTON_HEIGHT,
   ROUND_BUTTON_ICON_SIZE,
-  SERVICE_EMAIL,
   TX_EXPLORER_URIS,
 } from './Constants';
 import BigNumber from 'bignumber.js';
@@ -35,21 +34,30 @@ import Tab from './components/Tab';
 import React from 'react';
 import { FileLogger } from 'react-native-file-logger';
 import I18n from './i18n/i18n';
-import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { PERMISSIONS, request, RESULTS } from 'react-native-permissions';
 import * as DeviceInfo from 'react-native-device-info';
 import { uniqueIds } from './BuildConfig';
-import { BIO_SETTING_USE_SMS, startClock } from './store/actions';
-import { Wallets } from '@cybavo/react-native-wallet-service';
+import { BIO_SETTING_USE_SMS } from './store/actions';
+import { WalletConnectSdk, Wallets } from '@cybavo/react-native-wallet-service';
+const { V2Manager, WalletConnectHelper } = WalletConnectSdk;
 import { TYPE_FAIL } from './components/ResultModal';
 import { nftStartColors, Theme } from './styles/MainTheme';
 import LinearGradient from 'react-native-linear-gradient';
 import { Surface, Text, TouchableRipple } from 'react-native-paper';
-import { CANCELLED } from './store/reducers/transactions';
+import Transactions, { CANCELLED } from './store/reducers/transactions';
 import Styles from './styles/Styles';
 import DisplayTime from './components/DisplayTime';
 import { DotIndicator } from 'react-native-indicators';
-import { SvgUri } from 'react-native-svg';
 import IconSvgXmlGeneral from './components/IconSvgXmlGeneral';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { Buffer } from 'buffer';
+import jpeg from 'jpeg-js';
+import { PNG } from 'pngjs/browser';
+import jsQR from 'jsqr';
+import { utils } from 'ethers';
+import { parseUri } from '@walletconnect/utils';
+import moment from 'moment/moment';
+
 //walletconnet typedData
 export function extractAddress(s) {
   let addressKey = findKey(s.types, 'address', []);
@@ -315,6 +323,93 @@ export async function checkCameraPermission() {
   }
 }
 
+export async function pickImage(
+  setLoading,
+  setResult,
+  reactivateOrLeave,
+  setQrCode
+) {
+  if (!(await checkStoragePermission())) {
+    return;
+  }
+  setLoading(true);
+  const result = await launchImageLibrary(
+    {
+      selectionLimit: 1,
+      mediaType: 'photo',
+      includeBase64: true,
+    },
+    async ({ didCancel, assets, errorCode }) => {
+      if (didCancel) {
+        setLoading(false);
+        return;
+      }
+      if (errorCode || !assets || assets.length === 0) {
+        // Handle errors here, or separately
+        setResult({
+          title: I18n.t('pick_image_failed'),
+          error: errorCode,
+          type: TYPE_FAIL,
+          buttonClick: reactivateOrLeave,
+        });
+        setLoading(false);
+        return;
+      }
+      try {
+        const image = assets[0];
+        const base64Buffer = Buffer.from(image.base64, 'base64');
+
+        let pixelData;
+        let imageBuffer;
+
+        // Handle decoding based on different mimetypes
+        if (image.type === 'image/jpeg' || image.type === 'image/jpg') {
+          pixelData = jpeg.decode(base64Buffer, { useTArray: true }); // --> useTArray makes jpeg-js work on react-native without needing to nodeify it
+          imageBuffer = pixelData.data;
+        } else if (image.type === 'image/png') {
+          pixelData = PNG.sync.read(base64Buffer);
+          imageBuffer = pixelData.data;
+        } else {
+          // you can alert the user here that the format is not supported
+          setResult({
+            title: I18n.t('decode_qr_image_failed'),
+            error: image.type,
+            type: TYPE_FAIL,
+            buttonClick: reactivateOrLeave,
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Convert the buffer into a clamped array that jsqr uses
+        const data = Uint8ClampedArray.from(imageBuffer);
+
+        // Get the QR string from the image
+        const code = jsQR(data, image.width, image.height);
+        if (!code) {
+          setResult({
+            title: I18n.t('decode_qr_image_failed'),
+            error: 'decode null',
+            type: TYPE_FAIL,
+            buttonClick: reactivateOrLeave,
+          });
+          setLoading(false);
+          return;
+        }
+        setQrCode(code.data);
+        setLoading(false);
+      } catch (error) {
+        setResult({
+          title: I18n.t('decode_qr_image_failed'),
+          error: 'error',
+          type: TYPE_FAIL,
+          buttonClick: reactivateOrLeave,
+        });
+        setLoading(false);
+      }
+    }
+  );
+}
 export async function checkStoragePermission() {
   if (Platform.OS == 'ios') {
     return true;
@@ -353,7 +448,7 @@ export function isBsc(wallet) {
 }
 export function getAvailableBalance(balanceItem) {
   if (balanceItem) {
-    if (balanceItem.availableBalance) {
+    if (false) {
       return balanceItem.availableBalance;
     } else {
       if (balanceItem.tokenAddress) {
@@ -384,6 +479,10 @@ export function getWalletKeyByWallet(wallet) {
 }
 export function getWalletKey(currency, tokenAddress, address) {
   let key = `${currency}#${tokenAddress}#${address}`;
+  return key;
+}
+export function getCurrencyKey(currency, tokenAddress) {
+  let key = `${currency}#${tokenAddress}`;
   return key;
 }
 
@@ -436,7 +535,11 @@ export function renderTxItem(
         }}>
         <>
           <Image
-            source={item.out ? sendImg : receiveImg}
+            source={
+              item.direction === Wallets.Transaction.Direction.OUT
+                ? sendImg
+                : receiveImg
+            }
             resizeMode="stretch"
             style={{
               width: 24,
@@ -458,7 +561,7 @@ export function renderTxItem(
                   alignItems: 'flex-start',
                   marginBottom: 4,
                 }}>
-                {item.replaceStatus != null && (
+                {item.nonce > 0 && !item.platformFee && (
                   <Text
                     style={[
                       Styles.cardDesc,
@@ -483,6 +586,36 @@ export function renderTxItem(
                   format="YYYY-M-D"
                   unix={item.timestamp}
                 />
+                {item.platformFee && (
+                  <Text
+                    style={[
+                      Styles.cardDesc,
+                      {
+                        color: Theme.colors.send,
+                        opacity: 1,
+                        marginLeft: 0,
+                        marginRight: 4,
+                        flexShrink: 1,
+                      },
+                      Theme.fonts.default.regular,
+                    ]}>{`${I18n.t('platform_fee')}`}</Text>
+                )}
+                {item.type != Wallets.Transaction.Type.Unknown && (
+                  <Text
+                    style={[
+                      Styles.cardDesc,
+                      {
+                        color: Theme.colors.send,
+                        opacity: 1,
+                        marginLeft: 0,
+                        marginRight: 8,
+                        flexShrink: 1,
+                      },
+                      Theme.fonts.default.regular,
+                    ]}>
+                    {getTransactionType(item.type)}
+                  </Text>
+                )}
                 {!item.success && (
                   <Text style={{ color: Theme.colors.error, fontSize: 12 }}>
                     {I18n.t('failed')}
@@ -525,7 +658,7 @@ export function renderTxItem(
               )}
             </View>
             {item.txid != null && item.txid.length > 0 && (
-              <View style={{ flexDirection: 'row', flex: 1, marginTop: 3 }}>
+              <View style={{ flexDirection: 'row', marginTop: 3 }}>
                 <Text
                   style={[
                     Styles.tag,
@@ -558,6 +691,8 @@ export function renderTxItem(
             {hasValue(tokenId) ? (
               <View style={{ flexDirection: 'column' }}>
                 <Text
+                  numberOfLines={1}
+                  ellipsizeMode="middle"
                   style={[
                     Styles.cardTitle,
                     Theme.fonts.default.heavy,
@@ -600,7 +735,7 @@ export function renderTxItem(
                   style={[
                     Styles.cardDescHorizontal,
                     Theme.fonts.default.heavy,
-                    { opacity: opacity },
+                    { opacity: opacity, flexShrink: 1 },
                   ]}>
                   {getCurrencySymbol(item)}
                 </Text>
@@ -612,7 +747,16 @@ export function renderTxItem(
     </Surface>
   );
 }
-
+export function getTokenStandard(value) {
+  return Object.keys(Wallets.TokenStandard).find(
+    key => Wallets.TokenStandard[key] === value
+  );
+}
+export function getTransactionType(value) {
+  return Object.keys(Wallets.Transaction.Type).find(
+    key => Wallets.Transaction.Type[key] === value
+  );
+}
 export function renderNftItem(
   item,
   onClickAction,
@@ -724,8 +868,6 @@ export function renderNftItem(
                     </Text>
                     {amount && (
                       <Text
-                        numberOfLines={1}
-                        ellipsizeMode="middle"
                         style={[
                           {
                             fontSize: 12,
@@ -736,38 +878,45 @@ export function renderNftItem(
                         {amount}
                       </Text>
                     )}
-                    <TouchableOpacity
-                      height={ROUND_BUTTON_HEIGHT}
-                      style={[
-                        {
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          marginTop: 20,
-                        },
-                      ]}
-                      color={'transparent'}
-                      onPress={() =>
-                        explorerNft(currency, tokenAddress, tokenId, config)
-                      }>
-                      <Image
-                        source={expolreImg}
-                        style={{
-                          width: ROUND_BUTTON_ICON_SIZE,
-                          height: ROUND_BUTTON_ICON_SIZE,
-                        }}
-                      />
-                      <Text
+                    {getNftExplorerUri(
+                      currency,
+                      tokenAddress,
+                      tokenId,
+                      config
+                    ) != null && (
+                      <TouchableOpacity
+                        height={ROUND_BUTTON_HEIGHT}
                         style={[
                           {
-                            marginLeft: 4,
-                            color: Theme.colors.text,
-                            fontSize: 12,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            marginTop: 20,
                           },
-                          Theme.fonts.default.heavyBold,
-                        ]}>
-                        {I18n.t('view_on_explore')}
-                      </Text>
-                    </TouchableOpacity>
+                        ]}
+                        color={'transparent'}
+                        onPress={() =>
+                          explorerNft(currency, tokenAddress, tokenId, config)
+                        }>
+                        <Image
+                          source={expolreImg}
+                          style={{
+                            width: ROUND_BUTTON_ICON_SIZE,
+                            height: ROUND_BUTTON_ICON_SIZE,
+                          }}
+                        />
+                        <Text
+                          style={[
+                            {
+                              marginLeft: 4,
+                              color: Theme.colors.text,
+                              fontSize: 12,
+                            },
+                            Theme.fonts.default.heavyBold,
+                          ]}>
+                          {I18n.t('view_on_explore')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </TouchableOpacity>
                 </LinearGradient>
               );
@@ -839,6 +988,18 @@ export function getEstimateGasFeeSub(feeStr, num, min, replaceValue) {
     lessThenMin: bigEst.isLessThanOrEqualTo(min),
   };
 }
+
+export function trimReceiver(value) {
+  if (value) {
+    value = value.replace(
+      new RegExp('^(ethereum:|bitcoin:|bitcoincase:|bitcoin-sv:)', 'g'),
+      ''
+    );
+    value = value.trim();
+  }
+  return value;
+}
+
 export function getEthGasFeeSub(feeNum, multiplier, n, replaceValue) {
   if (isNaN(feeNum)) {
     return 0;
@@ -1287,6 +1448,51 @@ export function getFeeNote(currency, tokenAddress) {
     ? ` (${I18n.t('estimated')})`
     : '';
 }
+/**
+ * Converts hex to utf8 string if it is valid bytes
+ */
+export function convertHexToUtf8(value: string) {
+  if (utils.isHexString(value)) {
+    return utils.toUtf8String(value);
+  }
+
+  return value;
+}
+export function byteToHexString(byteArray) {
+  return Array.from(byteArray, function(byte) {
+    return ('0' + (byte & 0xff).toString(16)).slice(-2);
+  }).join('');
+}
+export function hexStringToArrayBuffer(hexString) {
+  // remove the leading 0x
+  hexString = hexString.replace(/^0x/, '');
+
+  // ensure even number of characters
+  if (hexString.length % 2 != 0) {
+    console.log(
+      'WARNING: expecting an even number of characters in the hexString'
+    );
+  }
+
+  // check for some non-hex characters
+  var bad = hexString.match(/[G-Z\s]/i);
+  if (bad) {
+    console.log('WARNING: found non-hex characters', bad);
+  }
+
+  // split the string into pairs of octets
+  var pairs = hexString.match(/[\dA-F]{2}/gi);
+
+  // convert the octets to integers
+  var integers = pairs.map(function(s) {
+    return parseInt(s, 16);
+  });
+
+  var array = new Uint8Array(integers);
+  console.log(array);
+
+  return array;
+}
 export function isETHForkChain(currency) {
   return (
     currency == Coin.ETH ||
@@ -1305,7 +1511,8 @@ export function isETHForkChain(currency) {
     currency == Coin.AVAXC ||
     currency == Coin.TT ||
     currency == Coin.KUB ||
-    currency == Coin.KOVAN
+    currency == Coin.KOVAN ||
+    currency == Coin.GOERLI
   );
 }
 export function animateFadeIn(animOpacity, toValue, duration, callback) {
@@ -1342,7 +1549,52 @@ export function sendLogFilesByEmail(to, subject, body) {
     body: body,
   });
 }
-
+export function isL2MapEmpty(map) {
+  try {
+    let values = Object.values(map);
+    if (values.length === 0) {
+      return true;
+    }
+    for (let l2Map of values) {
+      if (Object.values(l2Map).length !== 0) {
+        return false;
+      }
+    }
+    return true;
+  } catch (e) {
+    console.log(e);
+    return true;
+  }
+}
+export function getL2MapCount(map) {
+  try {
+    let values = Object.values(map);
+    if (values.length === 0) {
+      return 0;
+    }
+    let count = 0;
+    for (let l2Map of values) {
+      count += Object.keys(l2Map).length;
+    }
+    return count;
+  } catch (e) {
+    console.log(e);
+    return 0;
+  }
+}
+export function isWcAccountInvalid(map, requiredMap) {
+  try {
+    for (let data of requiredMap) {
+      if (!map[data.chain] || Object.keys(map[data.chain]).length == 0) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    console.log(e);
+    return true;
+  }
+}
 export function checkWalletConnectUri(str) {
   let r = {
     valid: false,
@@ -1350,6 +1602,7 @@ export function checkWalletConnectUri(str) {
     chainId: null,
     message: null,
     uri: str,
+    version: null,
   };
   try {
     let arr = str.split(CBO_SEPARATOR);
@@ -1362,35 +1615,13 @@ export function checkWalletConnectUri(str) {
   } catch (e) {
     console.error(e);
   }
-  const pathStart = str.indexOf(':');
-  const pathEnd = str.indexOf('?') !== -1 ? str.indexOf('?') : undefined;
-  const protocol = str.substring(0, pathStart);
-  const path = str.substring(pathStart + 1, pathEnd);
-  if (protocol != 'wc') {
-    r.message = 'URI format is invalid';
-    return r;
+  try {
+    const { version } = parseUri(str);
+    r.version = version;
+    r.valid = version === 1 || version === 2;
+  } catch (error) {
+    r.message = error;
   }
-  let values = path.split('@');
-  let handshakeTopic = values[0];
-  if (!handshakeTopic) {
-    r.message = 'Invalid or missing handshakeTopic parameter value';
-    return r;
-  }
-  const queryString = typeof pathEnd !== 'undefined' ? str.substr(pathEnd) : '';
-  if (queryString == '') {
-    r.message = 'Missing queryString';
-    return r;
-  }
-  let result = parseQueryString(queryString);
-  if (!result.bridge) {
-    r.message = 'Invalid or missing bridge url parameter value';
-    return r;
-  }
-  if (!result.key) {
-    r.message = 'Invalid or missing key parameter value';
-    return r;
-  }
-  r.valid = true;
   return r;
 }
 
@@ -1504,6 +1735,51 @@ export function getInfoSvg(color) {
 </svg>`;
 }
 
+export function getV2ConnectionList(signClient, supportedChainMap) {
+  try {
+    if (!signClient) {
+      return [];
+    }
+    let data = [];
+    signClient.session.values.forEach(s => {
+      const metadata = s.peer.metadata;
+      let chainNames = [];
+      Object.keys(s.requiredNamespaces).forEach(ns => {
+        s.requiredNamespaces[ns].chains.forEach(chain => {
+          let chainInfo = supportedChainMap[chain] || { chainName: chain };
+          chainNames.push(chainInfo.chainName);
+        });
+      });
+      data.push({
+        session: s,
+        name: `Session - ${metadata.name}`,
+        icon: metadata.icons[0],
+        address: chainNames.join(', '),
+        timestamp: I18n.t('expiry_template', {
+          time: moment(s.expiry * 1000).format('YYYY-MM-DD HH:mm:ss'),
+        }),
+      });
+    });
+    signClient.pairing.values.forEach(s => {
+      const metadata = s.peerMetadata;
+      if (metadata == null) {
+        return;
+      }
+      data.push({
+        session: s,
+        name: `Pairing - ${metadata.name}`,
+        icon: metadata.icons[0],
+        timestamp: I18n.t('expiry_template', {
+          time: moment(s.expiry * 1000).format('YYYY-MM-DD HH:mm:ss'),
+        }),
+      });
+    });
+    return data;
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+}
 export function getConnectionList(map) {
   if (!map) {
     return [];

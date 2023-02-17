@@ -2,17 +2,19 @@
 
 buildscript {
     ext {
+        kotlinVersion = "1.6.0"
         buildToolsVersion = "28.0.3"
         minSdkVersion = 21
-        compileSdkVersion = 30
-        targetSdkVersion = 30
+        compileSdkVersion = 31
+        targetSdkVersion = 31
         firebaseMessagingVersion = "21.1.0"
         facebookSdkVersion = "9.0.0"
     }
     repositories {
         google()
-        jcenter()
         maven { url 'https://maven.fabric.io/public' }
+        mavenCentral()
+        jcenter()
     }
     dependencies {
         classpath('com.android.tools.build:gradle:4.0.1')
@@ -26,6 +28,16 @@ buildscript {
 
 allprojects {
     repositories {
+        exclusiveContent {
+            filter{
+                includeGroup "com.facebook.react"
+            }
+            forRepository {
+                maven {
+                    url "$rootDir/../node_modules/react-native/android"
+                }
+            }
+        }
         mavenLocal()
 
         maven { url "https://maven.sumsub.com/repository/maven-public/" }
@@ -42,6 +54,8 @@ allprojects {
         }
 
         google()
+        maven { url 'https://maven.fabric.io/public' }
+        mavenCentral()
         jcenter()
         maven { url 'https://jitpack.io' }
 

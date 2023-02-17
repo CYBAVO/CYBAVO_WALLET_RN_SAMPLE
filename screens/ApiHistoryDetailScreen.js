@@ -58,7 +58,6 @@ import {
   hasValue,
 } from '../Helpers';
 import { useAppState } from '@react-native-community/hooks';
-import { convertHexToUtf8 } from '@walletconnect/utils';
 import { Theme } from '../styles/MainTheme';
 import BigNumber from 'bignumber.js';
 import walletconnect from '../store/reducers/walletconnect';

@@ -56,12 +56,12 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
 1. Clone the source code from GitHub
 2. Install the dependencies
    ```
-   $ yarn install
+   yarn install
    ```
 3. Polyfill NodeJS modules for React-Native  
    ```
-   $ yarn add rn-nodeify
-   $ rn-nodeify --install --hack
+   yarn add rn-nodeify
+   rn-nodeify --install --hack
    ```
 4. Unmark `require('crypto')` in `shim.js`
 5. Edit `BuildConfig.json` ➜ `MAIN_ENDPOINT` to point to your Wallet Service endpoint.  
@@ -70,7 +70,7 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
         - SaaS: set `MAIN_ENDPOINT` = https://mvault.sandbox.cybavo.com/v1/mw/
     - Production environment:
         - On-Premises: set `MAIN_ENDPOINT` = https://`<Your management portal URL>`/v1/mw/
-        - SaaS: set `MAIN_ENDPOINT` = https://appvault.cybavo.com/v1/mw/
+        - SaaS: set `MAIN_ENDPOINT` = https://appvault.cybavo.com/v1/mw/ 
 ## Android
 
 1. Edit or create `android/local.properties` to config Maven repository URL / credentials provided by CYBAVO
@@ -82,14 +82,16 @@ We provide VAULT, wallet, ledger service for cryptocurrency. Trusted by many exc
    ```
 2. Perform below command to fix build issues:
     ```
+    cp patch/playStore.js node_modules/react-native-version-check/src/providers/playStore.js
     cp patch/FABGroup.txt node_modules/react-native-paper/src/components/FAB/FABGroup.tsx
     cp patch/default-encoding.js node_modules/parse-asn1/node_modules/pbkdf2/lib/default-encoding.js 
+    cp patch/browser-base64.js node_modules/@ethersproject/base64/lib/browser-base64.js
     sed -i "" '/minSdkVersion/d' node_modules/react-native-i18n/android/src/main/AndroidManifest.xml
+    ./appcenter-pre-build.sh
     sed -i "" 's/compileSdkVersion .*/compileSdkVersion 29/g' node_modules/react-native-twitter-signin/android/build.gradle
     sed -i "" 's/buildToolsVersion .*/buildToolsVersion "28.0.3"/g' node_modules/react-native-twitter-signin/android/build.gradle
     sed -i "" 's/minSdkVersion .*/minSdkVersion 19/g' node_modules/react-native-twitter-signin/android/build.gradle
     sed -i "" 's/targetSdkVersion .*/targetSdkVersion 29/g' node_modules/react-native-twitter-signin/android/build.gradle
-    ./appcenter-pre-build.sh
     ```
 3. Register your app on CYBAVO WALLET MANAGEMENT system web ➜ Administration ➜ System settings, input `package name` and `Signature keystore SHA1 fingerprint`, follow the instruction to retrieve an `API Code`.  
 Please refer to "How to Create an Application" section in CYBAVO Wallet SDK Admin Panel User Manual
@@ -106,7 +108,8 @@ Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_FACEBOOK_APP_ID` to f
 Please refer to "Facebook Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.
 9. **_Skip this if not using Line sign-in_**  
 Edit `android/app/src/main/res/values/strings.xml` ➜ `MY_LINE_CHANNEL_ID` to fill in your `LINE channel scheme`.  
-Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual.    
+Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User Manual. 
+10. Edit `BuildConfig.json` ➜ `WC_PROJECT_ID` to your [WalletConnect Clout project ID](docs/wallet_connect_v2.md#prequest).   
     
 > You can get more Single Sign-on (SSO) settings in CYBAVO Wallet SDK Admin Panel User Manual. 
 ## iOS
@@ -123,14 +126,14 @@ Please refer to "Line Login Setup" section in CYBAVO Wallet SDK Admin Panel User
 
 2. Perform below command to fix build issues:
     ```
-   cp patch/RCTUIImageViewAnimated.m node_modules/react-native/Libraries/Image/RCTUIImageViewAnimated.m
-   cp patch/FABGroup.txt node_modules/react-native-paper/src/components/FAB/FABGroup.tsx
-   cp patch/scan_index.txt node_modules/react-native-qrcode-scanner/index.js
-   cp patch/RCTCxxBridge.mm node_modules/react-native/React/CxxBridge/RCTCxxBridge.mm
-   cp patch/RCTTurboModuleManager.mm node_modules/react-native/ReactCommon/turbomodule/core/platform/ios/RCTTurboModuleManager.mm
-   cp patch/default-encoding.js node_modules/parse-asn1/node_modules/pbkdf2/lib/default-encoding.js
-   rm -rf node_modules/react-native-twitter-signin/ios/dependencies
-   sed -i "" 's/s.dependency "TwitterKit", "~> 3.3"/s.dependency "TwitterKit5"/g'
+    sed -i "" 's/s.dependency "TwitterKit", "~> 3.3"/s.dependency "TwitterKit5"/g' node_modules/react-native-twitter-signin/react-native-twitter-signin.podspec
+    cp patch/RCTUIImageViewAnimated.m node_modules/react-native/Libraries/Image/RCTUIImageViewAnimated.m
+    cp patch/FABGroup.txt node_modules/react-native-paper/src/components/FAB/FABGroup.tsx
+    cp patch/scan_index.txt node_modules/react-native-qrcode-scanner/index.js
+    cp patch/RCTCxxBridge.mm node_modules/react-native/React/CxxBridge/RCTCxxBridge.mm 
+    cp patch/RCTTurboModuleManager.mm node_modules/react-native/ReactCommon/turbomodule/core/platform/ios/RCTTurboModuleManager.mm
+    cp patch/default-encoding.js node_modules/parse-asn1/node_modules/pbkdf2/lib/default-encoding.js 
+    cp patch/browser-base64.js node_modules/@ethersproject/base64/lib/browser-base64.js
     ```
 2. Register your app on CYBAVO WALLET MANAGEMENT system web ➜ Administration ➜ System settings, input `bundle id`, follow the instruction to retrieve an `API Code`.  
 Please refer to "Setup in iOS" section in CYBAVO Wallet SDK Admin Panel User Manual.

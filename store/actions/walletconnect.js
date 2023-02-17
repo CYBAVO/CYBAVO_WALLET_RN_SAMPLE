@@ -6,7 +6,7 @@
  */
 import { WalletConnectSdk, Wallets } from '@cybavo/react-native-wallet-service';
 import { hasValue, toast, toastError } from '../../Helpers';
-const { WalletConnectManager, WalletConnectHelper } = WalletConnectSdk;
+const { WalletConnectManager, WalletConnectHelper, V2Manager } = WalletConnectSdk;
 import NavigationService from '../../NavigationService';
 import { CHAIN_ID } from '../../BuildConfig';
 import moment from 'moment';
@@ -388,6 +388,7 @@ export function killAllSession(tag) {
       connecting: WalletConnectManager.getConnectingMap(),
       pending: WalletConnectManager.getPendingMap(),
     });
+    await V2Manager.disconnectAllSessionPairing();
   };
 }
 export function killSession(peerId) {

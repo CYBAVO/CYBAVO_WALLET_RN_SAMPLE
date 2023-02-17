@@ -6,6 +6,7 @@
  */
 import { Wallets } from '@cybavo/react-native-wallet-service';
 import { fetchBalance } from './balance';
+import { Coin } from '../../Constants';
 // import { fetchCurrencyPricesIfNeed } from './currencyPrice';
 export const WALLET_LIMIT_LOADING = 'WALLET_LIMIT_LOADING';
 export const WALLET_LIMIT_ERROR = 'WALLET_LIMIT_ERROR';
@@ -15,7 +16,26 @@ export const WALLETS_UPDATE_WALLET_LIST = 'WALLETS_UPDATE_WALLET_LIST';
 export const WALLETS_UPDATE_WALLET = 'WALLETS_UPDATE_WALLET';
 export const WALLETS_ERROR = 'WALLETS_ERROR';
 export const WALLETS_UPDATE_CURRENCIES = 'WALLETS_UPDATE_CURRENCIES';
+export const WALLETS_UPDATE_SOL_NFT = 'WALLETS_UPDATE_SOL_NFT';
 
+export function fetchSolNftTokens(wallet) {
+  return async (dispatch, getState) => {
+    if (wallet.currency != Coin.SOL || wallet.tokenAddress) {
+      return;
+    }
+    Wallets.getSolNftTokens(wallet.walletId)
+      .then(result => {
+        dispatch({
+          type: WALLETS_UPDATE_SOL_NFT,
+          tokens: result.tokens,
+          walletId: wallet.walletId,
+        });
+      })
+      .catch(error => {
+        console.log('Wallets.getSolNftTokens failed', error);
+      });
+  };
+}
 export function fetchSameCurrencyWalletLimit() {
   return async dispatch => {
     dispatch({ type: WALLET_LIMIT_LOADING, loading: true });

@@ -39,7 +39,7 @@ import {
 import RoundButton2 from '../components/RoundButton2';
 import { signIn } from '../store/actions';
 import { toast, toastError } from '../Helpers';
-import { launchSNSMobileSDK } from '../utils/KycHelper';
+import { KycHelper } from '../utils/KycHelper';
 const KycTestScreen: () => React$Node = ({ theme }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -47,11 +47,34 @@ const KycTestScreen: () => React$Node = ({ theme }) => {
   const { navigate, goBack } = useNavigation();
   return (
     <Container style={[Styles.container]}>
-      <Headerbar transparent title={'KYC test'} onBack={() => goBack()} />
-
+      <Headerbar
+        transparent
+        title={I18n.t('dev_test')}
+        onBack={() => goBack()}
+      />
       <RoundButton2
         height={ROUND_BUTTON_HEIGHT}
-        style={[{ backgroundColor: 'white', marginTop: 40 }]}
+        style={styles.mainBt}
+        disabled={loading}
+        labelStyle={[{ color: 'rgb(46,48,53)', fontSize: 14 }]}
+        onPress={() => {
+          navigate('GetUserHistory');
+        }}>
+        {I18n.t('api_get_user_history')}
+      </RoundButton2>
+      <RoundButton2
+        height={ROUND_BUTTON_HEIGHT}
+        style={styles.mainBt}
+        disabled={loading}
+        labelStyle={[{ color: 'rgb(46,48,53)', fontSize: 14 }]}
+        onPress={() => {
+          navigate('ValidatePinCode');
+        }}>
+        {I18n.t('api_validate_pin_code')}
+      </RoundButton2>
+      <RoundButton2
+        height={ROUND_BUTTON_HEIGHT}
+        style={styles.mainBt}
         disabled={loading}
         labelStyle={[{ color: 'rgb(46,48,53)', fontSize: 14 }]}
         onPress={() => {
@@ -71,7 +94,7 @@ const KycTestScreen: () => React$Node = ({ theme }) => {
       </RoundButton2>
       <RoundButton2
         height={ROUND_BUTTON_HEIGHT}
-        style={[{ backgroundColor: 'white', marginTop: 40 }]}
+        style={styles.mainBt}
         disabled={loading}
         labelStyle={[{ color: 'rgb(46,48,53)', fontSize: 14 }]}
         onPress={() => {
@@ -90,7 +113,7 @@ const KycTestScreen: () => React$Node = ({ theme }) => {
       </RoundButton2>
       <RoundButton2
         height={ROUND_BUTTON_HEIGHT}
-        style={[{ backgroundColor: 'white', marginTop: 40 }]}
+        style={styles.mainBt}
         disabled={loading}
         labelStyle={[{ color: 'rgb(46,48,53)', fontSize: 14 }]}
         onPress={() => {
@@ -100,7 +123,7 @@ const KycTestScreen: () => React$Node = ({ theme }) => {
               let log = `getKycAccessToken:${r.apiUrl}, ${r.token} ${r.flowName}`;
               toast(log);
               console.log(log);
-              launchSNSMobileSDK(
+              KycHelper.launchSNSMobileSDK(
                 r.apiUrl,
                 r.token,
                 r.flowName,
@@ -120,7 +143,7 @@ const KycTestScreen: () => React$Node = ({ theme }) => {
       </RoundButton2>
       <RoundButton2
         height={ROUND_BUTTON_HEIGHT}
-        style={[{ backgroundColor: 'white', marginTop: 40 }]}
+        style={styles.mainBt}
         disabled={loading}
         labelStyle={[{ color: 'rgb(46,48,53)', fontSize: 14 }]}
         onPress={() => {
@@ -138,6 +161,27 @@ const KycTestScreen: () => React$Node = ({ theme }) => {
           setLoading(true);
         }}>
         {'Get Share Token'}
+      </RoundButton2>
+      <RoundButton2
+        height={ROUND_BUTTON_HEIGHT}
+        style={styles.mainBt}
+        disabled={loading}
+        labelStyle={[{ color: 'rgb(46,48,53)', fontSize: 14 }]}
+        onPress={() => {
+          Auth.getApplicantStatus()
+            .then(r => {
+              setLoading(false);
+              let log = `getApplicantStatus:${JSON.stringify(r)}`;
+              toast(log);
+              console.log(log);
+            })
+            .catch(error => {
+              toastError(error);
+              setLoading(false);
+            });
+          setLoading(true);
+        }}>
+        {'Get Applicant Status'}
       </RoundButton2>
       {loading && (
         <ActivityIndicator
@@ -203,6 +247,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     flexGrow: 1,
   },
+  mainBt: { backgroundColor: 'white', marginTop: 40, marginHorizontal: 16 },
 });
 
 export default withTheme(KycTestScreen);

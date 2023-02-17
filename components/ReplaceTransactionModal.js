@@ -142,7 +142,7 @@ const ReplaceTransactionModal: () => React$Node = ({
           transparent
           title={I18n.t(titleKeys[type])}
           onBack={onCancel}
-          Parent={View}
+          androidInsetTop={false}
         />
 
         <ScrollView>

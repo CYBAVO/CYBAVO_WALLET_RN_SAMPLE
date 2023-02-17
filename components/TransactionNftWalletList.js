@@ -27,11 +27,13 @@ import {
 } from '../store/reducers/transactions';
 import {
   ADD_SVG,
+  Coin,
   nftIcons,
   replaceConfig,
   ROUND_BUTTON_LARGE_HEIGHT,
 } from '../Constants';
 import {
+  getTokenStandard,
   hasValue,
   isETHForkChain,
   renderNftItem,
@@ -98,7 +100,7 @@ const TransactionNftWalletList: () => React$Node = ({
   const _renderTransaction = obj => {
     let tokenId = obj.item.amount;
     let amount;
-    if (wallet.tokenVersion == 1155) {
+    if (wallet.tokenVersion === 1155 || wallet.currency === Coin.SOL) {
       tokenId = obj.item.tokenId;
       amount = obj.item.amount;
     }
@@ -164,11 +166,54 @@ const TransactionNftWalletList: () => React$Node = ({
       );
     }
   };
-  const _getDataSub721 = (columns, startColor, endColor, icon, data) => {
+  const _getDataSubSol = (
+    columns,
+    startColor,
+    endColor,
+    icon,
+    data,
+    getTokenId = token => token.tokenAddress
+  ) => {
     for (let t = 0; t < tokens.length; t++) {
+      if (!tokens) {
+        tokens = [];
+      }
       columns[t % 2].push({
         ...wallet,
-        tokenId: tokens[t],
+        tokenId: getTokenId(tokens[t]),
+        amount: I18n.t('token_meta_infos', {
+          ...tokens[t],
+          tokenStandard: getTokenStandard(tokens[t].tokenStandard),
+        }),
+        startColor: startColor,
+        endColor: endColor,
+        icon: icon,
+      });
+      if ((t + 1) % 6 == 0) {
+        data.push({ columns: columns });
+        columns = [[], []];
+      }
+    }
+    if (tokens.length == 0 || tokens.length % 6 != 0) {
+      data.push({ columns: columns });
+    }
+    return data;
+  };
+  const _getDataSub721 = (
+    columns,
+    startColor,
+    endColor,
+    icon,
+    data,
+    getTokenId = token => token
+  ) => {
+    for (let t = 0; t < tokens.length; t++) {
+      if (!tokens) {
+        tokens == [];
+      }
+      columns[t % 2].push({
+        ...wallet,
+        tokenId: getTokenId(tokens[t]),
         startColor: startColor,
         endColor: endColor,
         icon: icon,
@@ -215,10 +260,20 @@ const TransactionNftWalletList: () => React$Node = ({
       let endColor = nftEndColors[colorIndex];
       let icon = nftIcons[iconIndex];
       let data = [];
-      data =
-        wallet.tokenVersion == 721
-          ? _getDataSub721(columns, startColor, endColor, icon, data)
-          : _getDataSub1155(columns, startColor, endColor, icon, data);
+      if (wallet.currency === Coin.SOL) {
+        data = _getDataSubSol(
+          columns,
+          startColor,
+          endColor,
+          icon,
+          data,
+          token => token.tokenAddress
+        );
+      } else if (wallet.tokenVersion === 721) {
+        data = _getDataSub721(columns, startColor, endColor, icon, data);
+      } else {
+        data = _getDataSub1155(columns, startColor, endColor, icon, data);
+      }
       return data;
     } else {
       return transactions;

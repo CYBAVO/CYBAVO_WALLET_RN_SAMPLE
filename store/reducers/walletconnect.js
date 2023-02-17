@@ -5,6 +5,7 @@
  * All rights reserved.
  */
 import {
+  COMMON_RESET,
   WALLETCONNECT_CALL_APPROVAL,
   WALLETCONNECT_CALL_REJECTION,
   WALLETCONNECT_CALL_REQUEST,
@@ -18,20 +19,29 @@ import {
   WALLETCONNECT_SESSION_REQUEST,
   WALLETCONNECT_UPDATE_API_VERSION,
   WALLETCONNECT_UPDATE_REPORTABLE,
+  WC_V2_UPDATE_PENDING_REQUEST,
+  WC_V2_UPDATE_SESSIONS,
+  WC_V2_UPDATE_SUPPORTED_CHAIN,
+  WC_V2_UPDATE_UI,
 } from '../actions';
-
-function walletconnect(
-  state = {
-    loading: false,
-    connecting: {},
-    pending: {},
-    reportable: false,
-    pendingUri: null,
-    apiVersion: { ethWalletId: false, signOptions: true },
-  },
-  action
-) {
+import { WC_V2_NOT_QUEUE } from '../../Constants';
+const defaultState = {
+  loading: false,
+  connecting: {},
+  pending: {},
+  reportable: false,
+  pendingUri: null,
+  apiVersion: { ethWalletId: false, signOptions: true },
+  v2RefreshTimestamp: 0,
+  supportedChain: {},
+  pendingRequests: {},
+  queueRequest: WC_V2_NOT_QUEUE,
+  dismissUi: false,
+};
+function walletconnect(state = defaultState, action) {
   switch (action.type) {
+    case COMMON_RESET:
+      return defaultState;
     case WALLETCONNECT_PENDING_URI:
       return {
         ...state,
@@ -43,6 +53,33 @@ function walletconnect(
       return {
         ...state,
         reportable: action.value,
+      };
+    case WC_V2_UPDATE_UI:
+      return {
+        ...state,
+        dismissUi: action.dismissUi,
+      };
+    case WC_V2_UPDATE_PENDING_REQUEST:
+      return {
+        ...state,
+        pendingRequests:
+          action.pendingRequests != null
+            ? action.pendingRequests
+            : state.pendingRequests,
+        queueRequest:
+          action.queueRequest != null
+            ? action.queueRequest
+            : state.queueRequest,
+      };
+    case WC_V2_UPDATE_SESSIONS:
+      return {
+        ...state,
+        v2RefreshTimestamp: action.v2RefreshTimestamp,
+      };
+    case WC_V2_UPDATE_SUPPORTED_CHAIN:
+      return {
+        ...state,
+        supportedChain: action.chainMap,
       };
     case WALLETCONNECT_INIT_REQUEST:
       return {

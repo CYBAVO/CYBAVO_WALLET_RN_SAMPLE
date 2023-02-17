@@ -18,11 +18,15 @@ import { Container, Content } from 'native-base';
 import {
   Auth,
   Wallets,
+  WalletSdk,
   NumericPinCodeInputView,
+  ErrWalletCurrencyInvalid,
 } from '@cybavo/react-native-wallet-service';
+const { ErrorCodes } = WalletSdk;
 import {
   CHANGE_MODE,
   Coin,
+  HEADER_BAR_PADDING,
   MIN_LEVEL,
   PIN_CODE_LENGTH,
   ROUND_BUTTON_FONT_SIZE,
@@ -33,19 +37,23 @@ import PinCodeDisplay from '../components/PinCodeDisplay';
 import Styles from '../styles/Styles';
 import { Theme } from '../styles/MainTheme';
 import I18n from '../i18n/i18n';
-import { withTheme, Text } from 'react-native-paper';
+import { withTheme, Text, IconButton } from 'react-native-paper';
 import Headerbar from '../components/Headerbar';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import ResultModal, {
+  TYPE_CONFIRM,
   TYPE_FAIL,
   TYPE_SUCCESS,
 } from '../components/ResultModal';
 import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
 import {
   AUTH_UPDATE_UI_FLAG,
+  checkKycSetting,
   fetchCurrencyPricesIfNeed,
   fetchUserState,
   fetchWallets,
+  getApplicantStatus,
+  isPassedKyc,
+  registerPubkey,
   signOut,
 } from '../store/actions';
 import { useDispatch, useSelector } from 'react-redux';
@@ -61,6 +69,7 @@ import { useBackHandler, useLayout } from '@react-native-community/hooks';
 import NavigationService from '../NavigationService';
 import StrengthStatus from '../components/StrengthStatus';
 import { SvgXml } from 'react-native-svg';
+import { devDialogOption, initOptionalWallet } from '../BuildConfig';
 
 const ANIM_SWITCH_OFFSET = 80;
 let SetupPinScreen: () => React$Node = ({ theme }) => {
@@ -73,12 +82,20 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
   const [step, setStep] = useState(0);
   const [pinSecret, setPinSecret] = useState(null);
   const [loading, setLoading] = useState(false);
-  const authLoading = useSelector(state => state.auth.loading);
+  const applicantStatus = useSelector(state => state.kyc.applicantStatus);
   const [result, setResult] = useState(null);
+  const [result2, setResult2] = useState(null);
   const [level, setLevel] = useState(0);
   const { onLayout, ...layout } = useLayout();
   const authError = useSelector(state => state.auth.error);
   const fromEnterPhone = useNavigationParam('fromEnterPhone');
+  const option = useSelector(state => {
+    return state.auth.option || devDialogOption[0].key;
+  });
+
+  useEffect(() => {
+    dispatch(getApplicantStatus());
+  }, []);
 
   useEffect(() => {
     if (authError != null) {
@@ -149,6 +166,41 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
   useBackHandler(() => {
     return true;
   });
+  const _showKycAlert = () =>
+    applicantStatus.error !== ErrorCodes.ErrKycSettingsNotFound &&
+    !isPassedKyc(applicantStatus.result);
+  const _revokeUser = () => {
+    setResult2(null);
+    setLoading(true);
+    Auth.revokeUser()
+      .then(result => {
+        setResult2({
+          type: TYPE_SUCCESS,
+          successButtonText: I18n.t('done'),
+          title: I18n.t('revoke_account_successfully'),
+          message: I18n.t('revoke_account_successfully_desc'),
+          buttonClick: () => {
+            setResult2(null);
+            dispatch(signOut(false, false));
+          },
+        });
+        setLoading(false);
+      })
+      .catch(error => {
+        console.log('revokeUser failed', error);
+        setLoading(false);
+        setResult2({
+          type: TYPE_FAIL,
+          error: I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          }),
+          title: I18n.t('revoke_account_failed'),
+          buttonClick: () => {
+            setResult2(null);
+          },
+        });
+      });
+  };
   const _submit = async () => {
     try {
       if (false) {
@@ -165,14 +217,9 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
         { currency: Coin.BTC, name: 'My Bitcoin', tokenAddress: '' },
         { currency: Coin.ETH, name: 'My Ethereum', tokenAddress: '' },
         {
-          currency: Coin.ETH,
-          name: 'My USDC',
-          tokenAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-        },
-        {
-          currency: Coin.ETH,
-          name: 'My USDT-ERC20',
-          tokenAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+          currency: Coin.GOERLI,
+          name: 'My Ethereum (Goerli)',
+          tokenAddress: '',
         },
       ];
       let parentMap = {};
@@ -194,7 +241,13 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
 
           await sleep(500);
         } catch (e) {
-          toastError(e);
+          if (e == null) {
+            return;
+          }
+          console.log(`InitWallet Error:${e.code}, ${e.message}`);
+          if (e.code !== ErrorCodes.ErrWalletCurrencyInvalid) {
+            toastError(e);
+          }
         }
       }
 
@@ -238,13 +291,53 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
           marginTop: 62,
           backgroundColor: theme.colors.navy,
         }}
-        ParentIos={SafeAreaView}
-        Parent={SafeAreaView}
         onBack={() => {
           setLoading(true);
           dispatch(signOut(false, true));
         }}
         backIcon={require('../assets/image/ic_cancel.png')}
+        actions={
+          <View style={{ flexDirection: 'row' }}>
+            <IconButton
+              borderless
+              style={{
+                marginRight: HEADER_BAR_PADDING,
+                justifyContent: 'center',
+              }}
+              // accessibilityLabel={clearAccessibilityLabel}
+              color={'rgba(255, 255, 255, 0.56)'}
+              // rippleColor={rippleColor}
+              onPress={() =>
+                setResult2({
+                  type: TYPE_CONFIRM,
+                  title: I18n.t('revoke_account_title'),
+                  message: I18n.t('revoke_account_confirm_message'),
+                  successButtonText: I18n.t('revoke_account_title'),
+                  secondaryConfig: {
+                    color: theme.colors.primary,
+                    text: I18n.t('cancel'),
+                    onClick: () => {
+                      setResult2(null);
+                    },
+                  },
+                  buttonClick: () => {
+                    _revokeUser();
+                    setResult2(null);
+                  },
+                })
+              }
+              icon={({ size, color }) => (
+                <Image
+                  source={require('../assets/image/ic_revoke.png')}
+                  style={{ width: 24, height: 24 }}
+                />
+              )}
+              accessibilityTraits="button"
+              accessibilityComponentType="button"
+              accessibilityRole="button"
+            />
+          </View>
+        }
       />
       <View
         style={{
@@ -460,9 +553,14 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
                 outlined={true}
                 labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
                 onPress={() => {
-                  NavigationService.navigate('GlobalModal', {
-                    isNews: true,
-                  });
+                  dispatch(checkKycSetting());
+                  if (_showKycAlert()) {
+                    NavigationService.navigate('KycAlert');
+                  } else {
+                    NavigationService.navigate('Main', {
+                      isNews: true,
+                    });
+                  }
                 }}>
                 {I18n.t('start_using')}
               </RoundButton2>
@@ -519,6 +617,18 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
             }}
           />
         )}
+        {result2 && (
+          <ResultModal
+            visible={!!result2}
+            title={result2.title}
+            successButtonText={result2.successButtonText}
+            type={result2.type}
+            message={result2.message}
+            errorMsg={result2.error}
+            onButtonClick={result2.buttonClick}
+            secondaryConfig={result2.secondaryConfig}
+          />
+        )}
         {result && (
           <ResultModal
             failButtonText={
@@ -536,7 +646,8 @@ let SetupPinScreen: () => React$Node = ({ theme }) => {
             onButtonClick={() => {
               if (result.type === TYPE_SUCCESS || !result.tryAgain) {
                 setResult(null);
-                NavigationService.navigate('Main');
+                let routeName = _showKycAlert() ? 'KycAlert' : 'Main';
+                NavigationService.navigate(routeName);
               } else if (result.type === TYPE_FAIL && authError != null) {
                 NavigationService.navigate('Auth');
               } else {

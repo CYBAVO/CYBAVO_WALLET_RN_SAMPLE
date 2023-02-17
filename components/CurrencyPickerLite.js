@@ -63,7 +63,7 @@ const CurrencyPickerLite: () => React$Node = ({
             backIcon={require('../assets/image/ic_cancel.png')}
             title={I18n.t('select_currency')}
             onBack={onCancel}
-            Parent={View}
+            androidInsetTop={false}
           />
           <FlatList
             data={data}

@@ -117,7 +117,7 @@ const SecurityQuestionPicker: () => React$Node = ({
             transparent
             title={I18n.t('select_security_question')}
             onBack={() => _hideModal()}
-            Parent={View}
+            androidInsetTop={false}
           />
           <FlatList
             data={rawData}

@@ -13,8 +13,7 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from 'react-native'
 import { Container, Content } from 'native-base';
 import {
   Auth,
@@ -260,8 +259,6 @@ let VerifyOtpScreen: () => React$Node = ({ theme }) => {
           marginTop: 62,
           backgroundColor: theme.colors.navy,
         }}
-        ParentIos={SafeAreaView}
-        Parent={SafeAreaView}
         onBack={() => {
           setLoading(true);
           dispatch(signOut(false, true));

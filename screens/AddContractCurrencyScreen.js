@@ -65,20 +65,17 @@ const AddContractCurrencyScreen: () => React$Node = ({ theme }) => {
     }
     let c = state.currency.currencies || [];
     let others = [];
-    let top3 = [];
+    let top4 = [];
     for (let i = 0; i < c.length; i++) {
       if (hasValue(c[i].tokenAddress)) {
         continue;
       }
       switch (c[i].currency) {
         case Coin.ETH:
-          top3[0] = c[i];
-          break;
+        case Coin.GOERLI:
         case Coin.BSC:
-          top3[1] = c[i];
-          break;
         case Coin.ONE:
-          top3[2] = c[i];
+          top4.push(c[i]);
           break;
         default:
           if (isETHForkChain(c[i].currency)) {
@@ -87,7 +84,7 @@ const AddContractCurrencyScreen: () => React$Node = ({ theme }) => {
           break;
       }
     }
-    return top3.concat(others);
+    return top4.concat(others);
   });
   const _setAddress = r => {
     r = r.trim();

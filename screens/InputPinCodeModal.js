@@ -253,7 +253,7 @@ let InputPinCodeModal: () => React$Node = ({
           transparent
           title={title}
           onBack={() => onCancel()}
-          Parent={View}
+          androidInsetTop={false}
         />
         <View
           style={{

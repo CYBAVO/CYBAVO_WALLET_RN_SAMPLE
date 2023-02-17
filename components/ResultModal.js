@@ -494,7 +494,7 @@ const ResultModal: () => React$Node = ({
           transparent
           title={title}
           onBack={secondaryConfig.onClick}
-          Parent={View}
+          androidInsetTop={false}
         />
         {_getFullContentByStatus()}
         {backClick > 0 && (
@@ -575,7 +575,12 @@ const ResultModal: () => React$Node = ({
           style={[styles.button, { backgroundColor: theme.colors.primary }]}
           color={theme.colors.primary}
           outlined={true}
-          labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
+          labelStyle={[
+            {
+              color: theme.colors.text,
+              fontSize: Platform.OS === 'ios' ? 14 : 16,
+            },
+          ]}
           onPress={onButtonClick}>
           {type === TYPE_FAIL ? failButtonText : successButtonText}
         </RoundButton2>

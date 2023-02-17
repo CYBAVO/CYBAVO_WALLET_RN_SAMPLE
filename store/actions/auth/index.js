@@ -39,7 +39,13 @@ import * as RNLocalize from 'react-native-localize';
 import AsyncStorage from '@react-native-community/async-storage';
 import { fetchUserState, USER_UPDATE_USER_STATE } from '../user';
 import { CURRENCIES_ERROR, CURRENCIES_UPDATE_CURRENCIES } from '../currency';
-import {checkKycSetting} from '../kyc';
+import {
+  checkKycSetting,
+  getApplicantStatus,
+  isPassedKyc,
+  KYC_APPLICANT_STATUS_ERROR,
+  KYC_APPLICANT_STATUS_UPDATE,
+} from '../kyc';
 
 const { ErrorCodes } = WalletSdk;
 
@@ -55,6 +61,7 @@ export const AUTH_UPDATE_UI_FLAG = 'AUTH_UPDATE_UI_FLAG';
 export const SHOWED_GUIDE = 'showed_guide';
 export const SKIP_NEWS = 'skip_news';
 export const DONT_SHOW_WC_DISCLAIMER = 'dont_show_wc_disclaimer';
+export const CONFIG_QR_CODE = 'config_qr_code';
 
 async function signInWithToken(idToken, identityProvider, extras) {
   console.log('signInWithToken... ', extras.user_id);
@@ -120,10 +127,42 @@ function updateSignInState(signInState) {
     if (signInState === Auth.SignInState.UNKNOWN) {
       NavigationService.navigate('Init');
     } else if (signInState === Auth.SignInState.SIGNED_IN) {
-      let routeName =
-        getState().user.userState.setPin === false ? 'SetupPin' : 'Main';
+      let routeName = 'Main';
+      let userState = getState().user.userState;
+      if (userState.setPin == undefined) {
+        try {
+          const { userState } = await Auth.getUserState();
+          if (userState.setPin === false) {
+            routeName = 'SetupPin';
+          }
+        } catch (error) {}
+      } else {
+        routeName = userState.setPin === true ? 'Main' : 'SetupPin';
+      }
       if (false) {
         routeName = 'SetupPin';
+      }
+      if (routeName == 'Main') {
+        try {
+          let result = ''; //await Auth.getApplicantStatus();
+          if (!isPassedKyc(result)) {
+            NavigationService.navigate('KycAlert');
+            dispatch({ type: KYC_APPLICANT_STATUS_UPDATE, result });
+            dispatch(setPushDeviceToken());
+            dispatch(registerPubkey());
+            // dispatch(checkKycSetting());
+            return;
+          }
+        } catch (error) {
+          dispatch({ type: KYC_APPLICANT_STATUS_ERROR, error });
+          if (error.code == ErrorCodes.ErrKycNotCreated) {
+            NavigationService.navigate('KycAlert');
+            dispatch(setPushDeviceToken());
+            dispatch(registerPubkey());
+            dispatch(checkKycSetting());
+            return;
+          }
+        }
       }
       try {
         let { currencies } = await Wallets.getCurrencies();
@@ -247,6 +286,7 @@ export function signIn(identityProvider) {
         type: AUTH_UPDATE_IDENTITY,
         ...identity,
       });
+      // dispatch(getApplicantStatus());
       dispatch(fetchUserState());
       console.log('signInWithToken... Done');
     } catch (error) {
@@ -335,13 +375,31 @@ export function signOut(goLoading = true, sdkSignOut = true) {
   };
 }
 let listener;
-function handleWaclletConnectUri(state, dispatch, uri, type) {
-  console.log('onWalletConnectUri_' + uri);
 
+function actualHandleWalletConnectUri(state, dispatch, uri, type) {
+  console.log('onWalletConnectUri_' + uri);
   let result = checkWalletConnectUri(uri);
-  if (!result.valid) {
+  if (!result.valid || result !== 1) {
     return;
   }
+
+  Auth.getApplicantStatus()
+    .then(result => {
+      if (!isPassedKyc(result)) {
+        NavigationService.navigate('KycAlert');
+      } else {
+        handleWaclletConnectUri(state, dispatch, uri, type);
+      }
+    })
+    .catch(error => {
+      if (error.code == ErrorCodes.ErrKycNotCreated) {
+        NavigationService.navigate('KycAlert');
+      } else {
+        handleWaclletConnectUri(state, dispatch, uri, type);
+      }
+    });
+}
+function handleWaclletConnectUri(state, dispatch, uri, type) {
   if (state.auth.signInState === Auth.SignInState.SIGNED_IN) {
     if (type == 'onNewIntent') {
       let ethWallet = state.wallets.ethWallet;
@@ -401,7 +459,7 @@ export function initListener() {
     if (Platform.OS == 'ios') {
       const url = await Linking.getInitialURL();
       if (url) {
-        handleWaclletConnectUri(
+        actualHandleWalletConnectUri(
           getState(),
           dispatch,
           getTrimmedWcUri(url),
@@ -410,7 +468,7 @@ export function initListener() {
       }
 
       const handleUrlIOS = evt => {
-        handleWaclletConnectUri(
+        actualHandleWalletConnectUri(
           getState(),
           dispatch,
           getTrimmedWcUri(evt.url),
@@ -423,7 +481,7 @@ export function initListener() {
     listener = DeviceEventEmitter.addListener(
       'onWalletConnectUri',
       ({ uri, type }) => {
-        handleWaclletConnectUri(getState(), dispatch, uri, type);
+        actualHandleWalletConnectUri(getState(), dispatch, uri, type);
       }
     );
   };

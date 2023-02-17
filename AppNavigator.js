@@ -24,6 +24,7 @@ import { checkCameraPermission } from './Helpers';
 import LoadingScreen from './screens/LoadingScreen';
 import NavigationService from './NavigationService';
 import RequestScreen from './screens/RequestScreen';
+import Eip155RequestScreen from './screens/Eip155RequestScreen';
 import ConnectingScreen from './screens/ConnectingScreen';
 import ConnectionListScreen from './screens/ConnectionListScreen';
 import ApiHistoryDetailScreen from './screens/ApiHistoryDetailScreen';
@@ -40,6 +41,15 @@ import WalletNftDetailScreen from './screens/WalletNftDetailScreen';
 import WarningScreen from './screens/WarningScreen';
 import GlobalModalScreen from './screens/GlobalModalScreen';
 import KycTestScreen from './screens/KycTestScreen';
+import KycAlertScreen from './screens/KycAlertScreen';
+import SearchUserScreen from './screens/SearchUserScreen';
+import WalletApiTestScreen from './screens/WalletApiTestScreen';
+import ScanOutScreen from './screens/ScanOutScreen';
+import ValidatePinCodeScreen from './screens/ValidatePinCodeScreen';
+import GetUserHistoryScreen from './screens/GetUserHistoryScreen';
+import UserHistoryDetailScreen from './screens/UserHistoryDetailScreen';
+import V2ConnectingScreen from './screens/V2ConnectingScreen';
+import SolanaRequestScreen from './screens/SolanaRequestScreen';
 
 const MainTab = createBottomTabNavigator(
   {
@@ -80,13 +90,19 @@ const MainTab = createBottomTabNavigator(
         ),
         tabBarOnPress: async ({ defaultHandler }) => {
           if (await checkCameraPermission()) {
-            NavigationService.navigate('scanModal', { modal: true });
+            NavigationService.navigate('scanModal', {
+              modal: true,
+              checkKyc: true,
+            });
           }
         },
         tabBarOnLongPress: async ({ defaultHandler }) => {
           // for Android, tabBarOnLongPress will be called first, if only override tabBarOnPress, only work on iOS
           if (await checkCameraPermission()) {
-            NavigationService.navigate('scanModal', { modal: true });
+            NavigationService.navigate('scanModal', {
+              modal: true,
+              checkKyc: true,
+            });
           }
         },
       }),
@@ -148,6 +164,7 @@ const MainStack = createStackNavigator(
     WalletDetail: WalletDetailScreen,
     WalletNftDetail: WalletNftDetailScreen,
     TransactionDetail: TransactionDetailScreen,
+    UserHistoryDetail: UserHistoryDetailScreen,
     Scan2: ScanScreen,
     Withdraw: WithdrawScreen,
     EosResource: EosResourceScreen,
@@ -157,6 +174,10 @@ const MainStack = createStackNavigator(
     ForgotPinCode: ForgotPinCodeScreen,
     SetLocale: SetLocaleScreen,
     KycTest: KycTestScreen,
+    ValidatePinCode: ValidatePinCodeScreen,
+    GetUserHistory: GetUserHistoryScreen,
+    SearchUser: SearchUserScreen,
+    WalletApiTest: WalletApiTestScreen,
     ConnectionList: { screen: ConnectionListScreen },
     ApiHistoryDetail: { screen: ApiHistoryDetailScreen },
     SetBio: SetBioScreen,
@@ -171,11 +192,15 @@ const MainStack = createStackNavigator(
 const LoadingStack = createStackNavigator(
   {
     Top: { screen: MainStack },
+    KycAlert: { screen: KycAlertScreen },
     Loading: { screen: LoadingScreen },
     GlobalModal: { screen: GlobalModalScreen },
     scanModal: { screen: ScanScreen },
     Connecting: { screen: ConnectingScreen },
+    V2Connecting: { screen: V2ConnectingScreen },
     Request: { screen: RequestScreen },
+    Eip155Request: { screen: Eip155RequestScreen },
+    SolanaRequest: { screen: SolanaRequestScreen },
     // CurrencyPick: { screen: CurrencyPickScreen },
     InputPinSms: { screen: InputPinSmsScreen },
     Warning: { screen: WarningScreen },
@@ -206,7 +231,7 @@ export default createAppContainer(
       EnterPhone: EnterPhoneScreen,
       SelectCountry: SelectCountryScreen,
       SetupPin: SetupPinScreen,
-      ScanOut: { screen: ScanScreen },
+      ScanOut: { screen: ScanOutScreen },
     },
     {
       initialRouteName: 'Init',

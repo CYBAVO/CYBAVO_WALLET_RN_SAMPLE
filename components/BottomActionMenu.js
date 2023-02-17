@@ -48,13 +48,14 @@ const BottomActionMenu: () => React$Node = ({
   getMainView,
   prefix = '',
   getValue,
+  maxHeight = false,
 }) => {
   const [iosImeHeight, setiosImeHeight] = useState(0);
 
-  const { height: screneHeight } = useDimensions().screen;
+  const { height: screenHeight } = useDimensions().screen;
   const { onLayout, ...layout } = useLayout();
   const [translateY] = useState(
-    new Animated.Value(layout.height || screneHeight)
+    new Animated.Value(layout.height || screenHeight)
   );
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -79,6 +80,7 @@ const BottomActionMenu: () => React$Node = ({
 
   useEffect(() => {
     if (visible) {
+      Keyboard.dismiss();
       setModalVisible(true);
       // animate show
       Animated.timing(translateY, {
@@ -90,7 +92,7 @@ const BottomActionMenu: () => React$Node = ({
     } else {
       // animate hide
       Animated.timing(translateY, {
-        toValue: layout.height || screneHeight,
+        toValue: layout.height || screenHeight,
         duration: 200,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
@@ -168,6 +170,8 @@ const BottomActionMenu: () => React$Node = ({
             {
               backgroundColor: theme.colors.backgroundPressed,
               flex: 1,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
             },
             containerStyle,
           ]}
@@ -201,7 +205,17 @@ const BottomActionMenu: () => React$Node = ({
                 styles.content,
                 { backgroundColor: theme.colors.background },
               ]}>
-              <View style={[styles.footer, { height: 300 }]}>
+              <View
+                style={[
+                  styles.footer,
+                  {
+                    height: maxHeight
+                      ? screenHeight < 700
+                        ? screenHeight * 0.6
+                        : 600
+                      : 300,
+                  },
+                ]}>
                 <Text style={styles.lowTitle}>{title}</Text>
                 <FlatList
                   data={data}

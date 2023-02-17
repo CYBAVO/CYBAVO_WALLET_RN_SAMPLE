@@ -121,7 +121,7 @@ def jscFlavor = 'org.webkit:android-jsc:+'
 def enableHermes = project.ext.react.get("enableHermes", false);
 
 def versionMajor = 1
-def versionMinor = 0
+def versionMinor = 1
 
 crashlytics {
   enableNdk true
@@ -196,11 +196,13 @@ android {
 }
 
 dependencies {
+    implementation project(':react-native-exit-app')
+    implementation project(':react-native-version-check')
     implementation project(':react-native-twitter-signin')
     implementation project(':@react-native-community_cameraroll')
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "com.facebook.react:react-native:+"  // From node_modules
-    implementation 'com.facebook.android:facebook-android-sdk:[8,9)'
+    implementation 'com.facebook.android:facebook-android-sdk:12.3.0'
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0-alpha03'
     //line
@@ -228,6 +230,8 @@ dependencies {
     compile "com.squareup.okhttp3:logging-interceptor:4.2.1"
     compile "com.squareup.okhttp3:okhttp-urlconnection:4.2.1"
 //    implementation "com.sumsub.sns:idensic-mobile-sdk:1.19.2"
+    def billingVersion = "5.0.0"
+    implementation "com.android.billingclient:billing:$billingVersion"
 }
 println  "CYBAVO wallet version:${versionMajor}.${versionMinor}.${gitVersion.version}_${gitVersion.branchName}"
 

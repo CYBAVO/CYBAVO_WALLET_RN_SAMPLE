@@ -49,20 +49,22 @@ const ConnectionList: () => React$Node = ({
             <Text style={[styles.listItemText, Theme.fonts.default.heavy]}>
               {item.name}
             </Text>
-            <View style={{ flexDirection: 'row', marginTop: 3 }}>
-              <Text
-                style={[
-                  styles.listItemSubText,
-                  Theme.fonts.default.regular,
-                  {
-                    flex: 1,
-                  },
-                ]}
-                ellipsizeMode={'middle'}
-                numberOfLines={2}>
-                {item.address}
-              </Text>
-            </View>
+            {!!item.address && (
+              <View style={{ flexDirection: 'row', marginTop: 3 }}>
+                <Text
+                  style={[
+                    styles.listItemSubText,
+                    Theme.fonts.default.regular,
+                    {
+                      flex: 1,
+                    },
+                  ]}
+                  ellipsizeMode={'middle'}
+                  numberOfLines={2}>
+                  {item.address}
+                </Text>
+              </View>
+            )}
 
             <Text
               style={[
@@ -90,7 +92,9 @@ const ConnectionList: () => React$Node = ({
       <FlatList
         contentContainerStyle={{ flexGrow: 1 }}
         data={data}
-        keyExtractor={(data, idx) => `${data.peerId}`}
+        keyExtractor={(data, idx) =>
+          `${data.session ? data.session.topic : data.peerId}`
+        }
         renderItem={_renderItem}
         ListEmptyComponent={
           <ListEmptyView

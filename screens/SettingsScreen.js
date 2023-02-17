@@ -12,21 +12,29 @@ import {
 const { width, height } = Dimensions.get('window');
 import { Container, Content, Toast } from 'native-base';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigation } from 'react-navigation-hooks';
+import { useNavigation, useNavigationParam } from 'react-navigation-hooks';
+import { WalletConnectSdk, Wallets } from '@cybavo/react-native-wallet-service';
+const { V2Manager, WalletConnectHelper } = WalletConnectSdk;
 import {
   ALL_WALLET_ID,
   Api,
   BADGE_FONT_SIZE,
+  CHANGE_MODE,
+  Coin,
+  INPUT_MODE,
   LOCALES,
   SERVICE_EMAIL,
   SERVICE_EMAIL_CYBAVO,
 } from '../Constants';
-import { WalletSdk, Auth, Wallets } from '@cybavo/react-native-wallet-service';
+import { WalletSdk, Auth } from '@cybavo/react-native-wallet-service';
 import {
   BIO_SETTING_USE_SMS,
   checkKycSetting,
   fetchUserState,
-  signOut, updateKycUserExist,
+  getSkipNews,
+  CONFIG_QR_CODE,
+  signOut,
+  updateKycUserExist,
 } from '../store/actions';
 import Styles from '../styles/Styles';
 import { Theme } from '../styles/MainTheme';
@@ -49,12 +57,8 @@ import ResultModal, {
 import VersionNumber from 'react-native-version-number';
 import {
   checkCameraPermission,
-  effectiveBalance,
-  getWalletKeyByWallet,
   inDevList,
   sendLogFilesByEmail,
-  sleep,
-  toast,
   toastError,
 } from '../Helpers';
 import BottomActionMenu from '../components/BottomActionMenu';
@@ -62,17 +66,26 @@ import NavigationService from '../NavigationService';
 import AssetPicker from '../components/AssetPicker';
 import BackgroundImage from '../components/BackgroundImage';
 import { alpha2ToAlpha3 } from '../utils/i18niso';
-import { launchSNSMobileSDK } from '../utils/KycHelper';
 import { FileLogger } from 'react-native-file-logger';
+import { KycHelper } from '../utils/KycHelper';
+import InputMessageModal from '../components/InputMessageModal';
+import AsyncStorage from '@react-native-community/async-storage';
+import { useBackHandler } from '@react-native-community/hooks';
 const {
   sdkInfo: { VERSION_NAME, VERSION_CODE, BUILD_TYPE },
 } = WalletSdk;
 const SettingsScreen: () => React$Node = ({ theme }) => {
+  const CHANGE_PIN = 1;
+  const REVOKE_ACCOUNT = 2;
+  const [configQrCode, setConfigQrCode] = useState(null);
   const [result, setResult] = useState(null);
-  const [inputPinCode, setInputPinCode] = useState(false);
+  const [inputPinCode, setInputPinCode] = useState(0); //changePin, revokeUser
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameLoading, setRenameLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(I18n.t('pin_secret_not_found'));
+  const startKycParam = useNavigationParam('startKyc');
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
   const kycUserExist = useSelector(state => state.kyc.userExist);
@@ -80,8 +93,23 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   const userState = useSelector(state => state.user.userState);
   const identity = useSelector(state => state.auth.identity);
   const [languageIndex, setLanguageIndex] = useState(0);
+  const [wcV2Config, setWcV2Config] = useState('');
   const testKyc = inDevList();
-
+  const v2RefreshTimestamp = useSelector(
+    state => state.walletconnect.v2RefreshTimestamp
+  );
+  useEffect(() => {
+    try {
+      if (V2Manager.signClient) {
+        setWcV2Config(`${V2Manager.signClient.core.relayer.relayUrl}`);
+      }
+    } catch (error) {
+      toastError(error);
+    }
+  }, [v2RefreshTimestamp]);
+  const endpoint = useSelector(state => {
+    return state.auth.endpoint;
+  });
   const reportable = useSelector(state => {
     return state.walletconnect.reportable || state.kyc.hasSetting;
   });
@@ -95,7 +123,6 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
     // );
     return state.user.userState.enableWalletconnect;
   });
-
   const bioSetting = useSelector(state => state.user.userState.bioSetting);
   const enableBiometrics = useSelector(
     state => state.user.userState.enableBiometrics
@@ -124,68 +151,75 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
     return hasApiHistory;
   });
 
-  const _startKyc = () => {
-    setLoading(true);
-    if (kycUserExist) {
-      FileLogger.debug(`>>EEE_kycUserExist_getKycAccessToken`);
-      console.log(`EEE_kycUserExist_getKycAccessToken`);
-      _getKycAccessToken(true);
-      return;
+  const _getPinCodeMessage1 = () => {
+    switch (inputPinCode) {
+      case CHANGE_PIN:
+        return I18n.t('enter_the_current_pin_code');
+      case REVOKE_ACCOUNT:
+        return I18n.t('enter_pin_code');
     }
-    let a3 = alpha2ToAlpha3(Country, 'TWN');
-    FileLogger.debug(`>>createKyc: ${Country}, ${a3}`);
-    Auth.createKyc(a3)
-      .then(r => {
-        dispatch(updateKycUserExist(true));
-        FileLogger.debug(`>>EEE_createKyc_getKycAccessToken`);
-        console.log(`EEE_createKyc_getKycAccessToken`);
-        _getKycAccessToken(false);
-      })
-      .catch(error => {
-        dispatch(updateKycUserExist(true));
-        FileLogger.debug(`>>EEE_createKycFailed_getKycAccessToken`);
-        console.log(`EEE_createKycFailed_getKycAccessToken`);
-        _getKycAccessToken(true);
-      });
   };
-
-  const _getKycAccessToken = createKycFail => {
-    Auth.getKycAccessToken()
-      .then(r => {
-        console.log(`getKycAccessToken:${r.apiUrl}, ${r.token} ${r.flowName}`);
-        let localArr = ['en', 'zh-tw', 'zh'];
-        launchSNSMobileSDK(
-          r.apiUrl,
-          r.token,
-          r.flowName,
-          log => {},
-          localArr[languageIndex]
-        );
+  const _getPinCodeTitle = () => {
+    switch (inputPinCode) {
+      case CHANGE_PIN:
+        return I18n.t('change_pin_code_up');
+      case REVOKE_ACCOUNT:
+        return I18n.t('revoke_account_title');
+    }
+  };
+  const _getPinCodeMode = () => {
+    switch (inputPinCode) {
+      case CHANGE_PIN:
+        return CHANGE_MODE;
+      case REVOKE_ACCOUNT:
+        return INPUT_MODE;
+    }
+  };
+  const _goChangePinCode = () => {
+    setInputPinCode(CHANGE_PIN);
+  };
+  const _onInputPin = async (oldPinSecret, pinSecret) => {
+    switch (inputPinCode) {
+      case CHANGE_PIN:
+        _changePinCode(oldPinSecret, pinSecret);
+        break;
+      case REVOKE_ACCOUNT:
+        _revokeUser(oldPinSecret);
+        break;
+    }
+  };
+  const _revokeUser = pinSecret => {
+    setLoading(true);
+    Auth.revokeUser(pinSecret)
+      .then(result => {
+        setInputPinCode(0);
         setLoading(false);
+        setResult({
+          type: TYPE_SUCCESS,
+          successButtonText: I18n.t('done'),
+          title: I18n.t('revoke_account_successfully'),
+          message: I18n.t('revoke_account_successfully_desc'),
+          buttonClick: () => {
+            setResult(null);
+            dispatch(signOut(false, false));
+          },
+        });
       })
       .catch(error => {
-        if (createKycFail) {
-          FileLogger.debug(`>>EEE_getKycAccessTokenFailed_resetKycUserExist`);
-          console.log(`EEE_getKycAccessTokenFailed_resetKycUserExist`);
-          dispatch(updateKycUserExist(false));
-        }
-        FileLogger.debug(`>>_startKyc failed: ${error.message}`);
-        console.log('_startKyc failed', error);
+        console.log('revokeUser failed', error);
+        setInputPinCode(0);
+        setLoading(false);
         setResult({
           type: TYPE_FAIL,
           error: I18n.t(`error_msg_${error.code}`, {
             defaultValue: error.message,
           }),
-          title: I18n.t('error_msg_703'),
+          title: I18n.t('revoke_account_failed'),
           buttonClick: () => {
             setResult(null);
           },
         });
-        setLoading(false);
       });
-  };
-  const _goChangePinCode = () => {
-    setInputPinCode(true);
   };
   const _changePinCode = async (oldPinSecret, pinSecret) => {
     setLoading(true);
@@ -213,7 +247,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
         },
       });
     }
-    setInputPinCode(false);
+    setInputPinCode(0);
     setLoading(false);
   };
 
@@ -229,12 +263,29 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
   };
 
   useEffect(() => {
-    _getLanguageIndexFromStorage();
-  }, []);
+    if (startKycParam) {
+      KycHelper.getLanguageAndStartKyc(
+        kycUserExist,
+        setLoading,
+        dispatch,
+        setResult,
+        setLanguageIndex
+      );
+    } else {
+      _getLanguageIndexFromStorage();
+    }
+  }, [startKycParam]);
 
   useEffect(() => {
     _checkBioInfo();
   }, [bioSetting, skipSmsVerify, enableBiometrics, accountSkipSmsVerify]);
+  useEffect(() => {
+    AsyncStorage.getItem(CONFIG_QR_CODE, async (error, r) => {
+      if (r) {
+        setConfigQrCode(r);
+      }
+    });
+  }, []);
   const _checkBioInfo = async () => {
     if (!enableBiometrics || skipSmsVerify) {
       setBioSettingSub('pin');
@@ -264,7 +315,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
     }
   };
   useEffect(() => {
-    if (!inputPinCode) {
+    if (inputPinCode === 0) {
       setErrorMsg('');
     }
   }, [inputPinCode]);
@@ -304,6 +355,36 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
     setLoading(false);
   };
 
+  const _performRename = async newName => {
+    setRenameLoading(true);
+    try {
+      await Auth.updateRealName(newName);
+      dispatch(fetchUserState());
+      setResult({
+        type: TYPE_SUCCESS,
+        successButtonText: I18n.t('done'),
+        title: I18n.t('change_successfully'),
+        message: I18n.t('rename_user_name_success_desc'),
+        buttonClick: () => {
+          setResult(null);
+        },
+      });
+    } catch (error) {
+      console.log('_renameUser failed', error);
+      setResult({
+        type: TYPE_FAIL,
+        error: I18n.t(`error_msg_${error.code}`, {
+          defaultValue: error.message,
+        }),
+        title: I18n.t('change_failed'),
+        buttonClick: () => {
+          setResult(null);
+        },
+      });
+    }
+    setRenameLoading(false);
+    setShowRenameModal(false);
+  };
   return (
     <Container style={Styles.container}>
       <Headerbar transparent title={I18n.t('settings')} />
@@ -323,7 +404,11 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
         <Text style={[Styles.secLabel, Theme.fonts.default.regular]}>
           {I18n.t('account')}
         </Text>
-        <View style={[styles.listItem, { justifyContent: 'space-between' }]}>
+        <TouchableOpacity
+          style={[styles.listItem, { justifyContent: 'space-between' }]}
+          onPress={() => {
+            setShowRenameModal(true);
+          }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Image
               source={require('../assets/image/ic_avatar.png')}
@@ -372,7 +457,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
             ]}>
             {identity.provider}
           </Text>
-        </View>
+        </TouchableOpacity>
         {enableWalletconnect && (
           <View style={[styles.listItem, { justifyContent: 'space-between' }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -406,6 +491,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
                 if (await checkCameraPermission()) {
                   NavigationService.navigate('scanModal', {
                     modal: true,
+                    checkKyc: true,
                   });
                 }
               }}
@@ -441,7 +527,13 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
         {hasKycSetting && (
           <TouchableOpacity
             onPress={() => {
-              _startKyc();
+              KycHelper.startKyc(
+                languageIndex,
+                kycUserExist,
+                setLoading,
+                dispatch,
+                setResult
+              );
             }}
             style={[
               styles.listItemHorizontal,
@@ -473,6 +565,28 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
           ]}>
           {I18n.t('general')}
         </Text>
+        <View
+          onPress={() => {
+            navigate('SetWcV2Config', {});
+          }}
+          style={[
+            styles.listItemHorizontal,
+            { justifyContent: 'space-between' },
+          ]}>
+          <Text style={[Styles.input, Theme.fonts.default.regular]}>
+            {'WC Relay'}
+          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <Text
+              style={[
+                Styles.inputDesc,
+                { flex: 0, fontSize: 14 },
+                Theme.fonts.default.regular,
+              ]}>
+              {wcV2Config}
+            </Text>
+          </View>
+        </View>
         <TouchableOpacity
           onPress={() => {
             navigate('SetLocale', {
@@ -605,7 +719,7 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
               { justifyContent: 'space-between' },
             ]}>
             <Text style={[Styles.input, Theme.fonts.default.regular]}>
-              {'KYC test'}
+              {I18n.t('dev_test')}
             </Text>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
               <Text
@@ -632,6 +746,87 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
               Theme.fonts.default.regular,
             ]}>{`${VersionNumber.appVersion} / ${VERSION_NAME} (${VERSION_CODE}) - ${BUILD_TYPE}`}</Text>
         </View>
+        {configQrCode != null && (
+          <TouchableOpacity
+            onPress={() => {
+              setResult({
+                type: TYPE_CONFIRM,
+                title: I18n.t('remove_saved_qr_title'),
+                message: I18n.t('remove_saved_qr_msg'),
+                successButtonText: I18n.t('remove_bt'),
+                secondaryConfig: {
+                  color: theme.colors.primary,
+                  text: I18n.t('cancel'),
+                  onClick: () => {
+                    setResult(null);
+                  },
+                },
+                buttonClick: () => {
+                  AsyncStorage.removeItem(CONFIG_QR_CODE)
+                    .then(() => {
+                      setConfigQrCode(null);
+                    })
+                    .catch(error => {
+                      console.debug('remove config Qr err:' + error);
+                    });
+                  setResult(null);
+                },
+              });
+            }}
+            style={styles.listItemHorizontal}>
+            <View style={{ flexDirection: 'column' }}>
+              <Text style={[Styles.input, Theme.fonts.default.regular]}>
+                {I18n.t('saved_qr')}
+              </Text>
+              <Text
+                style={[
+                  Styles.inputDesc,
+                  { maxWidth: '90%' },
+                  Theme.fonts.default.regular,
+                ]}>
+                {configQrCode}
+              </Text>
+            </View>
+            <Image
+              source={require('../assets/image/ic_arrow_right_gray.png')}
+            />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={{
+            marginTop: 24,
+            marginBottom: 16,
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          onPress={() =>
+            setResult({
+              type: TYPE_CONFIRM,
+              title: I18n.t('revoke_account_title'),
+              message: I18n.t('revoke_account_confirm_message'),
+              successButtonText: I18n.t('revoke_account_title'),
+              secondaryConfig: {
+                color: theme.colors.primary,
+                text: I18n.t('cancel'),
+                onClick: () => {
+                  setResult(null);
+                },
+              },
+              buttonClick: () => {
+                setInputPinCode(REVOKE_ACCOUNT);
+                setResult(null);
+              },
+            })
+          }>
+          <Text
+            style={{
+              color: theme.colors.error,
+              fontSize: 16,
+            }}>
+            {I18n.t('revoke_account_title')}
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={{
             marginTop: 24,
@@ -671,16 +866,16 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
         </TouchableOpacity>
       </ScrollView>
       <InputPinCodeModal
-        isVisible={!!inputPinCode}
-        message1={I18n.t('enter_the_current_pin_code')}
-        title={I18n.t('change_pin_code_up')}
-        onCancel={() => setInputPinCode(false)}
+        isVisible={inputPinCode !== 0}
+        message1={_getPinCodeMessage1()}
+        title={_getPinCodeTitle()}
+        onCancel={() => setInputPinCode(0)}
         loading={loading}
-        onInputPinCode={_changePinCode}
-        mode={'change'}
+        onInputPinCode={_onInputPin}
+        mode={_getPinCodeMode()}
         errorMsg={errorMsg}
       />
-      {loading && !inputPinCode && (
+      {loading && inputPinCode !== 0 && (
         <ActivityIndicator
           color={theme.colors.primary}
           size="large"
@@ -688,6 +883,24 @@ const SettingsScreen: () => React$Node = ({ theme }) => {
             position: 'absolute',
             alignSelf: 'center',
             top: height / 2,
+          }}
+        />
+      )}
+      {showRenameModal && (
+        <InputMessageModal
+          title={I18n.t('change_user_name')}
+          visible={showRenameModal}
+          loading={renameLoading}
+          value={userState.realName}
+          onConfirm={_performRename}
+          customBtText={I18n.t('go_search')}
+          onCustom={() => {
+            setShowRenameModal(false);
+            navigate('SearchUser');
+          }}
+          onCancel={() => {
+            setShowRenameModal(false);
+            setRenameLoading(false);
           }}
         />
       )}

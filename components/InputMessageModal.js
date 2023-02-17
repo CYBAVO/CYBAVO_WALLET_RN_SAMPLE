@@ -21,6 +21,10 @@ const InputMessageModal: () => React$Node = ({
   onConfirm,
   visible,
   loading,
+  onCustom,
+  customBtText = '',
+  keyboardType = 'default',
+  maxLength,
 }) => {
   const [message, setMessage] = useState('');
   const [inputHeight, setInputHeight] = useState(null);
@@ -72,6 +76,8 @@ const InputMessageModal: () => React$Node = ({
               ref={ref}
               value={message}
               onChangeText={setMessage}
+              maxLength={maxLength}
+              keyboardType={keyboardType}
               selectionColor={Theme.colors.primary}
               underlineColor={Theme.colors.primary}
               style={{
@@ -133,6 +139,22 @@ const InputMessageModal: () => React$Node = ({
                 }}>
                 {I18n.t('ok')}
               </RoundButton2>
+              {onCustom && (
+                <RoundButton2
+                  height={ROUND_BUTTON_HEIGHT}
+                  style={[
+                    styles.button,
+                    { backgroundColor: theme.colors.primary, marginLeft: 8 },
+                  ]}
+                  color={theme.colors.primary}
+                  outlined={true}
+                  labelStyle={[{ color: 'white', fontSize: 16 }]}
+                  onPress={() => {
+                    onCustom();
+                  }}>
+                  {customBtText}
+                </RoundButton2>
+              )}
             </View>
             {loading && (
               <ActivityIndicator

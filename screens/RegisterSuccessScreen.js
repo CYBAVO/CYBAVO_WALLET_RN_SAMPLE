@@ -37,7 +37,6 @@ import I18n from '../i18n/i18n';
 import { withTheme, Text, IconButton } from 'react-native-paper';
 import { StyleSheet } from 'react-native';
 import Headerbar from '../components/Headerbar';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import ResultModal, {
   TYPE_FAIL,
   TYPE_SUCCESS,
@@ -87,8 +86,6 @@ let RegisterSuccessScreen: () => React$Node = ({ theme }) => {
           marginTop: 62,
           backgroundColor: theme.colors.navy,
         }}
-        ParentIos={SafeAreaView}
-        Parent={SafeAreaView}
         onBack={() => {
           setLoading(true);
           dispatch(signOut(false, true));
@@ -150,6 +147,7 @@ let RegisterSuccessScreen: () => React$Node = ({ theme }) => {
           labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
           onPress={() => {
             if (setPin) {
+              //TODO
               NavigationService.navigate('GlobalModal', {
                 isNews: true,
               });
