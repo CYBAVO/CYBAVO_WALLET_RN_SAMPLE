@@ -31,19 +31,19 @@ Please contact **CYBAVO** to get your `endPoint` and `apiCode`.
 
 **Using yarn**  
 ```
-$ yarn add @cybavo/react-native-wallet-service
+yarn add @cybavo/react-native-wallet-service
 ```
 
 **Using npm**  
 ```
-$ npm install @cybavo/react-native-wallet-service --save
+npm install @cybavo/react-native-wallet-service --save
 ```
 
 ### Link native dependencies
 
 From react-native 0.60 autolinking will take care of the link step.  
 ```
-$ react-native link @cybavo/react-native-wallet-service
+react-native link @cybavo/react-native-wallet-service
 ```
 
 #### Android
@@ -94,7 +94,7 @@ $ react-native link @cybavo/react-native-wallet-service
 - Then run:  
 
     ```shell
-    $ pod install
+    pod install
     ```
 ### Initialization
 
