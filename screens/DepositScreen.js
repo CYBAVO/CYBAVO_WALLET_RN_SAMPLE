@@ -114,7 +114,7 @@ const DepositScreen: () => React$Node = ({ theme }) => {
             title={I18n.t('receive')}
             onBack={() => goBack()}
           />
-          <View style={[Styles.numContainer]}>
+          <View style={[Styles.numContainer, { marginTop: 24 }]}>
             <AssetPicker
               rawData={wallets}
               isNftTop={wallet.isNft}

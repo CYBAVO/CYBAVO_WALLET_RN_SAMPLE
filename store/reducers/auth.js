@@ -33,7 +33,9 @@ const defaultState = {
 function auth(state = defaultState, action) {
   switch (action.type) {
     case COMMON_RESET: {
+      defaultState.option = state.option;
       defaultState.config = state.config;
+      defaultState.endpoint = state.endpoint;
       return defaultState;
     }
     case AUTH_UPDATE_UI_FLAG:
@@ -48,7 +50,9 @@ function auth(state = defaultState, action) {
     case AUTH_UPDATE_DEV:
       return {
         ...state,
+        option: action.option,
         config: action.config,
+        endpoint: action.endpoint,
       };
     case AUTH_UPDATE_GLOBAL_MODAL:
       return {

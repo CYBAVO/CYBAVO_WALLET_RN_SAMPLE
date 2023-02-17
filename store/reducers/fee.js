@@ -25,6 +25,7 @@ function fee(state = {}, action) {
       return state;
     case FEE_ERROR:
       state.fee[currency].error = error;
+      state.fee[currency].loading = false;
       return state;
     case FEE_UPDATE:
       if (
@@ -40,6 +41,7 @@ function fee(state = {}, action) {
       } else {
         state.fee[currency].data = null;
       }
+      state.fee[currency].loading = false;
       return state;
     default:
       return state;

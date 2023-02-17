@@ -36,10 +36,15 @@ import { useAppState } from '@react-native-community/hooks';
 import BackgroundImage from '../components/BackgroundImage';
 import { fetchWallet, WALLETS_UPDATE_WALLET } from '../store/actions/wallets';
 import {
+  canGoKyc,
+  checkApplicantStatusAndNext,
   fetchBalance,
   fetchTransaction,
   GET_MORE,
   GET_NEW,
+  inSuList,
+  KYC_APPLICANT_STATUS_ERROR,
+  KYC_APPLICANT_STATUS_UPDATE,
   NOT_LOADING,
 } from '../store/actions';
 import { Wallets } from '@cybavo/react-native-wallet-service';
@@ -66,14 +71,17 @@ const HEADER_EXPANDED_HEIGHT = 238;
 import ContentLoader, { Rect } from 'react-content-loader/native';
 import BalanceTextLite from '../components/BalanceTextLite';
 import ResultModal, {
+  TYPE_CONFIRM,
   TYPE_FAIL,
   TYPE_SUCCESS,
 } from '../components/ResultModal';
 import TransactionNftWalletList from '../components/TransactionNftWalletList';
 import WalletList from '../components/WalletList';
 import Tab from '../components/Tab';
+import NavigationService from '../NavigationService';
+import { KycHelper } from '../utils/KycHelper';
 const MyLoader = props => {
-  let line2Top = HEADER_EXPANDED_HEIGHT * 0.35;
+  let line2Top = HEADER_EXPANDED_HEIGHT * 0.5;
   let line2Left = width / 2 - 54;
   let line2Width1 = 88;
   return (
@@ -119,7 +127,7 @@ const MyLoader = props => {
       />
       <Rect
         x="25"
-        y={HEADER_EXPANDED_HEIGHT * 0.79}
+        y={HEADER_EXPANDED_HEIGHT * 0.82}
         rx="3"
         ry="3"
         width={width - 50}
@@ -203,6 +211,9 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
   const [showMenu4, setShowMenu4] = useState(false);
   const [renameLoading, setRenameLoading] = useState(false);
   const [enableRefreshUi, setEnableRefreshUi] = useState(false);
+  const [normalLoading, setNormalLoading] = useState(false);
+  const kycResult = useSelector(state => state.kyc.applicantStatus.result);
+  const kycUserExist = useSelector(state => state.kyc.userExist);
   const [result, setResult] = useState(null);
   const wallet = useNavigationParam('wallet');
   const [walletName, setWalletName] = useState(wallet.name);
@@ -334,7 +345,8 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
       _filterPending(t, filters) &&
       _filterSuccess(t, filters) &&
       _filterStartTime(t, filters) &&
-      _filterEndTime(t, filters)
+      _filterEndTime(t, filters) &&
+      _filterSolNft(t)
     );
   };
   const _filterDirection = (t, filters) => {
@@ -367,6 +379,12 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
       return true;
     }
     return t.timestamp <= filters.end_time;
+  };
+  const _filterSolNft = t => {
+    if (wallet.currency !== Coin.SOL) {
+      return true;
+    }
+    return !!t.tokenId;
   };
   const _getFilteredData = rawData => {
     let filters = _getFilters();
@@ -451,7 +469,7 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
           setResult(null);
         },
       });
-    }catch (error) {
+    } catch (error) {
       console.log('registerTokenIds failed', error);
       setResult({
         type: TYPE_FAIL,
@@ -466,8 +484,7 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
     }
     setRenameLoading(false);
     setShowModal(false);
-
-  }
+  };
   const _performRename = async newName => {
     setRenameLoading(true);
     try {
@@ -514,7 +531,7 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
           showsHorizontalScrollIndicator={false}
           horizontal={true}
           style={{ flexGrow: 0, backgroundColor: theme.colors.background }}>
-          <View style={styles.filterContainer}>
+          <View style={Styles.filterContainer}>
             <BottomActionMenu
               visible={showMenu1}
               currentSelect={filterDirection}
@@ -629,11 +646,12 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
               </View>
             }
           />
-          <View style={[Styles.numContainer, { marginTop: 0, marginRight: 0 }]}>
+          <View style={[Styles.numContainer]}>
             <BalanceTextLite
               textStyle={[Styles.mainNumText, Theme.fonts.default.heavy]}
               balanceItem={balanceItem}
               isErc1155={wallet.tokenVersion == 1155}
+              solTokens={wallet.tokens}
             />
             <Text
               style={[
@@ -680,9 +698,11 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
                 },
               ]}
               color="#fff"
-              onPress={() =>
-                navigate('Deposit', { wallet, onComplete: _refresh })
-              }>
+              onPress={() => {
+                _checkApplicantDataAndNext(() => {
+                  navigate('Deposit', { wallet, onComplete: _refresh });
+                });
+              }}>
               {I18n.t('add_showcase')}
             </RoundButton2>
             <RoundButton2
@@ -707,9 +727,11 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
                 },
               ]}
               color="#fff"
-              onPress={() =>
-                navigate('Withdraw', { wallet, onComplete: _refresh })
-              }>
+              onPress={() => {
+                _checkApplicantDataAndNext(() => {
+                  navigate('Withdraw', { wallet, onComplete: _refresh });
+                });
+              }}>
               {I18n.t('send_showcase')}
             </RoundButton2>
           </View>
@@ -774,15 +796,107 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
       {_getFilterView()}
     </View>
   );
+  const getTokens = () => {
+    if (wallet.currency === Coin.SOL) {
+      return wallet.tokens;
+    }
+    return wallet.tokenVersion === 721
+      ? balanceItem.tokens
+      : balanceItem.tokenIdAmounts;
+  };
+  const _checkApplicantDataAndNext = (next = () => {}) => {
+    setNormalLoading(true);
+    checkApplicantStatusAndNext(
+      kycResult,
+      (result, update) => {
+        setNormalLoading(false);
+        if (update) {
+          dispatch({ type: KYC_APPLICANT_STATUS_UPDATE, result });
+        }
+        next();
+      },
+      (result, update, reason) => {
+        setNormalLoading(false);
+        if (update) {
+          dispatch({ type: KYC_APPLICANT_STATUS_UPDATE, result });
+        }
+        let isSu = inSuList();
+        if (canGoKyc(result)) {
+          setResult({
+            title: I18n.t('kyc_block_init_title'),
+            message: I18n.t('kyc_block_init_desc'),
+            type: TYPE_FAIL,
+            failButtonText: I18n.t('kyc_block_go'),
+            buttonClick: () => {
+              setResult(null);
+              KycHelper.getLanguageAndStartKyc(
+                kycUserExist,
+                setNormalLoading,
+                dispatch,
+                setResult
+              );
+              // NavigationService.navigate('Settings', { startKyc: Date.now() });
+            },
+            secondaryConfig: {
+              color: theme.colors.primary,
+              text: isSu ? I18n.t('skip') : I18n.t('kyc_block_later'),
+              onClick: () => {
+                setResult(null);
+                if (isSu) {
+                  next();
+                }
+              },
+            },
+          });
+        } else {
+          setResult({
+            title: I18n.t('kyc_block_pending_title'),
+            message: I18n.t('kyc_block_pending_desc'),
+            type: TYPE_CONFIRM,
+            successButtonText: I18n.t('kyc_block_pending_ok'),
+            buttonClick: () => {
+              setResult(null);
+              KycHelper.getLanguageAndStartKyc(
+                kycUserExist,
+                setNormalLoading,
+                dispatch,
+                setResult
+              );
+            },
+            secondaryConfig: {
+              color: theme.colors.primary,
+              text: isSu ? I18n.t('skip') : I18n.t('kyc_block_pending_cancel'),
+              onClick: () => {
+                setResult(null);
+                if (isSu) {
+                  next();
+                }
+              },
+            },
+          });
+        }
+      },
+      error => {
+        setNormalLoading(false);
+        dispatch({ type: KYC_APPLICANT_STATUS_ERROR, error });
+        setResult({
+          type: TYPE_FAIL,
+          error: I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          }),
+          title: I18n.t('check_failed'),
+          buttonClick: () => {
+            setResult(null);
+          },
+        });
+      }
+    );
+  };
   return ready ? (
     <Container style={(Styles.container, { backgroundColor: startColor })}>
       <TransactionNftWalletList
         transactions={_getFilteredData(rawDataObj.data)}
-        tokens={
-          wallet.tokenVersion == 721
-            ? balanceItem.tokens
-            : balanceItem.tokenIdAmounts
-        }
+        tokens={getTokens()}
         wallet={wallet}
         onTransactionPress={_goTransactionDetail}
         listHeader={getHeader}
@@ -792,14 +906,13 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
         onEndReached={_fetchMoreHistory}
         getCurrencySymbol={item => currencySymbol}
         footLoading={_hasMore() ? loading : NO_MORE}
-        onClickShowcase={() => {
-          navigate('Deposit', { wallet, onComplete: _refresh });
-        }}
         onClickAction={(item, tokenId) => {
-          navigate('Withdraw', {
-            wallet: item,
-            onComplete: null,
-            tokenId: tokenId,
+          _checkApplicantDataAndNext(() => {
+            navigate('Withdraw', {
+              wallet: item,
+              onComplete: null,
+              tokenId: tokenId,
+            });
           });
         }}
       />
@@ -816,6 +929,17 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
           }}
         />
       )}
+      {normalLoading && (
+        <ActivityIndicator
+          color={theme.colors.primary}
+          size="large"
+          style={{
+            position: 'absolute',
+            alignSelf: 'center',
+            top: height / 2,
+          }}
+        />
+      )}
       {result && (
         <ResultModal
           visible={!!result}
@@ -824,6 +948,9 @@ const WalletNftDetailScreen: () => React$Node = ({ theme }) => {
           message={result.message}
           errorMsg={result.error}
           onButtonClick={result.buttonClick}
+          successButtonText={result.successButtonText}
+          failButtonText={result.failButtonText}
+          secondaryConfig={result.secondaryConfig}
         />
       )}
     </Container>
@@ -866,14 +993,6 @@ const styles = StyleSheet.create({
     // marginHorizontal: 20,
     marginTop: 16,
     // flex: 1,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    // backgroundColor: '#000',
-    // width: FULL_WIDTH_WITH_PADDING,
-    paddingHorizontal: HEADER_BAR_PADDING,
-    paddingVertical: 10,
   },
 });
 export default withTheme(WalletNftDetailScreen);

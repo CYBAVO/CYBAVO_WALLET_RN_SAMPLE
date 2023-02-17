@@ -5,6 +5,7 @@ import messaging from '@react-native-firebase/messaging';
 import { Toast } from 'native-base';
 import { store } from './store';
 import { fetchTransaction, onReceivePush } from './store/actions';
+import { FileLogger } from 'react-native-file-logger';
 let initPush;
 export async function initPushNotification() {
   if (!initPush) {
@@ -18,6 +19,7 @@ export async function initPushNotification() {
       messaging().onMessage(remoteMessage => {
         store.dispatch(onReceivePush(remoteMessage, true));
         if (!remoteMessage) {
+          FileLogger.debug('onMessage: empty');
           Toast.show({
             text: 'onMessage: is null',
             type: 'warning',
@@ -25,10 +27,17 @@ export async function initPushNotification() {
           });
           console.log('2Notification is null:');
           return;
+        } else {
+          FileLogger.debug(`onMessage:${JSON.stringify(remoteMessage)}`);
         }
         console.log('2Notification caused app to open from background state:');
       });
       messaging().setBackgroundMessageHandler(async remoteMessage => {
+        if (remoteMessage) {
+          FileLogger.debug(`onMessage_bg:${JSON.stringify(remoteMessage)}`);
+        } else {
+          FileLogger.debug('onMessage_bg: empty');
+        }
         console.log('Message handled in the background!', remoteMessage);
         store.dispatch(onReceivePush(remoteMessage, false));
       });
@@ -42,6 +51,7 @@ export async function initPushNotification() {
   return initPush;
 }
 export function showLocalPush(title, body, devices) {
+  FileLogger.debug(`onMessage_showLocalPush:${title} | ${body}`);
   RNPushNotification.localNotification({
     title,
     message: body,

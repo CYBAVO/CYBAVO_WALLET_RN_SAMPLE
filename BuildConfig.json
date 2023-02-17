@@ -1,15 +1,49 @@
 {
   "apiCode": {
-    "main": {"ios": "<MAIN_API_CODE_IOS>", "android": "<MAIN_API_CODE_ANDROID>"},
-    "test": {"ios": "<TEST_API_CODE_IOS>", "android": "<TEST_API_CODE_ANDROID>"}
+    "op1": {"ios": "<MAIN_API_CODE_IOS>", "android": "<MAIN_API_CODE_ANDROID>"},
+    "op2": {"ios": "<TEST_API_CODE_IOS>", "android": "<TEST_API_CODE_ANDROID>"}
   },
   "endpoint": {
-    "main": "<MAIN_ENDPOINT>",
-    "test":  "<TEST_END_POINT>"
+    "op1": "<MAIN_ENDPOINT>",
+    "op2":  "<TEST_END_POINT>"
   },
+  "initOptionalWallet": {
+    "op1": [{
+      "currency": "<OP1_W1_C>",
+      "name": "<OP1_W1_N>",
+      "tokenAddress": "<OP1_W1_T>"
+    }, {
+      "currency": "<OP1_W2_C>",
+      "name": "<OP1_W2_N>",
+      "tokenAddress": "<OP1_W2_T>"
+    }],
+    "op2": [{
+      "currency": "<OP2_W1_C>",
+      "name": "<OP2_W1_N>",
+      "tokenAddress": "<OP2_W1_T>"
+    }, {
+      "currency": "<OP2_W2_C>",
+      "name": "<OP2_W2_N>",
+      "tokenAddress": "<OP2_W2_T>"
+    }]
+  },
+  "devDialogOption": [
+    {
+      "key":"op1",
+      "name":"<OP1_NAME>",
+      "network": "<OP1_NETWORK>"
+    },
+   {
+     "key":"op2",
+     "name":"<OP2_NAME>",
+     "network": "<OP2_NETWORK>"
+    }
+  ],
   "GOOGLE_SIGN_IN_WEB_CLI_ID": "<MY_GOOGLE_SIGN_IN_WEB_CLI_ID>",
   "uniqueIds": ["<UNIQUE_IDS>"],
   "TWITTER_CONSUMER_KEY": "<MY_TWITTER_CONSUMER_KEY>",
   "TWITTER_CONSUMER_SECRET": "<My_TWITTER_CONSUMER_SECRET>",
+  "suIds": ["<SU_IDS>"],
+  "WC_PROJECT_ID": "<WC_PROJECT_ID>",
   "CHAIN_ID": 1
 }

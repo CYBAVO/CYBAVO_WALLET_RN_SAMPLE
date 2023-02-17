@@ -355,7 +355,7 @@ const AssetPicker: () => React$Node = ({
             transparent
             title={I18n.t('select_asset')}
             onBack={() => _hideModal()}
-            Parent={View}
+            androidInsetTop={false}
           />
           <Searchbar
             inputStyle={[

@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Image,
+  Keyboard,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { Container } from 'native-base';
 import { Coin, ROUND_BUTTON_HEIGHT } from '../Constants';
 import { useDispatch, useSelector } from 'react-redux';
@@ -32,10 +39,36 @@ import ResultModal, {
   TYPE_FAIL,
   TYPE_SUCCESS,
 } from '../components/ResultModal';
+import { useLayout } from '@react-native-community/hooks';
 const AddAssetScreen: () => React$Node = ({ theme }) => {
   const dispatch = useDispatch();
   const { navigate, goBack } = useNavigation();
   const refs = [useRef(), useRef()];
+  const { onLayout, ...layout } = useLayout();
+  const [iosImeHeight, setiosImeHeight] = useState(0);
+
+  const _updateKeyboardSpace = (frames: Object) => {
+    console.log('_updateKeyboardSpace: ', frames.endCoordinates.height);
+    setiosImeHeight(frames.endCoordinates.height - layout.height);
+  };
+
+  const _resetKeyboardSpace = (frames: Object) => {
+    setiosImeHeight(0);
+    console.log('_resetKeyboardSpace');
+  };
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') {
+      return;
+    }
+    Keyboard.addListener('keyboardWillShow', _updateKeyboardSpace);
+    Keyboard.addListener('keyboardWillHide', _resetKeyboardSpace);
+    return () => {
+      Keyboard.removeListener('keyboardWillShow', _updateKeyboardSpace);
+      Keyboard.removeListener('keyboardWillHide', _resetKeyboardSpace);
+    };
+  }, []);
+
   const walletLimit = useSelector(state => {
     return state.wallets.walletLimit;
   });
@@ -56,6 +89,7 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
   const _hasAccountName = currency =>
     Coin.EOS === currency.currency && !currency.tokenAddress;
   const wallets = useSelector(state => state.wallets.wallets);
+  const scrollView = useRef();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [accountName, setAccountName] = useState('');
@@ -267,6 +301,7 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
         />
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          ref={scrollView}
           style={styles.contentContainer}
           contentContainerStyle={{ justifyContent: 'space-between' }}>
           <Text
@@ -323,6 +358,7 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
           )}
           <CompoundTextInput
             ref={refs[0]}
+            onLayout={onLayout}
             onSubmitEditing={
               refs[1].current
                 ? () => {
@@ -331,7 +367,7 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
                 : null
             }
             label={I18n.t('name_this_wallet')}
-            style={{ backgroundColor: 'transparent', marginTop: 15 }}
+            style={{ backgroundColor: 'transparent', marginTop: 0 }}
             value={name}
             onClear={() => {
               setName('');
@@ -362,6 +398,7 @@ const AddAssetScreen: () => React$Node = ({ theme }) => {
               errorMsg={accountNameError}
             />
           )}
+          <View style={{ height: iosImeHeight }} />
         </ScrollView>
         <View style={{ marginTop: 50 }}>
           {_needParent() && (
@@ -424,6 +461,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     padding: 16,
+    paddingTop: 0,
     paddingBottom: 0, // need to make a distance from bottom, to fix abnormal move while focus next TextInput on iOS
   },
   body: {

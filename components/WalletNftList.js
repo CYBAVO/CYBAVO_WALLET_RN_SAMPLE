@@ -21,6 +21,7 @@ import {
   explorerNft,
   getNftColorIndex,
   getNftIconIndex,
+  getTokenStandard,
   getWalletKeyByWallet,
   hasValue,
   isETHForkChain,
@@ -77,13 +78,69 @@ const WalletNftList: () => React$Node = ({
     title,
     icon,
     i,
-    secData
+    secData,
+    getTokenId = token => token
   ) => {
+    if (!wallets[i].tokens) {
+      wallets[i].tokens == [];
+    }
     let total = wallets[i].tokens.length;
     for (let t = 0; t < wallet.tokens.length; t++) {
       columns[t % 2].push({
         ...wallet,
-        tokenId: wallet.tokens[t],
+        tokenId: getTokenId(wallet.tokens[t]),
+        startColor: startColor,
+        endColor: endColor,
+        icon: icon,
+      });
+      if ((t + 1) % 6 == 0) {
+        secData.push({
+          title: title,
+          total: total,
+          wallet: { ...wallet },
+          icon: icon,
+          index: i,
+          data: [{ columns: columns }],
+        });
+        columns = [[], []];
+        title = '';
+      }
+    }
+    if (wallet.tokens.length == 0 || wallet.tokens.length % 6 != 0) {
+      secData.push({
+        title: title,
+        total: total,
+        wallet: { ...wallet },
+        icon: icon,
+        index: i,
+        data: [{ columns: columns }],
+      });
+    }
+    return secData;
+  };
+  const _getDataSubSol = (
+    wallet,
+    columns,
+    startColor,
+    endColor,
+    title,
+    icon,
+    i,
+    secData,
+    getTokenId = token => token.tokenAddress
+  ) => {
+    if (!wallets[i].tokens) {
+      wallets[i].tokens = [];
+    }
+    let total = wallets[i].tokens.length;
+    for (let t = 0; t < wallet.tokens.length; t++) {
+      columns[t % 2].push({
+        ...wallet,
+        tokenId: getTokenId(wallet.tokens[t]),
+        amount: I18n.t('token_meta_infos', {
+          ...wallet.tokens[t],
+          tokenStandard: getTokenStandard(wallet.tokens[t].tokenStandard),
+        }),
         startColor: startColor,
         endColor: endColor,
         icon: icon,
@@ -171,29 +228,41 @@ const WalletNftList: () => React$Node = ({
       let startColor = nftStartColors[colorIndex];
       let endColor = nftEndColors[colorIndex];
       let icon = nftIcons[iconIndex];
-
-      secData =
-        wallets[i].tokenVersion == 721
-          ? _getDataSub721(
-              wallets[i],
-              columns,
-              startColor,
-              endColor,
-              title,
-              icon,
-              i,
-              secData
-            )
-          : _getDataSub1155(
-              wallets[i],
-              columns,
-              startColor,
-              endColor,
-              title,
-              icon,
-              i,
-              secData
-            );
+      if (wallets[i].currency === Coin.SOL) {
+        title = wallets[i].name;
+        secData = _getDataSubSol(
+          wallets[i],
+          columns,
+          startColor,
+          endColor,
+          title,
+          icon,
+          i,
+          secData
+        );
+      } else if (wallets[i].tokenVersion == 721) {
+        secData = _getDataSub721(
+          wallets[i],
+          columns,
+          startColor,
+          endColor,
+          title,
+          icon,
+          i,
+          secData
+        );
+      } else if (wallets[i].tokenVersion == 1155) {
+        secData = _getDataSub1155(
+          wallets[i],
+          columns,
+          startColor,
+          endColor,
+          title,
+          icon,
+          i,
+          secData
+        );
+      }
     }
     return secData;
   };

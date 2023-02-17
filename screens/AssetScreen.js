@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  Linking,
 } from 'react-native';
 
 import ScrollableTabView from 'react-native-scrollable-tab-view';
@@ -34,13 +35,28 @@ import {
   AUTH_UPDATE_GLOBAL_MODAL,
   fetchTokenUriIfNeed,
   fetchSameCurrencyWalletLimit,
+  checkApplicantStatusAndNext,
+  KYC_APPLICANT_STATUS_UPDATE,
+  KYC_APPLICANT_STATUS_ERROR,
+  canGoKyc,
+  inSuList,
+  fetchSolNftTokens,
+  initSignClient,
+  initAccountWalletMap,
+  fetchSupportedChain,
 } from '../store/actions';
 import I18n, { LanguageIndexMap } from '../i18n/i18n';
 import WalletList from '../components/WalletList';
 import Dropdown from '../components/Dropdown';
 import TransactionList from '../components/TransactionList';
 import Headerbar from '../components/Headerbar';
-import { FAB, IconButton, Text, withTheme } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  FAB,
+  IconButton,
+  Text,
+  withTheme,
+} from 'react-native-paper';
 import { NO_MORE } from './WalletDetailScreen';
 import ContentLoader, { Rect } from 'react-content-loader/native';
 import { useNavigationParam } from 'react-navigation-hooks';
@@ -62,10 +78,8 @@ import {
 import CurrencyPriceTextLite from '../components/CurrencyPriceTextLite';
 import NavigationService from '../NavigationService';
 import { SvgXml } from 'react-native-svg';
-import {
-  getWalletsByChainIds,
-  Wallets,
-} from '@cybavo/react-native-wallet-service';
+import { WalletConnectSdk, Wallets } from '@cybavo/react-native-wallet-service';
+const { V2Manager } = WalletConnectSdk;
 import {
   ADD_SVG,
   ALL_WALLET_ID,
@@ -77,6 +91,11 @@ import {
 import RoundButton2 from '../components/RoundButton2';
 import SectionWaterFallList from '../components/SectionWaterFallList';
 import WalletNftList from '../components/WalletNftList';
+import ResultModal, {
+  TYPE_CONFIRM,
+  TYPE_FAIL,
+} from '../components/ResultModal';
+import { KycHelper } from '../utils/KycHelper';
 const MyLoader = props => {
   let cardWidth = width - 32;
   let cardHeight = 120;
@@ -123,12 +142,25 @@ const MyLoader = props => {
 const H_MAX_HEIGHT = 150;
 const H_MIN_HEIGHT = 52;
 const H_SCROLL_DISTANCE = H_MAX_HEIGHT - H_MIN_HEIGHT;
+
 const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   const NA = '-';
   const dispatch = useDispatch();
   const setPin = useSelector(state => state.user.userState.setPin);
   const scrollOffsetY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY2 = useRef(new Animated.Value(0)).current;
+  const startKycParam = useNavigationParam('startKyc');
+
+  useEffect(() => {
+    if (startKycParam) {
+      KycHelper.getLanguageAndStartKyc(
+        kycUserExist,
+        setLoading,
+        dispatch,
+        setResult
+      );
+    }
+  }, [startKycParam]);
   const headerScrollHeight = scrollOffsetY.interpolate({
     inputRange: [0, H_SCROLL_DISTANCE],
     outputRange: [H_MAX_HEIGHT, H_MIN_HEIGHT],
@@ -154,6 +186,7 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   });
   const nftWallets = useSelector(state => {
     let stateW = state.wallets.nftWallets || [];
+    let solWalletMap = state.wallets.solWalletMap || {};
     let newW = [];
     let stateB = state.balance.balances || {};
     for (let i = 0; i < stateW.length; i++) {
@@ -179,6 +212,7 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
         }
       }
     }
+    newW.push(...Object.values(solWalletMap));
     return newW;
   });
 
@@ -192,15 +226,33 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
   const deeplink = useSelector(state => state.walletconnect.deeplink);
   const walletsLoading = useSelector(state => state.wallets.loading);
   const ethWallet = useSelector(state => state.wallets.ethWallet);
+  const kycResult = useSelector(state => state.kyc.applicantStatus.result);
+  const kycUserExist = useSelector(state => state.kyc.userExist);
+  const [loading, setLoading] = useState(false);
   const [hide, setHide] = useState(false);
+  const [result, setResult] = useState(null);
+  const [hasV2Connection, setHasV2Connection] = useState(false);
 
-  const config = useSelector(state => {
-    return state.auth.config;
-  });
   const hasConnection = useSelector(state => {
     return Object.keys(state.walletconnect.connecting).length > 0;
   });
-
+  const v2RefreshTimestamp = useSelector(
+    state => state.walletconnect.v2RefreshTimestamp
+  );
+  useEffect(() => {
+    if (!v2RefreshTimestamp) {
+      return;
+    }
+    try {
+      setHasV2Connection(
+        V2Manager.signClient &&
+          (V2Manager.signClient.session.values.length > 0 ||
+            V2Manager.signClient.pairing.values.length > 0)
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  }, [v2RefreshTimestamp]);
   const enableWalletconnect = useSelector(state => {
     // console.debug(
     //   `enableWalletconnect:${state.user.userState.enableWalletconnect}`
@@ -265,25 +317,28 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
       return value;
     }
   });
-  const appState = useAppState();
-  useEffect(() => {
-    if (appState == 'active') {
-      getSkipNews()
-        .then(skip => {
-          if (!skip) {
-            NavigationService.navigate('GlobalModal', {
-              isNews: true,
-            });
-          }
-        })
-        .catch(error => {});
-    }
-  }, [appState]);
+  // const appState = useAppState();
+  // useEffect(() => {
+  //   if (appState == 'active') {
+  //     getSkipNews()
+  //       .then(skip => {
+  //         if (!skip) {
+  //           NavigationService.navigate('GlobalModal', {
+  //             isNews: true,
+  //           });
+  //         }
+  //       })
+  //       .catch(error => {});
+  //   }
+  // }, [appState]);
 
   useEffect(() => {
+    console.reportErrorsAsExceptions = false;
     dispatch(fetchSameCurrencyWalletLimit());
     dispatch(fetchWallets());
     dispatch(fetchUserState());
+    dispatch(initSignClient());
+    dispatch(fetchSupportedChain());
   }, [dispatch]);
 
   useEffect(() => {
@@ -327,19 +382,23 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
       dispatch(
         fetchBalance(wallet.currency, wallet.tokenAddress, wallet.address, true)
       );
+      if (wallet.currency == Coin.SOL) {
+        dispatch(fetchSolNftTokens(wallet));
+      }
     });
   }, [dispatch, wallets]);
 
   useEffect(() => {
     if (
-      currencyPriceLoading == false &&
       walletsLoading == false &&
-      exchangeAmount != null
+      (wallets.length == 0 ||
+        (currencyPriceLoading == false && exchangeAmount != null))
     ) {
+      dispatch(initAccountWalletMap(wallets));
       setReady(true);
       setRefreshing(false);
     }
-  }, [currencyPriceLoading, walletsLoading, exchangeAmount]);
+  }, [currencyPriceLoading, walletsLoading, exchangeAmount, wallets]);
 
   //retry to fetch currencyPrice
   useEffect(() => {
@@ -398,22 +457,6 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
       dispatch(fetchTokenUriIfNeed(nftWallets, true));
     }
   };
-  const _goTransactionDetail = transaction => {
-    let address = transaction.out
-      ? transaction.fromAddress
-      : transaction.toAddress;
-    let w = wallets.find(
-      wallet =>
-        wallet.address === address &&
-        wallet.tokenAddress == transaction.tokenAddress
-    );
-    if (w) {
-      navigate('TransactionDetail', {
-        wallet: w,
-        transaction,
-      });
-    }
-  };
 
   const loadData2: () => Item[] = () => {
     let sec = [];
@@ -444,17 +487,91 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
     }
     return sec;
   };
-  const loadData: () => Item[] = () => {
-    let res: Item[] = [];
-    for (let i = 0; i < 20; i++) {
-      res.push({
-        _height: 100 + Math.floor(100 * Math.random()),
-        _color: getRandowColor(),
-      });
-    }
-    return res;
-  };
   let testData = loadData2();
+
+  const _checkApplicantDataAndNext = (next = () => {}) => {
+    checkApplicantStatusAndNext(
+      kycResult,
+      (result, update) => {
+        if (update) {
+          dispatch({ type: KYC_APPLICANT_STATUS_UPDATE, result });
+        }
+        next();
+      },
+      (result, update, reason) => {
+        if (update) {
+          dispatch({ type: KYC_APPLICANT_STATUS_UPDATE, result });
+        }
+        let isSu = inSuList();
+        if (canGoKyc(result)) {
+          setResult({
+            title: I18n.t('kyc_block_init_title'),
+            message: I18n.t('kyc_block_init_desc'),
+            type: TYPE_FAIL,
+            failButtonText: I18n.t('kyc_block_go'),
+            buttonClick: () => {
+              setResult(null);
+              KycHelper.getLanguageAndStartKyc(
+                kycUserExist,
+                setLoading,
+                dispatch,
+                setResult
+              );
+            },
+            secondaryConfig: {
+              color: theme.colors.primary,
+              text: isSu ? I18n.t('skip') : I18n.t('kyc_block_later'),
+              onClick: () => {
+                setResult(null);
+                if (isSu) {
+                  next();
+                }
+              },
+            },
+          });
+        } else {
+          setResult({
+            title: I18n.t('kyc_block_pending_title'),
+            message: I18n.t('kyc_block_pending_desc'),
+            type: TYPE_CONFIRM,
+            successButtonText: I18n.t('kyc_block_pending_ok'),
+            buttonClick: () => {
+              setResult(null);
+              KycHelper.getLanguageAndStartKyc(
+                kycUserExist,
+                setLoading,
+                dispatch,
+                setResult
+              );
+            },
+            secondaryConfig: {
+              color: theme.colors.primary,
+              text: isSu ? I18n.t('skip') : I18n.t('kyc_block_pending_cancel'),
+              onClick: () => {
+                setResult(null);
+                if (isSu) {
+                  next();
+                }
+              },
+            },
+          });
+        }
+      },
+      error => {
+        dispatch({ type: KYC_APPLICANT_STATUS_ERROR, error });
+        setResult({
+          type: TYPE_FAIL,
+          error: I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          }),
+          title: I18n.t('check_failed'),
+          buttonClick: () => {
+            setResult(null);
+          },
+        });
+      }
+    );
+  };
   return ready ? (
     <View style={Styles.container}>
       <Animated.View>
@@ -466,7 +583,11 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
               <IconButton
                 borderless
                 color={theme.colors.primary}
-                onPress={() => navigate('AddAsset')}
+                onPress={() => {
+                  _checkApplicantDataAndNext(() => {
+                    navigate('AddAsset');
+                  });
+                }}
                 icon={({ size, color }) => (
                   <Image
                     source={require('../assets/image/ic_add_primary.png')}
@@ -537,21 +658,6 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
             hide={hide}
             latestKey={latestKey}
             onClickAction={item => {
-              if (
-                (item.currency == Coin.BTC || item.currency == Coin.ETH) &&
-                !hasValue(item.tokenAddress)
-              ) {
-                dispatch({
-                  type: AUTH_UPDATE_GLOBAL_MODAL,
-                  globalModal: { isNews: true, isShow: true },
-                });
-                // getSkipNews()
-                //   .then(skip => {
-                //     if (!skip) {
-                //     }
-                //   })
-                //   .catch(error => {});
-              }
               navigate('WalletDetail', { wallet: item });
             }}
             onRefresh={_refresh}
@@ -613,10 +719,12 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
               navigate('WalletNftDetail', { wallet: item });
             }}
             onClickAction={(item, tokenId) => {
-              navigate('Withdraw', {
-                wallet: item,
-                onComplete: null,
-                tokenId: tokenId,
+              _checkApplicantDataAndNext(() => {
+                navigate('Withdraw', {
+                  wallet: item,
+                  onComplete: null,
+                  tokenId: tokenId,
+                });
               });
             }}
             onRefresh={_refreshCurrency}
@@ -646,23 +754,57 @@ const AssetScreen: () => React$Node = ({ theme, navigation: { navigate } }) => {
                 )}
                 labelStyle={[{ color: theme.colors.text, fontSize: 14 }]}
                 color={theme.colors.pickerBg}
-                onPress={() => navigate('AddContractCurrency', {})}>
+                onPress={() => {
+                  _checkApplicantDataAndNext(() => {
+                    navigate('AddContractCurrency', {});
+                  });
+                }}>
                 {I18n.t('add_collectible')}
               </RoundButton2>
             )}
           />
         </View>
       </ScrollableTabView>
-      {enableWalletconnect && (hasConnection || hasApiHistory) && (
-        <FAB
-          // animated={true}
-          style={[Styles.fab, { backgroundColor: '#FFF' }]}
-          icon={({ size, color }) => (
-            <SvgXml xml={getWalletConnectSvg2()} width={size} height={size} />
-          )}
-          onPress={() => {
-            NavigationService.navigate('ConnectionList', {});
+      {enableWalletconnect &&
+        (hasV2Connection ||
+          hasConnection ||
+          hasApiHistory ||
+          hasApiHistory ||
+          hasApiHistory) && (
+          <FAB
+            // animated={true}
+            style={[Styles.fab, { backgroundColor: '#FFF' }]}
+            icon={({ size, color }) => (
+              <SvgXml xml={getWalletConnectSvg2()} width={size} height={size} />
+            )}
+            onPress={() => {
+              NavigationService.navigate('ConnectionList', {});
+            }}
+          />
+        )}
+
+      {loading && (
+        <ActivityIndicator
+          color={theme.colors.primary}
+          size="large"
+          style={{
+            position: 'absolute',
+            alignSelf: 'center',
+            top: height / 2,
           }}
+        />
+      )}
+      {result && (
+        <ResultModal
+          visible={!!result}
+          title={result.title}
+          message={result.message}
+          errorMsg={result.error}
+          type={result.type}
+          onButtonClick={result.buttonClick}
+          successButtonText={result.successButtonText}
+          failButtonText={result.failButtonText}
+          secondaryConfig={result.secondaryConfig}
         />
       )}
     </View>

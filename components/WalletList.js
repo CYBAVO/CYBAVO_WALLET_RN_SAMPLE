@@ -188,7 +188,13 @@ const WalletList: () => React$Node = ({
         ) : null
       }
       ListFooterComponent={renderFooter}
-      ListEmptyComponent={<ListEmptyView style={{ height: height * 0.5 }} />}
+      ListEmptyComponent={
+        <ListEmptyView
+          style={{ height: height * 0.5 }}
+          img={require('../assets/image/ic_empty_collection.png')}
+          text={I18n.t('no_wallet_text')}
+        />
+      }
     />
   );
 };

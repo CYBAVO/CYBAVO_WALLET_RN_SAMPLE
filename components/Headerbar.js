@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Image, Platform, StyleSheet, View } from 'react-native';
 import { withTheme, Text, IconButton } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeArea } from 'react-native-safe-area-context';
 import { Theme } from '../styles/MainTheme';
 import { Button } from 'native-base';
 import { Dimensions } from 'react-native';
@@ -15,18 +15,27 @@ const Headerbar: () => React$Node = ({
   title = '',
   onBack,
   actions,
-  Parent = SafeAreaView, // 'View' for Modal, 'SafeAreaView' for Screen
-  ParentIos,
+  androidInsetTop = true,
+  iosInsetTop = true,
   numberOfLines = 1,
   backIcon = require('../assets/image/ic_back.png'),
   titleColor,
   height = 56,
 }) => {
-  let ParentView = Platform.OS == 'ios' ? ParentIos || SafeAreaView : Parent;
+  const insets = useSafeArea();
   return (
-    <ParentView
+    <View
       style={[
-        { width: width },
+        {
+          width: width,
+          paddingTop:
+            (Platform.OS === 'ios' && iosInsetTop) ||
+            (Platform.OS === 'android' && androidInsetTop)
+              ? insets.top
+              : 0,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        },
         transparent ? null : { backgroundColor: theme.colors.background },
         style,
       ]}>
@@ -71,7 +80,7 @@ const Headerbar: () => React$Node = ({
         )}
         {!!actions && <View style={styles.actionsContainer}>{actions}</View>}
       </View>
-    </ParentView>
+    </View>
   );
 };
 

@@ -5,11 +5,12 @@
  * All rights reserved.
  */
 import {
-  WALLETS_LOADING,
-  WALLETS_ERROR,
-  WALLETS_UPDATE_WALLET_LIST,
-  WALLETS_UPDATE_WALLET,
   WALLET_LIMIT_UPDATE,
+  WALLETS_ERROR,
+  WALLETS_LOADING,
+  WALLETS_UPDATE_SOL_NFT,
+  WALLETS_UPDATE_WALLET,
+  WALLETS_UPDATE_WALLET_LIST,
 } from '../actions/wallets';
 import { COMMON_RESET } from '../actions/common';
 import {
@@ -17,7 +18,12 @@ import {
   WALLETS_UPDATE_CURRENCIES,
 } from '../actions';
 import { Coin } from '../../Constants';
-import { getNftColorIndex, getNftIconIndex, hasValue } from '../../Helpers';
+import {
+  getNftColorIndex,
+  getNftIconIndex,
+  hasValue,
+  isETHForkChain,
+} from '../../Helpers';
 
 const defaultState = {
   loading: null,
@@ -58,6 +64,34 @@ function wallets(state = defaultState, action) {
         ...state,
         walletLimit: walletLimit,
       };
+    case WALLETS_UPDATE_SOL_NFT: {
+      let solWalletMap = state.solWalletMap || {};
+      let stateWallet = state.wallets || [];
+      if (!action.tokens || action.tokens.length === 0) {
+        delete solWalletMap[action.walletId];
+        return {
+          ...state,
+          solWallets: solWalletMap,
+        };
+      }
+      for (let w of stateWallet) {
+        if (w.walletId != action.walletId) {
+          continue;
+        }
+        let newW = {
+          ...w,
+          tokens: action.tokens,
+          colorIndex: 9,
+          iconIndex: 9,
+        };
+        solWalletMap[action.walletId] = newW;
+        break;
+      }
+      return {
+        ...state,
+        solWalletMap: solWalletMap,
+      };
+    }
     case CURRENCIES_UPDATE_CURRENCIES:
     case WALLETS_UPDATE_CURRENCIES:
       let newWallets = [];

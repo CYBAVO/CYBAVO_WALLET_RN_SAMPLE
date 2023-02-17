@@ -178,7 +178,7 @@ const CurrencyPicker: () => React$Node = ({
                 onBack();
               }
             }}
-            Parent={View}
+            androidInsetTop={false}
           />
           <Searchbar
             inputStyle={[

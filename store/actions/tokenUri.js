@@ -7,6 +7,7 @@
 import { Wallets } from '@cybavo/react-native-wallet-service';
 import { sleep } from '../../Helpers';
 import { Platform } from 'react-native';
+import { Coin } from '../../Constants';
 
 export const TOKEN_URI_LOADING = 'TOKEN_URI_LOADING';
 export const TOKEN_URI_UPDATE = 'TOKEN_URI_UPDATE';
@@ -32,12 +33,27 @@ export function fetchTokenUriIfNeed(wallets, refresh = false) {
 }
 export function getRestTokenIds(wallet, tokens, tokenUriMap) {
   if (!tokenUriMap || Object.keys(tokenUriMap).length == 0) {
+    if ((wallet.currency = Coin.SOL)) {
+      return tokens.map(tokenMeta => {
+        return tokenMeta.tokenAddress;
+      });
+    }
     return tokens;
   }
-  const r = tokens.filter(t => {
-    let key = `${wallet.currency}#${wallet.tokenAddress}#${t}`;
-    return !tokenUriMap[key];
-  });
+  let r = [];
+  if (wallet.currency == Coin.SOL) {
+    for (let tokenMeta of wallet.tokens) {
+      let key = `${wallet.currency}#${wallet.tokenAddress}#${tokenMeta.tokenAddress}`;
+      if (!tokenUriMap[key]) {
+        r.push(tokenMeta.tokenAddress);
+      }
+    }
+  } else {
+    r = tokens.filter(t => {
+      let key = `${wallet.currency}#${wallet.tokenAddress}#${t}`;
+      return !tokenUriMap[key];
+    });
+  }
   return r;
 }
 

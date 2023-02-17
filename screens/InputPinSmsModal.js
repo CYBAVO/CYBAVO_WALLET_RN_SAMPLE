@@ -372,7 +372,7 @@ let InputPinSmsModal: () => React$Node = ({
           transparent
           title={title}
           onBack={() => onCancel()}
-          Parent={View}
+          androidInsetTop={false}
         />
         <ScrollableTabView
           locked={true}

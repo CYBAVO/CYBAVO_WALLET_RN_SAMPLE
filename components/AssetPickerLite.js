@@ -130,7 +130,7 @@ const AssetPickerLite: () => React$Node = ({
             backIcon={require('../assets/image/ic_cancel.png')}
             title={I18n.t('select_asset')}
             onBack={onCancel}
-            Parent={View}
+            androidInsetTop={false}
           />
           <FlatList
             data={data}

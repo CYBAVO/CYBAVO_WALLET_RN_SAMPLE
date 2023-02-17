@@ -11,6 +11,7 @@ import {
   TYPE_ACCELERATE,
   TYPE_CANCEL,
 } from './components/ReplaceTransactionModal';
+import { SOLANA_SIGNING_METHODS } from './data/SolanaData';
 
 export const INACTIVE_OPACITY = 0.2;
 export const BADGE_FONT_SIZE = 13;
@@ -31,6 +32,7 @@ export const HEADER_BAR_IMAGE_HEIGHT = 40;
 export const HEADER_BAR_PADDING = 16;
 export const FULL_WIDTH_WITH_PADDING = '92%';
 export const SERVICE_EMAIL = 'wallet-support@cybavo.com';
+export const SERVICE_EMAIL_KYC = 'kyc@cybavo.com';
 export const LOCALES = ['English', '繁體中文', '简体中文'];
 export const MIN_LEVEL = 1;
 export const AUTH_TYPE_OLD = 0;
@@ -42,6 +44,8 @@ export const SMS_VERIFY_OTP = 1;
 export const SMS_LOGIN_OTP = 2;
 export const EMAIL_VERIFY_OTP = 3;
 export const ALL_WALLET_ID = 0;
+export const WC_V2_NOT_QUEUE = 0;
+export const WC_V2_QUEUE = 1;
 
 export const CBO_SEPARATOR = '#CBO#'; //address#CBO#chainId#CBO#walletconnectUri, address/chainId: return to DAPP
 
@@ -110,6 +114,7 @@ export const Coin = {
   CPSC: 99999999995,
   WND: 99999999996,
   BSC: 99999999997,
+  GOERLI: 99999999976,
 };
 export const Status = {
   LOADING: 0,
@@ -121,11 +126,13 @@ export const NFT_EXPLORER_URIS = {
     [`${Coin.ETH}`]: 'https://etherscan.io/token/%s1?a=%s2#inventory', // ETH
     [`${Coin.BSC}`]: 'https://bscscan.com/token/%s1?a=%s2', // BSC
     [`${Coin.ONE}`]: 'https://explorer.harmony.one/inventory/erc721/%s1/%s2', // ONE
+    [`${Coin.SOL}`]: 'https://explorer.solana.com/address/%s2', // SOL
   },
   test: {
     [`${Coin.ETH}`]: 'https://ropsten.etherscan.io/token/%s1?a=%s2#inventory', // ETH
     [`${Coin.BSC}`]: 'https://testnet.bscscan.com/token/%s1?a=%s2', // BSC
     [`${Coin.ONE}`]: 'https://explorer.testnet.harmony.one/inventory/erc721/%s1/%s2', // ONE
+    [`${Coin.SOL}`]: 'https://explorer.solana.com/address/%s2?cluster=testnet', // SOL
   },
 };
 export const nftIcons = [
@@ -150,6 +157,7 @@ export const TX_EXPLORER_URIS = {
     [`${Coin.BCH}#`]: 'https://explorer.bitcoin.com/bch/tx/%s', // BCH
     [`${Coin.EOS}#`]: 'https://eosflare.io/tx/%s', // EOS
     [`${Coin.TRX}#`]: 'https://tronscan.org/#/transaction/%s', // TRX
+    [`${Coin.SOL}#`]: 'https://explorer.solana.com/tx/%s', // SOL
   },
   test: {
     [`${Coin.BTC}#`]: 'https://blockexplorer.com/tx/%s', // BTC
@@ -160,11 +168,13 @@ export const TX_EXPLORER_URIS = {
     [`${Coin.BCH}#`]: 'https://explorer.bitcoin.com/bch/tx/%s', // BCH
     [`${Coin.EOS}#`]: 'https://eosflare.io/tx/%s', // EOS
     [`${Coin.TRX}#`]: 'https://tronscan.org/#/transaction/%s', // TRX
+    [`${Coin.SOL}#`]: 'https://explorer.solana.com/tx/%s?cluster=testnet', // SOL
   },
 };
 
 export const chainI18n = {
   [`${Coin.ETH}`]: 'eth_desc', // ETH
+  [`${Coin.GOERLI}`]: 'eth_goerli_desc', // ETH
   [`${Coin.BSC}`]: 'bsc_desc', // BSC
   [`${Coin.ONE}`]: 'one_desc', // ONE
 };
@@ -190,6 +200,8 @@ export const Api = {
   signTx: 'eth_signTransaction',
   sign: 'eth_sign',
   signTyped: 'eth_signTypedData',
+  sol_signTx: SOLANA_SIGNING_METHODS.SOLANA_SIGN_TRANSACTION,
+  sol_sign: 'solana_sign',
 };
 export const ASK_USE_SMS_ERROR_CODE = [184, 185, -6];
 export const replaceConfig = {

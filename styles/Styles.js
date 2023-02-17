@@ -89,7 +89,13 @@ export default StyleSheet.create({
     paddingBottom: 20,
     // minHeight: 180,
   },
-  detailCardPattern: { left: 30, top: 35, position: 'absolute', overflow: 'hidden', bottom: 100 },
+  detailCardPattern: {
+    left: 30,
+    top: 35,
+    position: 'absolute',
+    overflow: 'hidden',
+    bottom: 100,
+  },
   topSecLabel: {
     color: 'white',
     fontSize: 16,
@@ -163,9 +169,6 @@ export default StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 16,
-    // marginTop: 10,
-    marginRight: 40,
-    // backgroundColor: 'red'
   },
   bottomButton: {
     // position: 'absolute',
@@ -333,7 +336,7 @@ export default StyleSheet.create({
   },
   shadowSurface: {
     backgroundColor: Theme.colors.backgroundPressed,
-    borderRadius: 4,// marginLeft: 12, marginRight: 16, marginVertical: 14,
+    borderRadius: 4, // marginLeft: 12, marginRight: 16, marginVertical: 14,
     //marginHorizontal: 16,
     // zIndex: 10,
     // elevation: 10,//Android need elevation
@@ -345,5 +348,13 @@ export default StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 16.0,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    // backgroundColor: '#000',
+    // width: FULL_WIDTH_WITH_PADDING,
+    paddingHorizontal: HEADER_BAR_PADDING,
+    paddingVertical: 10,
   },
 });

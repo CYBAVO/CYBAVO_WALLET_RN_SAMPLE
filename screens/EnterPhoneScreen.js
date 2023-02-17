@@ -72,7 +72,6 @@ import { useKeyboard, useShakeAnimation } from '../utils/Hooks';
 import CountryCode from '../components/CountryCode';
 import { PhoneNumberUtil, PhoneNumber } from 'google-libphonenumber';
 import CountryCodePicker from '../components/CountryCodePicker';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 const PhoneUtil = PhoneNumberUtil.getInstance();
 function validatePhoneNumber(countryCode, nationalNumber) {
@@ -240,8 +239,6 @@ let EnterPhoneScreen: () => React$Node = ({
           marginTop: 62,
           backgroundColor: theme.colors.navy,
         }}
-        ParentIos={SafeAreaView}
-        Parent={SafeAreaView}
         onBack={() => {
           setLoading(true);
           dispatch(signOut(false, true));

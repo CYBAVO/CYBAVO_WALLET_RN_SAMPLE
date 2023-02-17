@@ -57,6 +57,7 @@ import {
   checkAuthType,
   convertAmountFromRawNumber,
   convertHexToString,
+  convertHexToUtf8,
   extractAddress,
   focusNext,
   getAddressTagObjFromResult,
@@ -69,10 +70,10 @@ import {
   getWalletKeyByWallet,
   getWarningView,
   hasValue,
+  isETHForkChain,
   sleep,
   toastError,
 } from '../Helpers';
-import { convertHexToUtf8 } from '@walletconnect/utils';
 import { Theme } from '../styles/MainTheme';
 import BigNumber from 'bignumber.js';
 import walletconnect from '../store/reducers/walletconnect';
@@ -513,22 +514,24 @@ const RequestScreen: () => React$Node = ({ theme }) => {
     type,
     actionToken,
     code,
-    message
+    message,
+    signMessageActionToken
   ) => {
     let tag = '_walletConnectSignMessage';
     try {
       setLoading(true);
-      let paramMsg = message;
-      if (!isHex) {
-        let utf8Msg = convertHexToUtf8(message);
-        paramMsg = utf8Msg;
-      }
+      let paramMsg = _getMessageToSign(message);
 
       FileLogger.debug(
         `>>_walletConnectSignMessage_${message},paramMsg:${paramMsg}`
       );
       let result;
-      let extras = { eip155: eip155, is_hex: isHex, legacy: legacySign };
+      let extras = {
+        eip155: eip155,
+        is_hex: isHex,
+        legacy: legacySign,
+        confirmed_action_token: signMessageActionToken,
+      };
       switch (type) {
         case AUTH_TYPE_SMS:
           tag = '_walletConnectSignMessageSms';
@@ -757,7 +760,13 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       })
     );
   };
-  const _approveRequest = async (pinSecret, type, actionToken, code) => {
+  const _approveRequest = async (
+    pinSecret,
+    type,
+    actionToken,
+    code,
+    signMessageActionToken
+  ) => {
     switch (payload.method) {
       case 'eth_signTransaction':
         _walletConnectSignTransaction(pinSecret, type, actionToken, code, true);
@@ -771,7 +780,8 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           type,
           actionToken,
           code,
-          payload.params[1]
+          payload.params[1],
+          signMessageActionToken
         );
         break;
       case 'personal_sign':
@@ -780,7 +790,8 @@ const RequestScreen: () => React$Node = ({ theme }) => {
           type,
           actionToken,
           code,
-          payload.params[0]
+          payload.params[0],
+          signMessageActionToken
         );
         break;
       default:
@@ -1066,6 +1077,7 @@ const RequestScreen: () => React$Node = ({ theme }) => {
       </View>
     );
   };
+
   const _getSendView = msg => {
     return (
       <View
@@ -1474,6 +1486,71 @@ const RequestScreen: () => React$Node = ({ theme }) => {
         return false;
     }
   };
+  const _getMessageToSign = message => {
+    if (!isHex) {
+      return convertHexToUtf8(message);
+    }
+    return message;
+  };
+  const _getSignMessageActionToken = isSms => {
+    setLoading(true);
+    let msg = '';
+    switch (payload.method) {
+      case 'eth_sign':
+        msg = payload.params[1];
+        break;
+      case 'personal_sign':
+        msg = payload.params[0];
+        break;
+    }
+    Wallets.getSignMessageActionToken(_getMessageToSign(msg))
+      .then(r => {
+        setLoading(false);
+        _showInputPin(isSms, r.actionToken);
+      })
+      .catch(error => {
+        setLoading(false);
+        console.log('getSignMessageActionToken failed', error);
+        setResult({
+          type: TYPE_FAIL,
+          error: I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          }),
+          title: I18n.t('failed_template', {
+            name: 'getSignMessageActionToken',
+          }),
+          buttonClick: () => {
+            setResult(null);
+          },
+        });
+      });
+  };
+  const _showInputPin = (isSms, signMessageActionToken) => {
+    NavigationService.navigate('InputPinSms', {
+      modal: true,
+      from: 'Request',
+      isSms: isSms,
+      callback: (pinSecret, type, actionToken, code) => {
+        // NavigationService.navigate('Withdraw', {});
+        _approveRequest(
+          pinSecret,
+          type,
+          actionToken,
+          code,
+          signMessageActionToken
+        );
+      },
+      onError: error => {
+        FileLogger.debug(`${payload.method} fail: ${error.message}`);
+        _rejectRequest(
+          I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          })
+        );
+        goBack();
+      },
+    });
+  };
   return (
     <Container
       style={[Styles.bottomContainer, { justifyContent: 'space-between' }]}>
@@ -1577,24 +1654,26 @@ const RequestScreen: () => React$Node = ({ theme }) => {
                 _walletConnectSendRawTransaction();
                 return;
               }
-              NavigationService.navigate('InputPinSms', {
-                modal: true,
-                from: 'Request',
-                isSms: isSms,
-                callback: (pinSecret, type, actionToken, code) => {
-                  // NavigationService.navigate('Withdraw', {});
-                  _approveRequest(pinSecret, type, actionToken, code);
-                },
-                onError: error => {
-                  FileLogger.debug(`${payload.method} fail: ${error.message}`);
-                  _rejectRequest(
-                    I18n.t(`error_msg_${error.code}`, {
-                      defaultValue: error.message,
-                    })
-                  );
-                  goBack();
-                },
-              });
+              if (legacySign && isETHForkChain(wallet.currency)) {
+                setResult({
+                  type: TYPE_CONFIRM,
+                  title: I18n.t('warning'),
+                  message: I18n.t('confirm_legacy_sign_message_desc'),
+                  buttonClick: () => {
+                    setResult(null);
+                    _getSignMessageActionToken(isSms);
+                  },
+                  secondaryConfig: {
+                    color: theme.colors.primary,
+                    text: I18n.t('cancel'),
+                    onClick: () => {
+                      setResult(null);
+                    },
+                  },
+                });
+                return;
+              }
+              _showInputPin(isSms);
             }}>
             {I18n.t('approve')}
           </RoundButton2>

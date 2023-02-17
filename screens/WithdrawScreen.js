@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 
 import { TextInput as PaperInput } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import moment from 'moment';
 import { useAppState } from '@react-native-community/hooks';
 import { Container, Content } from 'native-base';
@@ -80,6 +79,7 @@ import {
   getFeeUnit,
   getAddressTagsFromResult,
   getAddressTagObjFromResult,
+  trimReceiver,
 } from '../Helpers';
 import Headerbar from '../components/Headerbar';
 import {
@@ -109,12 +109,14 @@ import {
 import NavigationService from '../NavigationService';
 import FeeDegreeSelector from '../components/FeeDegreeSelector';
 import currency from '../store/reducers/currency';
+import { useSafeArea } from 'react-native-safe-area-context';
 const paddingBottom = {
   ios: 220 * (height / 667),
   android: 0,
 };
 
 const WithdrawScreen: () => React$Node = ({ theme }) => {
+  const insets = useSafeArea();
   const appState = useAppState();
   const dispatch = useDispatch();
   const [transparent, setTransparent] = useState(true);
@@ -124,6 +126,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
   const [scrollY] = useState(new Animated.Value(0));
   const w = useNavigationParam('wallet');
   const paramTokenId = useNavigationParam('tokenId');
+  const solTokens = w.currency === Coin.SOL && w.tokens ? w.tokens : null;
   const [wallet, setWallet] = useState(w);
   const [currencyTraits, setCurrencyTraits] = useState({});
   const onComplete = useNavigationParam('onComplete');
@@ -212,7 +215,10 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     if (hasValue(wallet.tokenAddress)) {
       let balances = state.balance.balances || {};
       const r = wallets.filter(
-        w => w.currency === wallet.currency && !w.tokenAddress
+        w =>
+          w.currency === wallet.currency &&
+          !w.tokenAddress &&
+          w.address === wallet.address
       );
       if (r.length > 0) {
         let balanceText = getAvailableBalance(
@@ -235,6 +241,14 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
       let tokens = balanceItem.tokens || [];
       for (let i = 0; i < tokens.length; i++) {
         if (tokens[i] == id) {
+          return i;
+        }
+      }
+      return 0;
+    }
+    if (solTokens) {
+      for (let i = 0; i < solTokens.length; i++) {
+        if (solTokens[i].tokenAddress == id) {
           return i;
         }
       }
@@ -265,7 +279,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     focusInput(refs, hasValue(qrCode) ? 1 : 0);
   }, [qrCode]);
   const _submit = () => {
-    let r = _trimReceiver(receiver);
+    let r = trimReceiver(receiver);
     setReceiver(r);
     let amountCheck = _checkAmount(amount, selectedFee);
     let tokenIdCheck = _checkTokenId();
@@ -282,7 +296,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     return fee != null && fee.data != null && fee.data.low != null;
   };
   const _setReceiver = value => {
-    let r = _trimReceiver(value);
+    let r = trimReceiver(value);
     setReceiver(r);
     setTimeout(() => {
       if (_checkReceiver(r)) {
@@ -299,16 +313,6 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
         modal: true,
       });
     }
-  };
-  const _trimReceiver = value => {
-    if (value) {
-      value = value.replace(
-        new RegExp('^(ethereum:|bitcoin:|bitcoincase:|bitcoin-sv:)', 'g'),
-        ''
-      );
-      value = value.trim();
-    }
-    return value;
   };
   const _checkReceiver = value => {
     if (!hasValue(value)) {
@@ -330,22 +334,32 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
       _checkReceiver(value);
     }
   };
-  const _onAmountChanged = value => {
-    if (wallet.tokenVersion == 721) {
-      return true;
-    }
-    if (wallet.tokenVersion == 1155) {
-      let intValue = parseInt(value);
-      setAmount(intValue ? `${intValue}` : '');
-      if (amountError) {
-        let intB = parseInt(tokenIds[selectedTokenIndex].amount);
-        if (intValue > intB) {
-          setAmountError(I18n.t('error_fund_insufficient'));
-          return;
-        }
+  const _onAmountChangedSft = (value, balance) => {
+    let intValue = parseInt(value);
+    setAmount(intValue ? `${intValue}` : '');
+    if (amountError) {
+      if (!balance) {
         setAmountError(null);
         return;
       }
+      let intB = parseInt(balance);
+      if (intValue > intB) {
+        setAmountError(I18n.t('error_fund_insufficient'));
+        return;
+      }
+      setAmountError(null);
+    }
+  };
+  const _onAmountChanged = value => {
+    if (wallet.tokenVersion === 721) {
+      return true;
+    }
+    if (solTokens) {
+      _onAmountChangedSft(value, tokenIds[selectedTokenIndex].balance);
+      return true;
+    }
+    if (wallet.tokenVersion === 1155) {
+      _onAmountChangedSft(value, tokenIds[selectedTokenIndex].amount);
       return;
     }
     let floatValue = parseFloat(value);
@@ -444,10 +458,13 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     return true;
   };
   const _checkAmountNumerical = async (value, selectedFee) => {
-    if (wallet.tokenVersion == 721) {
+    if (wallet.tokenVersion === 721) {
       return true;
     }
-    if (wallet.tokenVersion == 1155) {
+    if (solTokens) {
+      return true;
+    }
+    if (wallet.tokenVersion === 1155) {
       return true;
     }
     if (isNaN(value)) {
@@ -456,7 +473,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     }
     let balance = getAvailableBalance(balanceItem);
     const feeStr = _hasTransactionFee() ? fee.data[selectedFee].amount : '0';
-    let toAddress = _trimReceiver(receiver);
+    let toAddress = trimReceiver(receiver);
     let { chain, platformFee } = await _getEstimateResult(
       value.toString(),
       toAddress
@@ -499,22 +516,32 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     }
     return false;
   };
-  const _checkAmount = (value, selectedFee) => {
-    if (wallet.tokenVersion == 721) {
+  const _checkAmountSft = (value, balance) => {
+    if (!balance) {
+      setAmountError(null);
       return true;
     }
+    let intValue = parseInt(value);
+    let intB = parseInt(balance);
+    if (intValue > intB) {
+      setAmountError(I18n.t('error_fund_insufficient'));
+      return false;
+    }
+    setAmountError(null);
+    return true;
+  };
+  const _checkAmount = (value, selectedFee) => {
+    if (wallet.tokenVersion === 721) {
+      return true;
+    }
+
     if (!_checkAmountLiteral(value)) {
       return false;
     }
-    if (wallet.tokenVersion == 1155) {
-      let intValue = parseInt(value);
-      let intB = parseInt(tokenIds[selectedTokenIndex].amount);
-      if (intValue > intB) {
-        setAmountError(I18n.t('error_fund_insufficient'));
-        return false;
-      }
-      setAmountError(null);
-      return true;
+    if (wallet.tokenVersion === 1155) {
+      return _checkAmountSft(value, tokenIds[selectedTokenIndex].amount);
+    } else if (solTokens) {
+      return _checkAmountSft(value, tokenIds[selectedTokenIndex].balance);
     }
     let floatValue = parseFloat(value);
     return _checkAmountNumerical(floatValue, selectedFee);
@@ -534,7 +561,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     const transactionFee = _hasTransactionFee() ? fee.data[selectedFee] : '0';
     let feeStr = transactionFee ? transactionFee.amount : '0';
     try {
-      let r = _trimReceiver(receiver);
+      let r = trimReceiver(receiver);
       let key = getEstimateResultKey(
         wallet.currency,
         wallet.tokenAddress,
@@ -622,17 +649,22 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
           `_estimateTransactionSub-:${tranasctionAmout}, ${platformFee}, ${blockchainFee}`
         );
         let estimate = {};
-        if (platformFee && platformFee != '0') {
+        if (platformFee && platformFee !== '0') {
           estimate.platformFee = platformFee;
         }
-        if (tranasctionAmout && tranasctionAmout !== '0') {
-          if (wallet.tokenVersion == 721) {
-            estimate.tokenId = tranasctionAmout;
-          } else if (wallet.tokenVersion == 1155) {
-            estimate.tokenId = tokenIds[selectedTokenIndex].tokenId;
-            estimate.amount = tranasctionAmout;
-          } else {
-            estimate.amount = tranasctionAmout;
+        if (solTokens) {
+          estimate.tokenId = tokenIds[selectedTokenIndex].tokenAddress;
+          estimate.amount = tranasctionAmout;
+        } else {
+          if (tranasctionAmout && tranasctionAmout !== '0') {
+            if (wallet.tokenVersion === 721) {
+              estimate.tokenId = tranasctionAmout;
+            } else if (wallet.tokenVersion === 1155) {
+              estimate.tokenId = tokenIds[selectedTokenIndex].tokenId;
+              estimate.amount = tranasctionAmout;
+            } else {
+              estimate.amount = tranasctionAmout;
+            }
           }
         }
         let unit = '';
@@ -648,7 +680,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
             currencyPrice
           )}`;
         } else {
-          unit = wallet.isNft ? '' : ` ${wallet.currencySymbol}`;
+          unit = wallet.isNft || solTokens ? '' : ` ${wallet.currencySymbol}`;
           exchangeBlockchainFee = `≈ ${exchangeCurrency} \$${getExchangeAmount(
             blockchainFee,
             3,
@@ -776,8 +808,14 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     if (addressTags != null) {
       extras.to_address_tag = addressTags;
     }
-    if (wallet.tokenVersion == 1155) {
+    if (wallet.tokenVersion === 1155) {
       extras.token_id = tokenIds[selectedTokenIndex].tokenId;
+    }
+    if (solTokens) {
+      extras.sol_token_id = tokenIds[selectedTokenIndex].tokenAddress;
+    }
+    if (wallet.currency === Coin.SOL && wallet.tokenAddress) {
+      extras.force_send = true;
     }
     setLoading(true);
     try {
@@ -880,6 +918,10 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     setiosImeHeight(0);
   };
   const _getAvailableBalanceText = () => {
+    if (solTokens) {
+      return `${I18n.t('available_balance')} ${tokenIds[selectedTokenIndex]
+        .balance || '-'} ${wallet.currencySymbol}`;
+    }
     let value =
       wallet.tokenVersion == 1155
         ? tokenIds[selectedTokenIndex].amount
@@ -890,7 +932,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
     return null;
   };
   useEffect(() => {
-    if (appState == 'active') {
+    if (appState === 'active') {
       dispatch(startFetchFee(wallet.currency));
     } else if (appState === 'background') {
       dispatch(stopFetchFee());
@@ -1048,6 +1090,10 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
   };
   const title = `${I18n.t('send')} ${wallet.currencySymbol}`;
   const _getTokenIds = () => {
+    if (solTokens) {
+      return solTokens;
+    }
+
     if (balanceItem == null) {
       return [];
     }
@@ -1078,11 +1124,14 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
               extrapolate: 'clamp',
             }),
           }}>
-          <SafeAreaView
+          <View
             style={{
               height: HEADER_COLLAPSED_HEIGHT + 20,
               width: width,
               backgroundColor: theme.colors.background,
+              paddingTop: insets.top,
+              paddingLeft: insets.left,
+              paddingRight: insets.right,
             }}
           />
         </Animated.View>
@@ -1165,10 +1214,16 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
                 extrapolate: 'clamp',
               }),
             }}>
-            <SafeAreaView
-              style={{ marginTop: HEADER_COLLAPSED_HEIGHT, width: width }}
+            <View
+              style={{
+                marginTop: HEADER_COLLAPSED_HEIGHT,
+                width: width,
+                paddingTop: insets.top,
+                paddingLeft: insets.left,
+                paddingRight: insets.right,
+              }}
             />
-            <View style={[Styles.numContainer]}>
+            <View style={[Styles.numContainer, { marginTop: 16 }]}>
               <AssetPicker
                 rawData={wallets}
                 recentSet={recentSet}
@@ -1189,19 +1244,20 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
               textStyle={[
                 Styles.mainNumText,
                 Theme.fonts.default.heavy,
-                { marginTop: 5, maxWidth: '80%' },
+                { marginTop: 16, maxWidth: '80%' },
               ]}
               balanceItem={balanceItem}
               isErc1155={wallet.tokenVersion == 1155}
               tokenIdIndex={selectedTokenIndex}
+              solTokens={solTokens}
             />
             <Text style={[styles.balanceLabel, Theme.fonts.default.regular]}>
               {I18n.t('balance')}
             </Text>
           </Animated.View>
         </BackgroundImage>
-        <Content
-          contentContainerStyle={{
+        <View
+          style={{
             flexDirection: 'column',
             alignItems: 'stretch',
             paddingHorizontal: 16,
@@ -1235,9 +1291,11 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
             }}
           />
           <Text style={Styles.labelBlock}>
-            {wallet.isNft ? I18n.t('token_id') : I18n.t('transfer_amount')}
+            {wallet.isNft || solTokens
+              ? I18n.t('token_id')
+              : I18n.t('transfer_amount')}
           </Text>
-          {wallet.isNft && (
+          {(wallet.isNft || solTokens) && (
             <>
               <BottomActionMenu
                 visible={showMenu1}
@@ -1249,6 +1307,8 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
                 getValue={
                   wallet.tokenVersion == 1155
                     ? tokenIdAmount => tokenIdAmount.tokenId
+                    : solTokens
+                    ? tokenMeta => tokenMeta.tokenAddress
                     : null
                 }
                 onClick={() => {
@@ -1324,7 +1384,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
                   return;
                 }
                 setAmount(valueText);
-                let toAddress = _trimReceiver(receiver);
+                let toAddress = trimReceiver(receiver);
                 let { chain, platformFee } = await _getEstimateResult(
                   valueText,
                   toAddress
@@ -1406,7 +1466,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
               // _submit();
             }}
           />
-        </Content>
+        </View>
       </ScrollView>
       <View
         style={{
@@ -1538,7 +1598,7 @@ const WithdrawScreen: () => React$Node = ({ theme }) => {
         />
       )}
 
-      {(loading || fee.loading) && (
+      {loading && (
         <ActivityIndicator
           color={theme.colors.primary}
           size="large"

@@ -28,10 +28,15 @@ import BackgroundImage from '../components/BackgroundImage';
 import TransactionList from '../components/TransactionList';
 import { fetchWallet, WALLETS_UPDATE_WALLET } from '../store/actions/wallets';
 import {
+  canGoKyc,
+  checkApplicantStatusAndNext,
   fetchBalance,
   fetchTransaction,
   GET_MORE,
   GET_NEW,
+  inSuList,
+  KYC_APPLICANT_STATUS_ERROR,
+  KYC_APPLICANT_STATUS_UPDATE,
   NOT_LOADING,
 } from '../store/actions';
 import { Wallets } from '@cybavo/react-native-wallet-service';
@@ -48,7 +53,7 @@ import {
   IconButton,
 } from 'react-native-paper';
 import InputMessageModal from '../components/InputMessageModal';
-import { getWalletKeyByWallet } from '../Helpers';
+import { getWalletKeyByWallet, isETHForkChain } from '../Helpers';
 import BottomActionMenu from '../components/BottomActionMenu';
 import RoundButton2 from '../components/RoundButton2';
 import LinearGradient from 'react-native-linear-gradient';
@@ -58,12 +63,15 @@ const HEADER_EXPANDED_HEIGHT = 238;
 import ContentLoader, { Rect } from 'react-content-loader/native';
 import BalanceTextLite from '../components/BalanceTextLite';
 import ResultModal, {
+  TYPE_CONFIRM,
   TYPE_FAIL,
   TYPE_SUCCESS,
 } from '../components/ResultModal';
-import NavigationService from "../NavigationService";
+import NavigationService from '../NavigationService';
+import { KycHelper } from '../utils/KycHelper';
+import { showActionButtonInWalletDetail } from '../utils/ApiTestHelper';
 const MyLoader = props => {
-  let line2Top = HEADER_EXPANDED_HEIGHT * 0.35;
+  let line2Top = HEADER_EXPANDED_HEIGHT * 0.5;
   let line2Left = width / 2 - 54;
   let line2Width1 = 88;
   return (
@@ -109,7 +117,7 @@ const MyLoader = props => {
       />
       <Rect
         x="25"
-        y={HEADER_EXPANDED_HEIGHT * 0.79}
+        y={HEADER_EXPANDED_HEIGHT * 0.82}
         rx="3"
         ry="3"
         width={width - 50}
@@ -193,6 +201,9 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
   const [showMenu3, setShowMenu3] = useState(false);
   const [showMenu4, setShowMenu4] = useState(false);
   const [renameLoading, setRenameLoading] = useState(false);
+  const [normalLoading, setNormalLoading] = useState(false);
+  const kycResult = useSelector(state => state.kyc.applicantStatus.result);
+  const kycUserExist = useSelector(state => state.kyc.userExist);
   const [result, setResult] = useState(null);
   const wallet = useNavigationParam('wallet');
   const [walletName, setWalletName] = useState(wallet.name);
@@ -210,51 +221,60 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
       return null;
     }
     // if already show UI, don't make balanceItem null
-    if (ready == false && state.balance.balances[key].loading != false) {
+    if (ready === false && state.balance.balances[key].loading !== false) {
       return null;
     }
     return state.balance.balances[key];
   });
   const rawDataObj = useSelector(state => {
     if (state.transactions.transactions == null) {
-      return { start: 0, total: 0, data: [] };
+      return {
+        start: 0,
+        total: 0,
+        data: [],
+        loading: NOT_LOADING,
+        hasMore: false,
+      };
     }
     let key = getWalletKeyByWallet(wallet);
     if (
       state.transactions.transactions[key] == null ||
       state.transactions.transactions[key].data == null
     ) {
-      return { start: 0, total: 0, data: [] };
+      return {
+        start: 0,
+        total: 0,
+        data: [],
+        loading: NOT_LOADING,
+        hasMore: false,
+      };
     }
     return {
       start: state.transactions.transactions[key].start,
       total: state.transactions.transactions[key].total,
       data: Object.values(state.transactions.transactions[key].data),
+      loading: state.transactions.transactions[key].loading,
+      hasMore:
+        state.transactions.transactions[key].start + 10 <
+        state.transactions.transactions[key].total,
     };
   });
-  const loading = useSelector(state => {
-    let key = getWalletKeyByWallet(wallet);
-    if (state.transactions.transactions[key] == undefined) {
-      return null;
-    }
-    if (state.transactions.transactions[key].loading == undefined) {
-      return null;
-    }
-    return state.transactions.transactions[key].loading;
-  });
-
   useEffect(() => {
     if (globalModal.isShow && globalModal.isNews) {
       NavigationService.navigate('GlobalModal', { isNews: true });
     }
   }, [globalModal]);
   useEffect(() => {
-    if (loading == NOT_LOADING && balanceItem != null && ready == false) {
+    if (
+      rawDataObj.loading === NOT_LOADING &&
+      balanceItem != null &&
+      ready === false
+    ) {
       setReady(true);
     }
-  }, [loading, balanceItem, ready]);
+  }, [rawDataObj.loading, balanceItem, ready]);
   useEffect(() => {
-    if (appState == 'active' && ready) {
+    if (appState == 'active') {
       _refresh();
     }
   }, [appState]);
@@ -330,7 +350,8 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
       _filterPending(t, filters) &&
       _filterSuccess(t, filters) &&
       _filterStartTime(t, filters) &&
-      _filterEndTime(t, filters)
+      _filterEndTime(t, filters) &&
+      _filterSolFt(t)
     );
   };
   const _filterDirection = (t, filters) => {
@@ -364,6 +385,12 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
     }
     return t.timestamp <= filters.end_time;
   };
+  const _filterSolFt = t => {
+    if (wallet.currency !== Coin.SOL) {
+      return true;
+    }
+    return !t.tokenId;
+  };
   const _getFilteredData = rawData => {
     let filters = _getFilters();
     const data = rawData.filter(t => _filter(t, filters));
@@ -371,9 +398,8 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
     data.sort((a, b) => b.timestamp - a.timestamp);
     return data;
   };
-  const _hasMore = () => rawDataObj.start + 10 < rawDataObj.total;
   const _fetchMoreHistory = () => {
-    if (_hasMore() && loading == NOT_LOADING) {
+    if (rawDataObj.hasMore /*&& rawDataObj.loading === NOT_LOADING*/) {
       dispatch(
         fetchTransaction(
           wallet.currency,
@@ -468,6 +494,138 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
   let startColor = startColors[wallet.currencySymbol] || startColors.UNKNOWN;
   let endColor = endColors[wallet.currencySymbol] || endColors.UNKNOWN;
 
+  const _checkApplicantDataAndNext = (next = () => {}) => {
+    setNormalLoading(true);
+    checkApplicantStatusAndNext(
+      kycResult,
+      (result, update) => {
+        setNormalLoading(false);
+        if (update) {
+          dispatch({ type: KYC_APPLICANT_STATUS_UPDATE, result });
+        }
+        next();
+      },
+      (result, update, reason) => {
+        setNormalLoading(false);
+        if (update) {
+          dispatch({ type: KYC_APPLICANT_STATUS_UPDATE, result });
+        }
+        let isSu = inSuList();
+        if (canGoKyc(result)) {
+          setResult({
+            title: I18n.t('kyc_block_init_title'),
+            message: I18n.t('kyc_block_init_desc'),
+            type: TYPE_FAIL,
+            failButtonText: I18n.t('kyc_block_go'),
+            buttonClick: () => {
+              setResult(null);
+              KycHelper.getLanguageAndStartKyc(
+                kycUserExist,
+                setNormalLoading,
+                dispatch,
+                setResult
+              );
+            },
+            secondaryConfig: {
+              color: theme.colors.primary,
+              text: isSu ? I18n.t('skip') : I18n.t('kyc_block_later'),
+              onClick: () => {
+                setResult(null);
+                if (isSu) {
+                  next();
+                }
+              },
+            },
+          });
+        } else {
+          setResult({
+            title: I18n.t('kyc_block_pending_title'),
+            message: I18n.t('kyc_block_pending_desc'),
+            type: TYPE_CONFIRM,
+            successButtonText: I18n.t('kyc_block_pending_ok'),
+            buttonClick: () => {
+              setResult(null);
+              KycHelper.getLanguageAndStartKyc(
+                kycUserExist,
+                setNormalLoading,
+                dispatch,
+                setResult
+              );
+            },
+            secondaryConfig: {
+              color: theme.colors.primary,
+              text: isSu ? I18n.t('skip') : I18n.t('kyc_block_pending_cancel'),
+              onClick: () => {
+                setResult(null);
+                if (isSu) {
+                  next();
+                }
+              },
+            },
+          });
+        }
+      },
+      error => {
+        setNormalLoading(false);
+        dispatch({ type: KYC_APPLICANT_STATUS_ERROR, error });
+        setResult({
+          type: TYPE_FAIL,
+          error: I18n.t(`error_msg_${error.code}`, {
+            defaultValue: error.message,
+          }),
+          title: I18n.t('check_failed'),
+          buttonClick: () => {
+            setResult(null);
+          },
+        });
+      }
+    );
+  };
+  const getExtraActions = () => {
+    if (Coin.EOS === wallet.currency) {
+      return (
+        <IconButton
+          borderless
+          color={'rgba(255, 255, 255, 0.56)'}
+          onPress={() => {
+            _checkApplicantDataAndNext(() => {
+              navigate('EosResource', { wallet: wallet });
+            });
+          }}
+          icon={({ size, color }) => (
+            <Image
+              source={require('../assets/image/ic_resource.png')}
+              style={{ width: 24, height: 24 }}
+            />
+          )}
+          accessibilityTraits="button"
+          accessibilityComponentType="button"
+          accessibilityRole="button"
+        />
+      );
+    } else if (showActionButtonInWalletDetail(wallet.currency)) {
+      return (
+        <IconButton
+          borderless
+          color={'rgba(255, 255, 255, 0.56)'}
+          onPress={() => {
+            _checkApplicantDataAndNext(() => {
+              navigate('WalletApiTest', { wallet: wallet });
+            });
+          }}
+          icon={({ size, color }) => (
+            <Image
+              source={require('../assets/image/ic_resource.png')}
+              style={{ width: 24, height: 24 }}
+            />
+          )}
+          accessibilityTraits="button"
+          accessibilityComponentType="button"
+          accessibilityRole="button"
+        />
+      );
+    }
+  };
   return ready ? (
     <Container style={Styles.container}>
       <BackgroundImage
@@ -483,24 +641,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
             onBack={() => goBack()}
             actions={
               <View style={{ flexDirection: 'row' }}>
-                {Coin.EOS === wallet.currency && (
-                  <IconButton
-                    borderless
-                    // accessibilityLabel={clearAccessibilityLabel}
-                    color={'rgba(255, 255, 255, 0.56)'}
-                    // rippleColor={rippleColor}
-                    onPress={() => navigate('EosResource', { wallet: wallet })}
-                    icon={({ size, color }) => (
-                      <Image
-                        source={require('../assets/image/ic_resource.png')}
-                        style={{ width: 24, height: 24 }}
-                      />
-                    )}
-                    accessibilityTraits="button"
-                    accessibilityComponentType="button"
-                    accessibilityRole="button"
-                  />
-                )}
+                {getExtraActions()}
                 <IconButton
                   borderless
                   style={{
@@ -524,7 +665,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
               </View>
             }
           />
-          <View style={[Styles.numContainer, { marginTop: 0, marginRight: 0 }]}>
+          <View style={[Styles.numContainer]}>
             <BalanceTextLite
               textStyle={[Styles.mainNumText, Theme.fonts.default.heavy]}
               balanceItem={balanceItem}
@@ -567,9 +708,11 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
                 },
               ]}
               color="#fff"
-              onPress={() =>
-                navigate('Deposit', { wallet, onComplete: _refresh })
-              }>
+              onPress={() => {
+                _checkApplicantDataAndNext(() => {
+                  navigate('Deposit', { wallet, onComplete: _refresh });
+                });
+              }}>
               {I18n.t('receive')}
             </RoundButton2>
             <RoundButton2
@@ -591,9 +734,11 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
                 },
               ]}
               color="#fff"
-              onPress={() =>
-                navigate('Withdraw', { wallet, onComplete: _refresh })
-              }>
+              onPress={() => {
+                _checkApplicantDataAndNext(() => {
+                  navigate('Withdraw', { wallet, onComplete: _refresh });
+                });
+              }}>
               {I18n.t('send')}
             </RoundButton2>
           </View>
@@ -613,7 +758,7 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
         showsHorizontalScrollIndicator={false}
         horizontal={true}
         style={{ flexGrow: 0, backgroundColor: theme.colors.background }}>
-        <View style={styles.filterContainer}>
+        <View style={Styles.filterContainer}>
           <BottomActionMenu
             visible={showMenu1}
             currentSelect={filterDirection}
@@ -687,11 +832,11 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
       <TransactionList
         transactions={_getFilteredData(rawDataObj.data)}
         onTransactionPress={_goTransactionDetail}
-        refreshing={loading == GET_NEW}
+        refreshing={rawDataObj.loading === GET_NEW}
         onRefresh={_refresh}
         onEndReached={_fetchMoreHistory}
         getCurrencySymbol={item => currencySymbol}
-        footLoading={_hasMore() ? loading : NO_MORE}
+        footLoading={rawDataObj.hasMore ? rawDataObj.loading : NO_MORE}
       />
       {showModal && (
         <InputMessageModal
@@ -706,6 +851,17 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
           }}
         />
       )}
+      {normalLoading && (
+        <ActivityIndicator
+          color={theme.colors.primary}
+          size="large"
+          style={{
+            position: 'absolute',
+            alignSelf: 'center',
+            top: height / 2,
+          }}
+        />
+      )}
       {result && (
         <ResultModal
           visible={!!result}
@@ -714,6 +870,9 @@ const WalletDetailScreen: () => React$Node = ({ theme }) => {
           message={result.message}
           errorMsg={result.error}
           onButtonClick={result.buttonClick}
+          successButtonText={result.successButtonText}
+          failButtonText={result.failButtonText}
+          secondaryConfig={result.secondaryConfig}
         />
       )}
     </Container>
@@ -756,14 +915,6 @@ const styles = StyleSheet.create({
     // marginHorizontal: 20,
     marginTop: 16,
     // flex: 1,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    // backgroundColor: '#000',
-    // width: FULL_WIDTH_WITH_PADDING,
-    paddingHorizontal: HEADER_BAR_PADDING,
-    paddingVertical: 10,
   },
 });
 export default withTheme(WalletDetailScreen);

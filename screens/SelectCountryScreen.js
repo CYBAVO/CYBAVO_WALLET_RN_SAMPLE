@@ -225,8 +225,8 @@ const SelectCountryScreen: () => React$Node = ({
           marginTop: 62,
           backgroundColor: theme.colors.navy,
         }}
-        ParentIos={View}
-        Parent={View}
+        iosInsetTop={false}
+        androidInsetTop={false}
         titleColor={theme.colors.text}
         title={I18n.t('register')}
         onBack={() => {
